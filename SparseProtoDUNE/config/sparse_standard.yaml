@@ -1,0 +1,40 @@
+data:
+  name: 'SparsePixelMap'
+  root: '/data'
+  t_v_split: 0.05
+
+process:
+  processes: 50
+  max_files: 5000
+  pre_transform: None
+
+model:
+  name: 'SparseSegmentation'
+  extent: 6000 # Maximum dimension of pixel map
+  n_feats: 48 # Number of features
+  unet_depth: 5
+  res_blocks: True # Whether to use residual blocks in unet
+  loss_func: 'categorical_cross_entropy'
+  learning_rate: 1.e-4
+  step_size: 1 # How many epochs between LR reduction
+  gamma: 0.1 # Factor to reduce learning rate by
+  class_names: ['neutron','em','hip','mu','pi','michel','shower']
+  gpus: [ 0,1,2,3 ] # Which GPUs to use for training
+  state_dict: 'params/checkpoints/model_checkpoint_DataParallel_5031655_70a7120dc7_hewesje_004.pth.tar'
+
+data_loader:
+  batch_size: 100
+  num_workers: 20
+
+trainer:
+  n_epochs: 5
+  #max_iters_train: 10
+  #max_iters_eval: 10
+  summary_dir: 'summary/mupi/test2'
+  output_dir: 'params'
+
+inference:
+  max_images:    2000 # Maximum number of images to process
+  event_display: False # Whether to draw event displays
+  confusion:     True # Whether to draw a confusion matrix
+

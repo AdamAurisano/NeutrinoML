@@ -19,22 +19,22 @@ model:
   step_size: 1 # How many epochs between LR reduction
   gamma: 0.1 # Factor to reduce learning rate by
   class_names: ['neutron','em','hip','mu','pi','michel','shower']
-  gpus: [ 0,1,2,3 ] # Which GPUs to use for training
-  state_dict: 'params/checkpoints/model_checkpoint_DataParallel_5031655_70a7120dc7_hewesje_004.pth.tar'
+  #  state_dict: 'params/checkpoints/model_checkpoint_DataParallel_5031655_70a7120dc7_hewesje_004.pth.tar'
 
 data_loader:
-  batch_size: 100
-  num_workers: 20
+  batch_size: 40
+  #num_workers: 20
 
 trainer:
-  n_epochs: 5
-  #max_iters_train: 10
-  #max_iters_eval: 10
+  device: 0 # Which GPU to use
+  n_epochs: 1
+  max_iters_train: 100
+  max_iters_eval: 100
   summary_dir: 'summary/mupi/test2'
   output_dir: 'params'
 
 inference:
-  max_images:    2000 # Maximum number of images to process
-  event_display: False # Whether to draw event displays
-  confusion:     True # Whether to draw a confusion matrix
+  max_images:    100 # Maximum number of images to process
+  event_display: True # Whether to draw event displays
+  confusion:     False # Whether to draw a confusion matrix
 

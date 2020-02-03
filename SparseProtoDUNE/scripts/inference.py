@@ -67,6 +67,8 @@ def main():
   y_true_all = None
   y_pred_all = None
 
+  colour = mpl.cm.get_cmap('tab10')
+
   for i, data in t:
     batch_output = trainer.model((data['c'].to(trainer.device), data['x'].to(trainer.device), batch_size))
     batch_target = data['y'].to(batch_output.device)
@@ -81,12 +83,14 @@ def main():
 #      c_pred = [ f'c{k}' for k in y_pred ]
 #      c_true = [ f'c{k}' for k in y_true ]
       if config['inference']['event_display']:
-        scatter = plt.scatter(coords[:,0].cpu().numpy(), coords[:,1].cpu().numpy(), c=y_pred.cpu().numpy(), cmap='tab10', s=2)
+        scatter = plt.scatter(coords[:,0].cpu().numpy(), coords[:,1].cpu().numpy(),
+          c=[colour(k) for k in y_pred.cpu().numpy()], s=2)
         #legend = plt.gca().legend(handles=scatter.legend_elements()[0], loc="lower left", labels=config['model']['class_names'])
         plt.gca().add_artist(get_legend(config['model']['class_names']))
         plt.savefig(f'plots/evd/evd_{i}_{j}_pred.png')
         plt.clf()
-        scatter = plt.scatter(coords[:,0].cpu().numpy(), coords[:,1].cpu().numpy(), c=y_true.cpu().numpy(), cmap='tab10', s=2)
+        scatter = plt.scatter(coords[:,0].cpu().numpy(), coords[:,1].cpu().numpy(),
+          c=[colour(k) for k in y_true.cpu().numpy()], s=2)
         #legend = plt.gca().legend(handles=scatter.legend_elements()[0], loc="lower left", labels=config['model']['class_names'])
         plt.gca().add_artist(get_legend(config['model']['class_names']))
         plt.savefig(f'plots/evd/evd_{i}_{j}_true.png')

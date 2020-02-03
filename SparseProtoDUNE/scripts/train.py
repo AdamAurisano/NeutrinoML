@@ -42,13 +42,13 @@ def main():
   tv_num = math.ceil(fulllen*config['data']['t_v_split'])
   splits = np.cumsum([fulllen-tv_num,0,tv_num])
   if config['trainer']['max_iters_train'] is not None:
-    train_iters = config['trainer']['max_iters_train']:
+    train_iters = config['trainer']['max_iters_train']
     max_train = train_iters * config['data_loader']['batch_size']
     if splits[0] > max_train: splits[0] = max_train
-  if config['trainer']['max_iters_valid'] is not None:
-    valid_iters = config['trainer']['max_iters_valid']
-    max_valid = valid+iters * config['data_loader']['batch_size']
-    if splits[2] > max_valid: splits[2] = max_valid
+  if config['trainer']['max_iters_eval'] is not None:
+    valid_iters = config['trainer']['max_iters_eval']
+    max_valid = valid_iters * config['data_loader']['batch_size']
+    if splits[2] > max_valid: splits[2] = splits[1] + max_valid
 
   train_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=0,stop=splits[0]))
   valid_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=splits[1],stop=splits[2]))

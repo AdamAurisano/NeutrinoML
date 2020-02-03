@@ -35,16 +35,13 @@ class SparseTrainer(base):
     super(SparseTrainer, self).__init__(**kwargs)
     self.writer = SummaryWriter(summary_dir)
 
-  def build_model(self, name='NodeConv', gpus=[0], loss_func='cross_entropy',
+  def build_model(self, name='NodeConv', loss_func='cross_entropy',
       optimizer='Adam', learning_rate=0.01, step_size=1, gamma=0.5,
       class_names=[], state_dict=None, **model_args):
     '''Instantiate our model'''
 
     # Construct the model
     self.model = get_model(name=name, **model_args)
-    self.device = f'cuda:{gpus[0]}'
-    if len(gpus) > 1:
-      self.model = nn.DataParallel(self.model, device_ids=gpus)
     self.model = self.model.to(self.device)
     if state_dict is not None:
       self.model.load_state_dict(torch.load(state_dict)['model'])
@@ -95,7 +92,7 @@ class SparseTrainer(base):
       correct = (w_pred==w_true)
       batch_acc = 100*correct.sum().float().item()/w_pred.shape[0]
       acc_indiv = [ 100*((w_pred[correct]==i).sum().float()/(w_true==i).sum().float()).item() for i in range(batch_target.shape[1]) ]
-      acc_indiv_2 = [ 100 * (1-w_diff) ]
+      acc_indiv_2 = [ 100 * (1-w_diff[:,j]).mean() for j in range(w_diff.shape[1]) ]
 
       self.optimizer.step()
 
@@ -108,8 +105,8 @@ class SparseTrainer(base):
       self.writer.add_scalar('Acc/batch', batch_acc, self.iteration)
       for name, acc in zip(self.class_names, acc_indiv):
         self.writer.add_scalar(f'batch_acc/{name}', acc, self.iteration)
-      for name, acc in zip(sself.class_names, acc_indiv_2):
-        self.writter.add_scalar(f'batch_acc_2/{name}', acc, self.iteration)
+      for name, acc in zip(self.class_names, acc_indiv_2):
+        self.writer.add_scalar(f'batch_acc_2/{name}', acc, self.iteration)
       self.iteration += 1
       #self.logger.debug('  batch %i, loss %f', i, batch_loss.item())
 

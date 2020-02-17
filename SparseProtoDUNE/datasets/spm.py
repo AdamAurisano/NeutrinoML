@@ -48,16 +48,15 @@ class SparsePixelMap(Dataset):
     x = torch.FloatTensor(data['PixelValue'])[:,None]
     c = torch.LongTensor(data['Coordinates'])
     y = torch.FloatTensor(data['GroundTruth'])
-    mask = (y[:,0] == 0)
-    return { 'x': x[mask,:], 'c': c[mask,:], 'y': y[mask,1:] }
+    #mask = (y[:,0] == 0)
+    return { 'x': x, 'c': c, 'y': y }
 
   def __getitem__(self, idx):
     data = torch.load(self.data_files[idx])
     x = torch.FloatTensor(data['PixelValue'])[:,None]
     c = torch.LongTensor(data['Coordinates'])
     y = torch.FloatTensor(data['GroundTruth'])
-    mask = (y[:,0] == 0)
-    return { 'x': x[mask,:], 'c': c[mask,:], 'y': y[mask,1:] }
+    return { 'x': x, 'c': c, 'y': y }
 
   def vet_files(self):
     for f in self.data_files:

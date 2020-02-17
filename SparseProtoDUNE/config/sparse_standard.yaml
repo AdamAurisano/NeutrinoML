@@ -1,6 +1,6 @@
 data:
   name: 'SparsePixelMap'
-  root: '/data'
+  root: '/data/2d'
   t_v_split: 0.05
 
 process:
@@ -15,22 +15,22 @@ model:
   unet_depth: 5
   res_blocks: True # Whether to use residual blocks in unet
   loss_func: 'categorical_cross_entropy'
-  learning_rate: 1.e-4
+  learning_rate: 1.e-1
   step_size: 1 # How many epochs between LR reduction
   gamma: 0.1 # Factor to reduce learning rate by
-  class_names: ['neutron','em','hip','mu','pi','michel','shower']
+  class_names: ['kaon','em+neutron','shower','hip','mu','pi','michel']
   #  state_dict: 'params/checkpoints/model_checkpoint_DataParallel_5031655_70a7120dc7_hewesje_004.pth.tar'
 
 data_loader:
-  batch_size: 40
+  batch_size: 40 
   #num_workers: 20
 
 trainer:
   device: 0 # Which GPU to use
   n_epochs: 5
-  max_iters_train: None
-  max_iters_eval: None
-  summary_dir: 'summary/mupi/test2'
+  max_iters_train: None 
+  max_iters_eval: None 
+  summary_dir: 'summary/sparsenet/test2'
   output_dir: 'params'
 
 inference:

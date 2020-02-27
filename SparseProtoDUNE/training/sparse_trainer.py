@@ -36,8 +36,8 @@ class SparseTrainer(base):
     self.writer = SummaryWriter(summary_dir)
 
   def build_model(self, name='NodeConv', loss_func='cross_entropy',
-      optimizer='Adam', learning_rate=0.01, step_size=1, gamma=0.5,
-      class_names=[], state_dict=None, **model_args):
+      optimizer='Adam', learning_rate=0.01, weight_decay=0.01,
+      step_size=1, gamma=0.5, class_names=[], state_dict=None, **model_args):
     '''Instantiate our model'''
 
     # Construct the model
@@ -54,7 +54,7 @@ class SparseTrainer(base):
 
     # Construct the optimizer
     self.optimizer = getattr(torch.optim, optimizer)(
-      self.model.parameters(), lr=learning_rate)
+      self.model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
     self.lr_scheduler = StepLR(self.optimizer, step_size, gamma)
 

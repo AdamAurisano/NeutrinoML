@@ -43,6 +43,7 @@ class SparseTrainer(base):
     '''Instantiate our model'''
 
     # Construct the model
+    torch.cuda.set_device(self.device)
     self.model = get_model(name=name, **model_args)
     self.model = self.model.to(self.device)
     if state_dict is not None:

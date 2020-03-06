@@ -73,7 +73,7 @@ class SparseTrainer(base):
     batch_size = data_loader.batch_size
     n_batches = int(math.ceil(len(data_loader.dataset)/batch_size)) #if max_iters_train is None else max_iters_train
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
-    summary_loss = []
+    #summary_loss = []
     for i, data in t:
 #      if max_iters_train is not None and i > max_iters_train: break
       self.optimizer.zero_grad()
@@ -85,7 +85,7 @@ class SparseTrainer(base):
       #batch_weights = batch_weights_real + batch_weights_fake
       #batch_loss = self.loss_func(batch_output, batch_target, weight=batch_weights)
       batch_loss = self.loss_func(batch_output, batch_target)
-      summary_loss.append(batch_loss)
+      #summary_loss.append(batch_loss)
       batch_loss.backward()
 
       # Calculate accuracy
@@ -95,7 +95,7 @@ class SparseTrainer(base):
       correct = (w_pred==w_true)
       batch_acc = 100*correct.sum().float().item()/w_pred.shape[0]
       acc_indiv = [ 100*((w_pred[correct]==i).sum().float()/(w_true==i).sum().float()).item() for i in range(batch_target.shape[1]) ]
-      acc_indiv_2 = [ 100 * (1-w_diff[:,j]).mean() for j in range(w_diff.shape[1]) ]
+      #acc_indiv_2 = [ 100 * (1-w_diff[:,j]).mean() for j in range(w_diff.shape[1]) ]
 
       self.optimizer.step()
 
@@ -108,8 +108,8 @@ class SparseTrainer(base):
       self.writer.add_scalar('Acc/batch', batch_acc, self.iteration)
       for name, acc in zip(self.class_names, acc_indiv):
         self.writer.add_scalar(f'batch_acc/{name}', acc, self.iteration)
-      for name, acc in zip(self.class_names, acc_indiv_2):
-        self.writer.add_scalar(f'batch_acc_2/{name}', acc, self.iteration)
+      #for name, acc in zip(self.class_names, acc_indiv_2):
+      #  self.writer.add_scalar(f'batch_acc_2/{name}', acc, self.iteration)
       self.iteration += 1
       #self.logger.debug('  batch %i, loss %f', i, batch_loss.item())
 

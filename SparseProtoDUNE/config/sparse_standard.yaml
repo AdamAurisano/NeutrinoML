@@ -1,5 +1,5 @@
 data:
-  name: 'SparsePixelMap'
+  name: 'SparsePixelMap2D'
   root: '/data/2d'
   t_v_split: 0.05
 

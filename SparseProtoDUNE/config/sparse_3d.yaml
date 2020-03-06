@@ -1,0 +1,46 @@
+data:
+  name: 'SparsePixelMap3D'
+  root: '/data/3d'
+  t_v_split: 0.05
+
+process:
+  processes: 50
+  max_files: 10000
+  pre_transform: None
+  voxel_size: 1
+  feat_norm: [1.e-5, 1.e-5, 1.e-5, 6.25e-4, 1.667e-3, 1.429e-3, 5.e-2]
+
+model:
+  name: 'SparseSegmentation'
+  n_dims: 3
+  extent: 6000 # Maximum dimension of pixel map
+  input_feats: 7
+  n_feats: 48 # Number of features
+  unet_depth: 5
+  res_blocks: True # Whether to use residual blocks in unet
+  loss_func: 'categorical_cross_entropy'
+  optimizer: 'AdamW'
+  learning_rate: 1.e-3
+  weight_decay: 0.01
+  step_size: 1 # How many epochs between LR reduction
+  gamma: 0.1 # Factor to reduce learning rate by
+  class_names: ['kaon','em+neutron','shower','hip','mu','pi','michel']
+  #  state_dict: 'params/checkpoints/model_checkpoint_DataParallel_5031655_70a7120dc7_hewesje_004.pth.tar'
+
+data_loader:
+  batch_size: 40 
+  #num_workers: 20
+
+trainer:
+  device: 5 # Which GPU to use
+  n_epochs: 5
+  max_iters_train: None 
+  max_iters_eval: None 
+  summary_dir: 'summary/3d/test1'
+  output_dir: 'params'
+
+inference:
+  max_images:    100 # Maximum number of images to process
+  event_display: True # Whether to draw event displays
+  confusion:     False # Whether to draw a confusion matrix
+

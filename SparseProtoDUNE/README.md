@@ -3,10 +3,10 @@
 These instructions assume you're working on Heimdall, and have access to the relevant inputs. In order to start, you must run
 
 ```
-scripts/run_docker_pytorch.sh <N>
+scripts/run_docker_pytorch.sh N
 ```
 
-where `<N>` is the last digit of the port number you wish to use. If you aren't sure what this means, you should reach out to me (Jeremy) to coordinate which ports to use. Currently reserved ports are:
+where `N` should be replaced with the last digit of the port number you wish to use. If you aren't sure what this means, you should reach out to me (Jeremy) to coordinate which ports to use. Currently reserved ports are:
 
 90XX – Jeremy
 

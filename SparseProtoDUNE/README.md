@@ -3,14 +3,17 @@
 These instructions assume you're working on Heimdall, and have access to the relevant inputs. In order to start, you must run
 
 ```
-bash scripts/run_docker_pytorch.sh <N>
+scripts/run_docker_pytorch.sh <N>
 ```
 
 where `<N>` is the last digit of the port number you wish to use. If you aren't sure what this means, you should reach out to me (Jeremy) to coordinate which ports to use. Currently reserved ports are:
 
 90XX – Jeremy
+
 91XX – Carlos
+
 92XX – Stella
+
 93XX – Nicole
 
 This script will launch a Docker container containing the environment necessary to train, mounting the correct data directory on Heimdall and this directory (SparseProtoDUNE) as your working directory.

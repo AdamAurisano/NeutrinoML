@@ -18,27 +18,35 @@ where `<N>` is the last digit of the port number you wish to use. If you aren't 
 
 This script will launch a Docker container containing the environment necessary to train, mounting the correct data directory on Heimdall and this directory (SparseProtoDUNE) as your working directory.
 
-Inside your Docker container, you should navigate to your `/scratch` working directory and then copy down the SparseConvNet framework by running
+Inside your Docker container, you should navigate to your working directory by doing
 
 ```
-git clone https://github.com/facebookresearch/SparseConvNet
+cd /scratch
 ```
 
 Once this is done, you should run
 
 ```
-source scripts/source_me.sh
+scripts/source_me.sh
 ```
 
-to set up your working environment and compile `SparseConvNet` (this will take a few minutes).
+to set up your working environment. Once that's done, you should be good to start training.
 
-You should run 
+## Running training
+
+The Heimdall machine has eight GPU cards, each of which has 16GB of memory available. Most ML tasks are configured to fully utilise the memory of whatever GPUs they run on, so if somebody is already making use of a specific card, you can think of it as "already in use" and use another one instead. If you try to spin up training on a GPU somebody else is using, that usually leads to your training failing due to an out-of-memory error.
+
+You can run the command `nvidia-smi` to check which GPUs are already in use, and choose an unoccupied one to train.
+
+Configuration files for running are stored in the `config` directory. By default, if no configuration is specified, the config `config/sparse_standard.yaml` will be used by default. The GPU can be changed by changing the `device` parameter in the configuration, and should be a number between `0` and `7`. These numbers correspond to those listed by the `nvidia-smi` command.
+
+You can set up training by running the command
 
 ```
-python scripts/train.py
+scripts/train.py
 ```
 
-to train a network, and
+and run inference by running
 
 ```
 scripts/inference.py
@@ -48,11 +56,10 @@ to make plots to benchmark the network.
 
 ## Monitoring training
 
-You can also launch a tensorboard instance by running
+You can launch a tensorboard instance by running
 
 ```
-bash scripts/run_tb.sh
+scripts/run_tb.sh
 ```
 
 although you will need to modify the port number in this script to match the values you chose when launching your Docker container. You can modify the train and test configuration by editing `config/sparse_standard.yaml` or creating alternate config files to pass to the training and inference scripts.
-

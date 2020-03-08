@@ -25,7 +25,7 @@ model:
 
 data_loader:
   batch_size: 40 
-  #num_workers: 20
+  num_workers: 1
 
 trainer:
   device: 0 # Which GPU to use

@@ -28,11 +28,11 @@ model:
   #  state_dict: 'params/checkpoints/model_checkpoint_DataParallel_5031655_70a7120dc7_hewesje_004.pth.tar'
 
 data_loader:
-  batch_size: 40 
-  #num_workers: 20
+  batch_size: 35 
+  num_workers: 1
 
 trainer:
-  device: 5 # Which GPU to use
+  device: 0 # Which GPU to use
   n_epochs: 5
   max_iters_train: None 
   max_iters_eval: None 

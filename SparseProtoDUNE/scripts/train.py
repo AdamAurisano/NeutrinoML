@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 '''
 Script for sparse convolutional network training
 '''
@@ -34,8 +36,6 @@ def main():
   args = parse_args()
   config = configure(args.config)
   full_dataset = datasets.get_dataset(**config['data'])
-  #device = torch.device(f'cuda:{config["model"]["gpus"][0]}' if torch.cuda.is_available() else 'cpu')
-  #trainer = ParallelTrainer(output_dir='./test', device=device, summary_dir=config['trainer']['summary_dir'])
   trainer = SparseTrainer(**config['trainer'])
 
   fulllen = len(full_dataset)

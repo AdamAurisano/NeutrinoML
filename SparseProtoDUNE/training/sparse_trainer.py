@@ -11,8 +11,7 @@ import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import LambdaLR, StepLR
-import tqdm
-import numpy as np
+import tqdm, numpy as np, psutil
 
 from models import get_model
 # Locals
@@ -28,7 +27,6 @@ def categorical_cross_entropy(y_pred, y_true):
   weights[mask] = y_true[:,mask].shape[0]/(y_true.shape[1]*class_sum[mask])
   weighted_loss =  weights[None,:] * loss
   return weighted_loss.sum(dim=1).mean()
-  #return -(y_true * torch.log(y_pred)).sum(dim=1).mean()i
 
 class SparseTrainer(base):
   '''Trainer code for basic classification problems with categorical cross entropy.'''
@@ -73,19 +71,12 @@ class SparseTrainer(base):
     batch_size = data_loader.batch_size
     n_batches = int(math.ceil(len(data_loader.dataset)/batch_size)) #if max_iters_train is None else max_iters_train
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
-    #summary_loss = []
     for i, data in t:
 #      if max_iters_train is not None and i > max_iters_train: break
       self.optimizer.zero_grad()
       batch_output = self.model((data['c'].to(self.device), data['x'].to(self.device), batch_size))
       batch_target = data['y'].to(batch_output.device)
-      #batch_target = torch.cat([ d.y for d in data ]).to(batch_output.device)
-      #batch_weights_real = batch_target*self.real_weight
-      #batch_weights_fake = (1 - batch_target)*self.fake_weight
-      #batch_weights = batch_weights_real + batch_weights_fake
-      #batch_loss = self.loss_func(batch_output, batch_target, weight=batch_weights)
       batch_loss = self.loss_func(batch_output, batch_target)
-      #summary_loss.append(batch_loss)
       batch_loss.backward()
 
       # Calculate accuracy
@@ -95,7 +86,6 @@ class SparseTrainer(base):
       correct = (w_pred==w_true)
       batch_acc = 100*correct.sum().float().item()/w_pred.shape[0]
       acc_indiv = [ 100*((w_pred[correct]==i).sum().float()/(w_true==i).sum().float()).item() for i in range(batch_target.shape[1]) ]
-      #acc_indiv_2 = [ 100 * (1-w_diff[:,j]).mean() for j in range(w_diff.shape[1]) ]
 
       self.optimizer.step()
 
@@ -104,21 +94,18 @@ class SparseTrainer(base):
       t.refresh() # to show immediately the update
 
       # add to tensorboard summary
-      self.writer.add_scalar('Loss/batch', batch_loss, self.iteration)
+      self.writer.add_scalar('Loss/batch', batch_loss.item(), self.iteration)
       self.writer.add_scalar('Acc/batch', batch_acc, self.iteration)
       for name, acc in zip(self.class_names, acc_indiv):
         self.writer.add_scalar(f'batch_acc/{name}', acc, self.iteration)
-      #for name, acc in zip(self.class_names, acc_indiv_2):
-      #  self.writer.add_scalar(f'batch_acc_2/{name}', acc, self.iteration)
+      self.writer.add_scalar('Memory usage', psutil.virtual_memory().used, self.iteration)
       self.iteration += 1
-      #self.logger.debug('  batch %i, loss %f', i, batch_loss.item())
 
     if self.lr_scheduler != None: self.lr_scheduler.step()
 
     summary['lr'] = self.optimizer.param_groups[0]['lr']
     summary['train_time'] = time.time() - start_time
     summary['train_loss'] = sum_loss / n_batches
-    summary['batch_loss'] = summary_loss
     self.logger.debug(' Processed %i batches', n_batches)
     self.logger.info('  Training loss: %.3f', summary['train_loss'])
     self.logger.info('  Learning rate: %.5f', summary['lr'])
@@ -145,8 +132,6 @@ class SparseTrainer(base):
       batch_target = data['y'].to(batch_output.device)
       batch_loss = self.loss_func(batch_output, batch_target)
       sum_loss += batch_loss.item()
-      # Calculate accuracy
-      # Calculate accuracy
       w_pred = batch_output.argmax(dim=1)
       w_true = batch_target.argmax(dim=1)
       correct = (w_pred==w_true)

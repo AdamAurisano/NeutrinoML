@@ -54,6 +54,8 @@ scripts/inference.py
 
 to make plots to benchmark the network.
 
+You can modify the train and test configuration by editing `config/sparse_standard.yaml` or creating alternate config files to pass to the training and inference scripts.
+
 ## Monitoring training
 
 You can launch a tensorboard instance by running
@@ -62,4 +64,4 @@ You can launch a tensorboard instance by running
 scripts/run_tb.sh
 ```
 
-although you will need to modify the port number in this script to match the values you chose when launching your Docker container. You can modify the train and test configuration by editing `config/sparse_standard.yaml` or creating alternate config files to pass to the training and inference scripts.
+which will be exposed on the port automatically configured when the Docker container was started. You can then navigate to `localhost:XXXX`, where `XXXX` is your port number, in a web browser on your local machine to monitor training.

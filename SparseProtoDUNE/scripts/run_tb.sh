@@ -1,4 +1,4 @@
 #!/bin/bash
 
-nohup tensorboard --logdir $PWD/summary --port 9001 > logs/tb.log 2>&1 &
+nohup tensorboard --logdir $PWD/summary --port ${USERPORT} > logs/tb.log 2>&1 &
 

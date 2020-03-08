@@ -27,7 +27,7 @@ cd /scratch
 Once this is done, you should run
 
 ```
-scripts/source_me.sh
+source scripts/source_me.sh
 ```
 
 to set up your working environment. Once that's done, you should be good to start training.

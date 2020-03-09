@@ -3,7 +3,7 @@
 These instructions assume you're working on Heimdall, and have access to the relevant inputs. In order to start, you must run
 
 ```
-scripts/run_docker_pytorch.sh N
+bash scripts/run_docker_pytorch.sh N
 ```
 
 where `N` should be replaced with the last digit of the port number you wish to use. If you aren't sure what this means, you should reach out to me (Jeremy) to coordinate which ports to use. Currently reserved ports are:
@@ -31,6 +31,23 @@ source scripts/source_me.sh
 ```
 
 to set up your working environment. Once that's done, you should be good to start training.
+
+If there is a docker error where the container is already in use, attach to the already spun container by doing
+
+```
+docker attach (yourname)-scn-N
+```
+
+To kill an already spun container do the following
+
+```
+docker kill (yourname)-scn-N
+```
+and spin a new container with the same command in line 6
+
+```
+bash scripts/run_docker_pytorch.sh N
+```
 
 ## Running training
 

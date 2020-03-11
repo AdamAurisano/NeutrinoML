@@ -3,10 +3,10 @@
 These instructions assume you're working on Heimdall, and have access to the relevant inputs. In order to start, you must run
 
 ```
-scripts/run_docker_pytorch.sh <N>
+bash scripts/run_docker_pytorch.sh N
 ```
 
-where `<N>` is the last digit of the port number you wish to use. If you aren't sure what this means, you should reach out to me (Jeremy) to coordinate which ports to use. Currently reserved ports are:
+where `N` should be replaced with the last digit of the port number you wish to use. If you aren't sure what this means, you should reach out to me (Jeremy) to coordinate which ports to use. Currently reserved ports are:
 
 90XX – Jeremy
 
@@ -27,10 +27,27 @@ cd /scratch
 Once this is done, you should run
 
 ```
-scripts/source_me.sh
+source scripts/source_me.sh
 ```
 
 to set up your working environment. Once that's done, you should be good to start training.
+
+If there is a docker error where the container is already in use, attach to the already spun container by doing
+
+```
+docker attach (yourname)-scn-N
+```
+
+To kill an already spun container do the following
+
+```
+docker kill (yourname)-scn-N
+```
+and spin a new container with the same command in line 6
+
+```
+bash scripts/run_docker_pytorch.sh N
+```
 
 ## Running training
 
@@ -54,6 +71,8 @@ scripts/inference.py
 
 to make plots to benchmark the network.
 
+You can modify the train and test configuration by editing `config/sparse_standard.yaml` or creating alternate config files to pass to the training and inference scripts.
+
 ## Monitoring training
 
 You can launch a tensorboard instance by running
@@ -62,4 +81,4 @@ You can launch a tensorboard instance by running
 scripts/run_tb.sh
 ```
 
-although you will need to modify the port number in this script to match the values you chose when launching your Docker container. You can modify the train and test configuration by editing `config/sparse_standard.yaml` or creating alternate config files to pass to the training and inference scripts.
+which will be exposed on the port automatically configured when the Docker container was started. You can then navigate to `localhost:XXXX`, where `XXXX` is your port number, in a web browser on your local machine to monitor training.

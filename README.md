@@ -31,4 +31,21 @@ git clone https://github.com/AdamAurisano/NeutrinoML
 
 I'm assuming you already have access if you're reading this, but if you don't, you can ask Adam to give you access.
 
+## Setting up ports
+
+In computer networking, a *port* is a communication endpoint on a machine. A procedure called *port forwarding* allows you to connect up ports on your local machine to ports on Heimdall. Port forwarding will allow you to run web pages on Heimdall, and then access them easily on your local machine. For instance, you can run the program *tensorboard*, which provides web pages used to monitor training, and then access and monitor that webpage on your local machine by forwarding ports.
+
+Part of getting set up in this workflow is being assigned ports. Since ports can collide if used by multiple people or applications, each user is assigned their own set of ports. The bookkeeping method for port usage is sociological rather than technological – each user is given a range of numbers representing ports that "belong to them", and as long as they use only those numbers, no collisions should occur. Ports are typically four-digit numbers, and the user will be assigned a unique pair of starting digits. All 100 ports beginning with this prefix belong to the user.
+
+You can set up port forwarding from your local machine by adding lines to your .ssh config as follows:
+
+```
+Host hd
+  HostName heimdall.geop.uc.edu
+  User <your username>
+  ProxyJump earth
+  LocalForward 1234 localhost:1234
+```
+where `1234` should here be replaced with whichever port number you wish to forward. In the case you wish to forward multiple ports at the same time, you can add as many `LocalForward` lines in succession as you wish with no restrictions.
+
 Once you've pulled down this repository, you can follow instructions for individual projects by reading the instructions inside the corresponding subdirectory of this repository.

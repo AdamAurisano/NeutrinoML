@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 '''
 Script for sparse convolutional network inference
 '''

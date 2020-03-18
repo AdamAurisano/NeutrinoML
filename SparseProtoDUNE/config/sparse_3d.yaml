@@ -25,14 +25,14 @@ model:
   step_size: 1 # How many epochs between LR reduction
   gamma: 0.1 # Factor to reduce learning rate by
   class_names: ['shower','diffuse','kaon','michel','hip','mu','pi']
-  #  state_dict: 'params/checkpoints/model_checkpoint_DataParallel_5031655_70a7120dc7_hewesje_004.pth.tar'
+  #state_dict: 'params/checkpoints/model_checkpoint_SparseSegmentation_14071975_c20c84b0b9_hewesje.best.pth.tar'
 
 data_loader:
   batch_size: 35 
   num_workers: 1
 
 trainer:
-  device: 0 # Which GPU to use
+  device: 1 # Which GPU to use
   n_epochs: 5
   max_iters_train: None 
   max_iters_eval: None 

@@ -7,7 +7,9 @@ It's possible that Git might ask you to identify yourself when you try to run a 
 `*** Please tell me who you are.`
 
 You can make these changes by running
+
 `git config --global user.email "your email address"`
+
 `git config --global user.name "your name"`
 
 ## Useful commands

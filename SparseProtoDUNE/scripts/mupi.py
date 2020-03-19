@@ -15,15 +15,13 @@ import matplotlib.patches as mpatches
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
-#from training.parallel import ParallelTrainer
-#from training.single import SingleTrainer
 from training.sparse_trainer import SparseTrainer
 
 def parse_args():
   '''Parse arguments'''
   parser = argparse.ArgumentParser('process.py')
   add_arg = parser.add_argument
-  add_arg('config', nargs='?', default='config/sparse_standard.yaml')
+  add_arg('config', nargs='?', default='config/sparse_3d.yaml')
   return parser.parse_args()
 
 def configure(config):
@@ -103,6 +101,18 @@ def main():
   plt.legend()
   plt.tight_layout()
   plt.savefig('true_scores.png')
+  plt.clf()
+
+  roc_x = []
+  roc_y = []
+  for cut in np.linspace(0, 1, 101):
+    roc_x.append((reco_pi_scores > cut).sum().item() / len(reco_pi_scores))
+    roc_y.append((reco_mu_scores > cut).sum().item() / len(reco_mu_scores))
+  plt.plot(roc_x, roc_y)
+  plt.xlabel('Fraction of true pion hits classified as muon')
+  plt.ylabel('Fraction of true muon hits classified as muon')
+  plt.tight_layout()
+  plt.savefig('roc_curve.png')
 
 if __name__ == '__main__':
   main()

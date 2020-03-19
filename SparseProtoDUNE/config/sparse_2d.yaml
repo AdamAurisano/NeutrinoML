@@ -32,7 +32,7 @@ trainer:
   n_epochs: 5
   max_iters_train: None 
   max_iters_eval: None 
-  summary_dir: 'summary/sparsenet/test2'
+  summary_dir: 'summary/2d/test1'
   output_dir: 'params'
 
 inference:

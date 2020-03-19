@@ -55,7 +55,7 @@ The Heimdall machine has eight GPU cards, each of which has 16GB of memory avail
 
 You can run the command `nvidia-smi` to check which GPUs are already in use, and choose an unoccupied one to train.
 
-Configuration files for running are stored in the `config` directory. By default, if no configuration is specified, the config `config/sparse_standard.yaml` will be used by default. The GPU can be changed by changing the `device` parameter in the configuration, and should be a number between `0` and `7`. These numbers correspond to those listed by the `nvidia-smi` command.
+Configuration files for running are stored in the `config` directory. By default, if no configuration is specified, the config `config/sparse_3d.yaml` will be used by default. The GPU can be changed by changing the `device` parameter in the configuration, and should be a number between `0` and `7`. These numbers correspond to those listed by the `nvidia-smi` command.
 
 You can set up training by running the command
 
@@ -71,7 +71,7 @@ scripts/inference.py
 
 to make plots to benchmark the network.
 
-You can modify the train and test configuration by editing `config/sparse_standard.yaml` or creating alternate config files to pass to the training and inference scripts.
+You can modify the train and test configuration by editing `config/sparse_3d.yaml` or creating alternate config files to pass to the training and inference scripts.
 
 ## Monitoring training
 

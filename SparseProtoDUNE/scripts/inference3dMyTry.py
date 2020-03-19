@@ -15,15 +15,13 @@ import matplotlib.patches as mpatches
 from sklearn.metrics import confusion_matrix
 import seaborn as sn
 
-#from training.parallel import ParallelTrainer
-#from training.single import SingleTrainer
 from training.sparse_trainer import SparseTrainer
 
 def parse_args():
   '''Parse arguments'''
   parser = argparse.ArgumentParser('process.py')
   add_arg = parser.add_argument
-  add_arg('config', nargs='?', default='config/sparse_standard.yaml')
+  add_arg('config', nargs='?', default='config/sparse_3d.yaml')
   return parser.parse_args()
 
 def configure(config):
@@ -46,8 +44,6 @@ def main():
   args = parse_args()
   config = configure(args.config)
   full_dataset = datasets.get_dataset(**config['data'])
-  #device = torch.device(f'cuda:{config["model"]["gpus"][0]}' if torch.cuda.is_available() else 'cpu')
-  #trainer = ParallelTrainer(output_dir='./test', device=device, summary_dir=config['trainer']['summary_dir'])
   trainer = SparseTrainer(**config['trainer'])
 
   fulllen = len(full_dataset)

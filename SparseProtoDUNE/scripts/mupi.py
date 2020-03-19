@@ -58,6 +58,7 @@ def main():
   valid_loader = DataLoader(valid_dataset, collate_fn=collate_sparse, **config['data_loader'], shuffle=False)
 
   trainer.build_model(**config['model'])
+  trainer.load_state_dict(**config['inference'])
   trainer.model.eval()
   batch_size = valid_loader.batch_size
   n_batches = int(math.ceil(len(valid_loader.dataset)/batch_size))

@@ -21,7 +21,6 @@ model:
   step_size: 1 # How many epochs between LR reduction
   gamma: 0.1 # Factor to reduce learning rate by
   class_names: ['kaon','em+neutron','shower','hip','mu','pi','michel']
-  #  state_dict: 'params/checkpoints/model_checkpoint_DataParallel_5031655_70a7120dc7_hewesje_004.pth.tar'
 
 data_loader:
   batch_size: 40 
@@ -36,7 +35,8 @@ trainer:
   output_dir: 'params'
 
 inference:
-  max_images:    100 # Maximum number of images to process
+  max_images: 100 # Maximum number of images to process
   event_display: True # Whether to draw event displays
-  confusion:     False # Whether to draw a confusion matrix
+  confusion: False # Whether to draw a confusion matrix
+  state_dict: None # Replace this with a string path to a trained .pth.tar file after training! They're written to params/checkpoints
 

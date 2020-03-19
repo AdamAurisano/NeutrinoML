@@ -37,14 +37,12 @@ class SparseTrainer(base):
 
   def build_model(self, name='NodeConv', loss_func='cross_entropy',
       optimizer='Adam', learning_rate=0.01, weight_decay=0.01,
-      step_size=1, gamma=0.5, class_names=[], state_dict=None, **model_args):
+      step_size=1, gamma=0.5, class_names=[], **model_args): #state_dict=None, **model_args):
     '''Instantiate our model'''
 
     # Construct the model
     torch.cuda.set_device(self.device)
     self.model = get_model(name=name, **model_args)
-    if state_dict is not None:
-      self.model.load_state_dict(torch.load(state_dict, map_location='cpu')['model'])
     self.model = self.model.to(self.device)
 
     # Construct the loss function
@@ -60,6 +58,10 @@ class SparseTrainer(base):
     self.lr_scheduler = StepLR(self.optimizer, step_size, gamma)
 
     self.class_names = class_names
+
+  def load_state_dict(self, state_dict, **inference_args):
+    '''Load state dict from trained model'''
+    self.model.load_state_dict(torch.load(state_dict, map_location=f'cuda:{self.device}')['model'])
 
   def train_epoch(self, data_loader, **kwargs):
     '''Train for one epoch'''

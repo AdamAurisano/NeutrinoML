@@ -15,8 +15,6 @@ import matplotlib.patches as mpatches
 from sklearn.metrics import confusion_matrix
 import seaborn as sn
 
-#from training.parallel import ParallelTrainer
-#from training.single import SingleTrainer
 from training.sparse_trainer import SparseTrainer
 
 def parse_args():
@@ -46,8 +44,6 @@ def main():
   args = parse_args()
   config = configure(args.config)
   full_dataset = datasets.get_dataset(**config['data'])
-  #device = torch.device(f'cuda:{config["model"]["gpus"][0]}' if torch.cuda.is_available() else 'cpu')
-  #trainer = ParallelTrainer(output_dir='./test', device=device, summary_dir=config['trainer']['summary_dir'])
   trainer = SparseTrainer(**config['trainer'])
 
   fulllen = len(full_dataset)
@@ -61,6 +57,7 @@ def main():
   valid_loader = DataLoader(valid_dataset, collate_fn=collate_sparse, **config['data_loader'], shuffle=False)
 
   trainer.build_model(**config['model'])
+  trainer.load_state_dict(**config['inference'])
   trainer.model.eval()
   batch_size = valid_loader.batch_size
   n_batches = int(math.ceil(len(valid_loader.dataset)/batch_size))

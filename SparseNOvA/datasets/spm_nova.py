@@ -30,7 +30,9 @@ class SparsePixelMapNOvA(Dataset):
     #      dataset = SparsePixelMapNOvA(filedir=/path/to/files)
     #      print(dataset.n_files)
     #
-    # and the number of files will be stored
+    # By declaring n_files with the "self." prefix, we've declared it as
+    # what's called a "data attribute" of the class - an instance of this
+    # class will hold onto it for as long as that instance exists
 
   def __len__(self):
     return 1

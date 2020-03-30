@@ -24,5 +24,5 @@ fi
 
 export USERPORT=${PORTPREFIX}2${1}
 
-nvidia-docker run --name ${USER}-gcn-${1} --expose=${USERPORT} -p ${USERPORT}:${USERPORT} -e USER -e USERPORT -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v /raid/dune:/data nvcr.io/nvidia/pytorch:20.03-py3
+nvidia-docker run --name ${USER}-gcn-${1} --expose=${USERPORT} -p ${USERPORT}:${USERPORT} -e USER -e USERPORT -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v /raid/dune:/data nvcr.io/univcinci/pytorch-gcn:20.03-py3
 

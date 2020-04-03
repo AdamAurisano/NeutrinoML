@@ -1,6 +1,7 @@
 data:
   name: 'SparsePixelMap3D'
   root: '/data/3d'
+  trainfiles: 'processed'
   t_v_split: 0.05
 
 process:

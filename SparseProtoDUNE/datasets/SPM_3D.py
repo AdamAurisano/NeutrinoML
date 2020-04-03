@@ -9,8 +9,9 @@ from .SegTruth import SegTruth
 from time import time
 
 class SparsePixelMap3D(Dataset):
-  def __init__(self, root, **kwargs):
+  def __init__(self, root, trainfiles, **kwargs):
     self.root = root
+    self.trainfiles = trainfiles
     self.data_files = self.processed_file_names
 
   @property
@@ -19,7 +20,7 @@ class SparsePixelMap3D(Dataset):
 
   @property
   def processed_dir(self):
-    return f'{self.root}/processed'
+    return f'{self.root}/{self.trainfiles}'
 
   @property
   def raw_file_names(self):

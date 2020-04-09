@@ -13,20 +13,10 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import LambdaLR, StepLR
 import tqdm, numpy as np, psutil
 
-from models import get_model
 # Locals
+from models import get_model
 from .base import base
-
-def categorical_cross_entropy(y_pred, y_true):
-  y_pred = torch.clamp(y_pred, 1e-9, 1 - 1e-9)
-  # Normalise the loss!
-  loss = -(y_true * torch.log(y_pred))
-  weights = torch.zeros(y_true.shape[1]).to(y_true.device)
-  class_sum = y_true.sum(dim=0)
-  mask = (class_sum>0)
-  weights[mask] = y_true[:,mask].shape[0]/(y_true.shape[1]*class_sum[mask])
-  weighted_loss =  weights[None,:] * loss
-  return weighted_loss.sum(dim=1).mean()
+from loss import categorical_cross_entropy
 
 class SparseTrainer(base):
   '''Trainer code for basic classification problems with categorical cross entropy.'''
@@ -74,9 +64,11 @@ class SparseTrainer(base):
     n_batches = int(math.ceil(len(data_loader.dataset)/batch_size)) #if max_iters_train is None else max_iters_train
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
     for i, data in t:
-#      if max_iters_train is not None and i > max_iters_train: break
       self.optimizer.zero_grad()
-      batch_output = self.model((data['c'].to(self.device), data['x'].to(self.device), batch_size))
+      # Different input shapes for SparseConvNet vs MinkowskiEngine
+      batch_input = data['sparse'].to(self.device) if 'sparse' in data.keys() \
+        else (data['c'].to(self.device), data['x'].to(self.device), batch_size)
+      batch_output = self.model(batch_input)
       batch_target = data['y'].to(batch_output.device)
       batch_loss = self.loss_func(batch_output, batch_target)
       batch_loss.backward()
@@ -126,11 +118,13 @@ class SparseTrainer(base):
     start_time = time.time()
     # Loop over batches
     batch_size = data_loader.batch_size
-    n_batches = int(math.ceil(len(data_loader.dataset)/batch_size)) #if max_iters_eval is None else max_iters_eval
+    n_batches = int(math.ceil(len(data_loader.dataset)/batch_size))
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
     for i, data in t:
-#      if max_iters_eval is not None and i > max_iters_eval: break
-      batch_output = self.model((data['c'].to(self.device), data['x'].to(self.device), batch_size))
+      # Different input shapes for SparseConvNet vs MinkowskiEngine
+      batch_input = data['sparse'].to(self.device) if 'sparse' in data.keys() \
+        else (data['c'].to(self.device), data['x'].to(self.device), batch_size)
+      batch_output = self.model(batch_input)
       batch_target = data['y'].to(batch_output.device)
       batch_loss = self.loss_func(batch_output, batch_target)
       sum_loss += batch_loss.item()

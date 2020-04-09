@@ -41,6 +41,7 @@ class SparsePixelMap3D(Dataset):
     c = torch.LongTensor(data['c'])
     x = torch.FloatTensor(data['x'])
     y = torch.FloatTensor(data['y'])
+    del data
     return { 'x': x, 'c': c, 'y': y }
 
   def vet_files(self):
@@ -99,7 +100,7 @@ class SparsePixelMap3D(Dataset):
 
         logging.info(f'Voxelising took {time()-start:.2f} seconds.')
 
-        c = torch.LongTensor([np.array(coordinates[key]) for key in coordinates])
+        c = torch.IntTensor([np.array(coordinates[key]) for key in coordinates])
         x = torch.FloatTensor([np.array(features[key]) for key in coordinates])
         norm = np.array(feat_norm)
         x = x * norm[None,:] # Normalise features
@@ -107,7 +108,7 @@ class SparsePixelMap3D(Dataset):
 
         if x.max() > 1: print('Feature greater than one at ', x.argmax())
 
-        data = { 'c': c.long(), 'x': x.float(), 'y': y.float() }
+        data = { 'c': c, 'x': x, 'y': y }
         fname = f'pdune_{uuid}_{idx}.pt'
         logging.info(f'Saving file {fname} with {c.shape[0]} voxels.')
         torch.save(data, f'{self.processed_dir}/{fname}')

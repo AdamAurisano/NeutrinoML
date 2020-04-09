@@ -3,8 +3,10 @@ Module for holding onto PyTorch network architectures
 '''
 
 from .seg import *
+from .minkowski_seg import MinkowskiSeg
 
-_models = { 'SparseSegmentation': SparseSegmentation }
+_models = { 'SparseSegmentation': SparseSegmentation,
+            'MinkowskiSeg':       MinkowskiSeg }
 
 def get_model(name, **model_args):
 

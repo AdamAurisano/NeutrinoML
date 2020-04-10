@@ -3,26 +3,32 @@ PyTorch data structure for sparse pixel maps
 '''
 
 from torch.utils.data import Dataset
-import glob
-import h5py
-import numpy as np
+import os.path as osp, glob, h5py, tqdm, numpy as np, torch
 
 class SparsePixelMapNOvA(Dataset):
-
     def __init__(self, filedir, **kwargs):
+        '''Initialiser for SparsePixelMapNOvA class'''
         self.filedir = filedir
         self.current_file = None 
 
-        self.total_events = 0 
-        self.file_metadata = []
-        self.files = glob.glob('/data/mp5/*')
-        for filename in self.files:
-            file = h5py.File(filename, 'r')
-            mask = np.nonzero(file['rec.mc']['nnu'][:,0]==1)[0]
-            nevts = len(mask)
-            self.file_metadata.append({'nevts':nevts, 'mask':mask})
-            self.total_events += nevts
-            file.close()
+        self.files = sorted(glob.glob(f'{self.filedir}/*.h5'))
+        
+        # See if we can load metadata from file
+        meta = f'{self.filedir}/metadata.pt'
+        if osp.exists(meta):
+            self.file_metadata = torch.load(meta)
+            # Validate that the metadata looks good
+            if len(self.file_metadata) != len(self.files):
+                raise Exception('Mismatch between files and metadata.')
+        # If there's no metadata file, then generate metadata
+        else:
+            self.get_file_metadata()
+            torch.save(self.file_metadata, meta)
+
+        # Add up the total event count
+        self.total_events = 0
+        for val in self.file_metadata:
+            self.total_events += len(val['mask'])
 
         # print(self.total_events)
         # print(self.file_metadata[2]['mask'])
@@ -52,7 +58,7 @@ class SparsePixelMapNOvA(Dataset):
         # By declaring n_files with the "self." prefix, we've declared it as
         # what's called a "data attribute" of the class - an instance of this
         # class will hold onto it for as long as that instance exists
-
+        
     def __len__(self):
         return self.total_events
 
@@ -94,6 +100,42 @@ class SparsePixelMapNOvA(Dataset):
             data = {'xaxis':xaxis, 'yaxis':yaxis}
 
         return data
+    
+    
+    def get_file_metadata(self):
+        '''Function to produce metadata for all training files and return a dictionary'''
+        self.file_metadata = []
+        for filename in tqdm.tqdm(self.files):
+            file = h5py.File(filename, 'r')
+            mask = np.nonzero(file['rec.mc']['nnu'][:,0]==1)[0]
+            good = np.ones(mask.shape[0], dtype=bool) # Use this mask to kill the images with no associated truth
+            truth = []
+            # Loop over each neutrino image to look for the associated truth
+            for i, nu in enumerate(mask):
+                true_idx = self.match_truth(file, nu)
+                # Remove this image if there's no associated truth
+                if len(true_idx) == 0: good[i] = False
+                # Otherwise get the truth and add it to the metadata
+                else: truth.append(file['rec.training.trainingdata']['interaction'][true_idx][0])
+            mask = mask[good]
+            if (len(mask) != len(truth)):
+                raise Exception(f'Mismatch found: {len(mask)} images and {len(truth)} truths.')
+            self.file_metadata.append({ 'mask': mask, 'truth': truth })
+            file.close()
+        return 
+    
+    def match_truth(self, file, im_idx):
+        '''Returns list of index locations of trainingdata for a given slicemap'''
+        keys = ['run','subrun','cycle','evt','subevt']
+        tag = { key: file['rec.training.slicemaps'][key][im_idx,0] for key in keys }
+        mask = None
+        for key in keys:
+            m = (file['rec.training.trainingdata'][key][:,0] == tag[key])
+            mask = m if mask is None else mask & m
+        true_idx = mask.nonzero()[0]
+        if len(true_idx) > 1:
+            raise Exception(f'{len(true_idx)} truths found for slicemap {im_idx}.')
+        return true_idx
 
     #         # situation 1 to open/close file
     #         if self.current_file[0] is not None and self.current_file[0] != event_file:

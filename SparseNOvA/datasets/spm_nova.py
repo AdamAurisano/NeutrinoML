@@ -117,7 +117,7 @@ class SparsePixelMapNOvA(Dataset):
                 # Remove this image if there's no associated truth
                 if len(true_idx) == 0: good[i] = False
                 # Otherwise get the truth and add it to the metadata
-                else: truth.append(file['rec.training.trainingdata']['interaction'][true_idx][0])
+                else: truth.append(file['rec.training.trainingdata']['interaction'][true_idx,0][0])
             mask = mask[good]
             if (len(mask) != len(truth)):
                 raise Exception(f'Mismatch found: {len(mask)} images and {len(truth)} truths.')

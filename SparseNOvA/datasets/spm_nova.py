@@ -4,6 +4,7 @@ PyTorch data structure for sparse pixel maps
 
 from torch.utils.data import Dataset
 import os.path as osp, glob, h5py, tqdm, numpy as np, torch
+import utils
 
 class SparsePixelMapNOvA(Dataset):
     def __init__(self, filedir, **kwargs):
@@ -63,41 +64,41 @@ class SparsePixelMapNOvA(Dataset):
         return self.total_events
 
     def __getitem__(self, idx):
+        '''Return training information at provided index'''
         if not 0 <= idx < self.total_events:
-            print("The event you are looking for does not exist.")
-            print("Please pick an event between 0 and total number of events.")
-        else:
-            # First step: find the file the neutrino event is in.
-            counter = idx
-            event_number = 0
-            event_file = 0
-            for i in range(len(self.file_metadata)):
-                nevt = len(self.file_metadata[i]['mask'])
-                if counter > nevt: 
-                    print("To check,",counter,"subtract",nevt,"equals")
-                    counter = counter - nevt
-                    print(counter)
-                else:
-                    event_file = i
-                    print("The event is",counter,"th event in file",event_file)
-                    break
+            raise Exception(f'Event number {idx} invalid – must be in range 0 -> {self.total_events-1}.')
+        # First step: find the file the neutrino event is in.
+        counter = idx
+        event_number = 0
+        event_file = 0
+        for i in range(len(self.file_metadata)):
+            nevt = len(self.file_metadata[i]['mask'])
+            if counter > nevt: 
+#                 print("To check,",counter,"subtract",nevt,"equals")
+                counter = counter - nevt
+#                 print(counter)
+            else:
+                event_file = i
+                print("The event is",counter,"th event in file",event_file)
+                break
 
-            # Second step: figure out if the file is open/close
-            if self.current_file is None:
-                self.current_file = (event_file, h5py.File(self.files[event_file]))
-            elif self.current_file[0] != event_file:
-                self.current_file[1].close()
-                self.current_file = (event_file, h5py.File(self.files[event_file]))
-                
-            # Third step: once the correct file is opened, pull the image out
-            # i tells you the file
-            # j tells you the position in the file
-            j = self.file_metadata[i]['mask'][counter]
-            print(j)
-            image = self.current_file[1]['rec.training.slicemaps']['slicemap'][j]
-            image = image.reshape(2, 448, 384)
-            xaxis, yaxis = image[:]
-            data = {'xaxis':xaxis, 'yaxis':yaxis}
+        # Second step: figure out if the file is open/close
+        if self.current_file is None:
+            self.current_file = (event_file, h5py.File(self.files[event_file], 'r'))
+        elif self.current_file[0] != event_file:
+            self.current_file[1].close()
+            self.current_file = (event_file, h5py.File(self.files[event_file], 'r'))
+
+        # Third step: once the correct file is opened, pull the image out
+        # i tells you the file
+        # j tells you the position in the file
+        j = self.file_metadata[i]['mask'][counter]
+        truth = self.file_metadata[i]['truth'][counter]
+#         print(j)
+        image = self.current_file[1]['rec.training.slicemaps']['slicemap'][j]
+        xview, yview = image.reshape(2, 448, 384)[:]
+        data = { 'xview': utils.dense_to_sparse(xview),
+                 'yview': utils.dense_to_sparse(yview) }
 
         return data
     

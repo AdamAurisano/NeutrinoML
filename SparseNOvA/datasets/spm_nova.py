@@ -10,21 +10,22 @@ class SparsePixelMapNOvA(Dataset):
     def __init__(self, filedir, **kwargs):
         '''Initialiser for SparsePixelMapNOvA class'''
         self.filedir = filedir
-        self.current_file = None 
-
-        self.files = sorted(glob.glob(f'{self.filedir}/*.h5'))
+        self.current_file = None
         
-        # See if we can load metadata from file
-        meta = f'{self.filedir}/metadata.pt'
-        if osp.exists(meta):
-            self.file_metadata = torch.load(meta)
-            # Validate that the metadata looks good
-            if len(self.file_metadata) != len(self.files):
-                raise Exception('Mismatch between files and metadata.')
-        # If there's no metadata file, then generate metadata
-        else:
-            self.get_file_metadata()
-            torch.save(self.file_metadata, meta)
+        nonswap = sorted(glob.glob(f'{self.filedir}/nonswap/*.h5'))
+        fluxswap = sorted(glob.glob(f'{self.filedir}/fluxswap/*.h5'))
+        tauswap = sorted(glob.glob(f'{self.filedir}/tauswap/*.h5'))
+        
+        # We want to sort the files in a consistent way
+        # but also have a mix of all file types throughout
+        self.files = list()
+        for triplet in zip(nonswap, fluxswap, tauswap): self.files += triplet
+        print(len(self.files))
+        self.file_metadata = list()
+        for file in self.files:
+            base = osp.basename(file).split('.')[0]
+            metafile = f'{self.filedir}/metadata/{base}.pt'
+            self.file_metadata.append(torch.load(metafile))
 
         # Add up the total event count
         self.total_events = 0

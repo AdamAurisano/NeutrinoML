@@ -20,7 +20,6 @@ class SparsePixelMapNOvA(Dataset):
         # but also have a mix of all file types throughout
         self.files = list()
         for triplet in zip(nonswap, fluxswap, tauswap): self.files += triplet
-        print(len(self.files))
         self.file_metadata = list()
         for file in self.files:
             base = osp.basename(file).split('.')[0]
@@ -46,13 +45,9 @@ class SparsePixelMapNOvA(Dataset):
         event_file = 0
         for i in range(len(self.file_metadata)):
             nevt = len(self.file_metadata[i]['mask'])
-            if counter > nevt: 
-#                 print("To check,",counter,"subtract",nevt,"equals")
-                counter = counter - nevt
-#                 print(counter)
+            if counter >= nevt: counter -= nevt
             else:
                 event_file = i
-                print("The event is",counter,"th event in file",event_file)
                 break
 
         # Second step: figure out if the file is open/close
@@ -70,10 +65,13 @@ class SparsePixelMapNOvA(Dataset):
         new_truth = self.get_alias(truth)
         image = self.current_file[1]['rec.training.slicemaps']['slicemap'][j]
         xview, yview = image.reshape(2, 448, 384)[:]
-        data = { 'xview': utils.dense_to_sparse(xview),
-                 'yview': utils.dense_to_sparse(yview), 
-                 'truth': new_truth}
-
+        xsparse = torch.tensor(xview).float().to_sparse()
+        ysparse = torch.tensor(yview).float().to_sparse()
+        data = { 'xfeats': xsparse._values().unsqueeze(dim=-1),
+                 'xcoords': xsparse._indices().T.int(),
+                 'yfeats': ysparse._values().unsqueeze(dim=-1),
+                 'ycoords': ysparse._indices().T.int(),
+                 'truth': torch.tensor(new_truth).long() }
         return data
     
     

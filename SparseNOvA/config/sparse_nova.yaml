@@ -1,4 +1,39 @@
 data:
   name: 'SparsePixelMapNOvA'
   filedir: '/data/mp5'
+  t_v_split: 0.05
 
+model:
+  name: 'Minkowski2StackClass'
+  n_dims: 2
+  extent: 6000 # Maximum dimension of pixel map
+  input_feats: 1
+  n_feats: 64 # Number of features
+  unet_depth: 5
+  res_blocks: True # Whether to use residual blocks in unet
+  loss_func: 'CrossEntropyLoss'
+  optimizer: 'AdamW'
+  learning_rate: 1.e-5
+  weight_decay: 0.01
+  step_size: 1 # How many epochs between LR reduction
+  gamma: 0.1 # Factor to reduce learning rate by
+  class_names: ['numu','nue','nutau','nc','nuone']
+  n_classes: 5
+
+data_loader:
+  batch_size: 100
+  num_workers: 50
+
+trainer:
+  device: 1 # Which GPU to use
+  n_epochs: 5
+  max_iters_train: None
+  max_iters_eval:  None
+  summary_dir: '/scratch/SparseNOvA/summary/test1'
+  output_dir: 'params'
+
+inference:
+  max_images: 100 # Maximum number of images to process
+  event_display: True # Whether to draw event displays
+  confusion: False # Whether to draw a confusion matrix
+  state_dict: None # Replace this with a string path to a trained .pth.tar file after training! They're written to params/checkpoints

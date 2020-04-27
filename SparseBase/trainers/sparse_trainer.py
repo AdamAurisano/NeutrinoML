@@ -74,7 +74,6 @@ class SparseTrainer(base):
                           data['sparse'][1],   
                           data['sparse'][2].to(self.device),
                           data['sparse'][3] ]
-# d.to(self.device) for d in data['sparse'] ]
         else: batch_input = data['sparse'].to(self.device)
       else: batch_input = (data['c'].to(self.device), data['x'].to(self.device), batch_size)
       batch_output = self.model(batch_input)
@@ -103,8 +102,6 @@ class SparseTrainer(base):
       #self.writer.add_scalar('Memory usage', psutil.virtual_memory().used, self.iteration)
       self.iteration += 1
 
-    if self.lr_scheduler != None: self.lr_scheduler.step()
-
     summary['lr'] = self.optimizer.param_groups[0]['lr']
     summary['train_time'] = time.time() - start_time
     summary['train_loss'] = sum_loss / n_batches
@@ -130,20 +127,23 @@ class SparseTrainer(base):
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
     for i, data in t:
       # Different input shapes for SparseConvNet vs MinkowskiEngine
-      batch_input = data['sparse'].to(self.device) if 'sparse' in data.keys() \
-        else (data['c'].to(self.device), data['x'].to(self.device), batch_size)
+      if 'sparse' in data.keys():
+        if isinstance(data['sparse'], list):
+          batch_input = [ data['sparse'][0].to(self.device),
+                          data['sparse'][1],
+                          data['sparse'][2].to(self.device),
+                          data['sparse'][3] ]
+        else: batch_input = data['sparse'].to(self.device)
+      else: batch_input = (data['c'].to(self.device), data['x'].to(self.device), batch_size)
       batch_output = self.model(batch_input)
       batch_target = data['y'].to(batch_output.device)
       batch_loss = self.loss_func(batch_output, batch_target)
       sum_loss += batch_loss.item()
       w_pred = batch_output.argmax(dim=1)
-      w_true = batch_target.argmax(dim=1)
+      w_true = batch_target.argmax(dim=1) if batch_target.ndim == 2 else batch_target
       correct = (w_pred==w_true)
       sum_correct += correct.sum().float().item()
       sum_total += w_pred.shape[0]
-      for i in range(batch_target.shape[1]):
-        sum_correct_indiv[i] += (w_pred[correct]==i).sum().float().item()
-        sum_total_indiv[i] += (w_true==i).sum().float().item()
     summary['valid_time'] = time.time() - start_time
     summary['valid_loss'] = sum_loss / n_batches
     summary['valid_acc'] = 100 * sum_correct / sum_total

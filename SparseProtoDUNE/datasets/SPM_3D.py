@@ -103,7 +103,7 @@ class SparsePixelMap3D(Dataset):
             features[vox][6] += 1
             truth[vox] += sp_truth
 #            process[vox] += sp_proc
-        logging.info(f'Voxelising1 took {time()-start:.2f} seconds.')
+        logging.info(f'Voxelising took {time()-start:.2f} seconds.')
         
         c = torch.IntTensor([np.array(coordinates[key]) for key in coordinates])
         x = torch.FloatTensor([np.array(features[key]) for key in coordinates])

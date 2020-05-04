@@ -1,6 +1,6 @@
 '''Classification architecture using MinkowskiEngine UNet'''
 import torch
-from torch.nn import Sequential as Seq, Softmax, Linear
+from torch.nn import Sequential as Seq, Softmax, Linear, ModuleList
 import MinkowskiEngine as ME
 import MinkowskiEngine.MinkowskiFunctional as MF
 from .minkowski_unet import UNetUp, UNetDown
@@ -86,11 +86,35 @@ class Minkowski2StackClass(ME.MinkowskiNetwork):
       n_feats=n_feats,
       activation=activation)
 
+    # Convolution layers
+    self.conv_x = ModuleList()
+    self.conv_y = ModuleList()
+    for i in range(unet_depth):
+      hidden = (2**(i+1)) * n_feats
+      self.conv_x.append(Seq(
+        ME.MinkowskiConvolution(
+          in_channels = hidden,
+          out_channels = hidden,
+          kernel_size=3,
+          stride=2,
+          dimension=n_dims),
+        ME.MinkowskiBatchNorm(hidden)))
+      self.conv_y.append(Seq(
+        ME.MinkowskiConvolution(
+          in_channels = hidden,
+          out_channels = hidden,
+          kernel_size=3,
+          stride=2,
+          dimension=n_dims),
+        ME.MinkowskiBatchNorm(hidden)))
+
     # Global pooling and output
     self.pool = ME.MinkowskiGlobalMaxPooling(dimension=n_dims)
     output_size = 0
     for i in range(unet_depth): output_size += 2**(i+2) * n_feats # Add up features from every layer of the UNet
-    self.out_net = Linear(output_size, n_classes, bias=True)
+    self.out_net = Seq(
+      Linear(output_size, output_size, bias=True),
+      Linear(output_size, n_classes, bias=True))
 
   def forward(self, x):
 
@@ -109,6 +133,8 @@ class Minkowski2StackClass(ME.MinkowskiNetwork):
     x2 = self.down_y(x2)
 
     # Concatenate all layers of the UNet
+    x1 = [ c(x) for c, x in zip(self.conv_x, x1) ]
+    x2 = [ c(x) for c, x in zip(self.conv_y, x2) ]
     x1 = torch.cat([self.pool(x).F for x in x1], dim=-1)
     x2 = torch.cat([self.pool(x).F for x in x2], dim=-1)
 

@@ -40,7 +40,11 @@ class SparsePixelMap3D(Dataset):
     data = torch.load(self.data_files[idx])
     c = torch.LongTensor(data['c'])
     x = torch.FloatTensor(data['x'])
-    y = torch.FloatTensor(data['y'])
+   # y = torch.FloatTensor(data['y'])
+    #Mix kaons and hip
+    y = np.array(data['y']) 
+    y = np.hstack((y[:,:2], (y[:,2:3] + y[:,4:5]) ,y[:,3:4], y[:,5:]) )
+    y = torch.FloatTensor(y)
     del data
     return { 'x': x, 'c': c, 'y': y }
 
@@ -66,25 +70,25 @@ class SparsePixelMap3D(Dataset):
 
     # Loop over pixel maps in file
     for idx in range(len(feats)):
-
       #try:
-
         # Get per-spacepoint ground truth
         start = time()
-        m, y = SegTruth(pix_pdg[idx], pix_id[idx], pix_proc[idx], pix_e[idx])
+        m, y, p  = SegTruth(pix_pdg[idx], pix_id[idx], pix_proc[idx], pix_e[idx])
         logging.info(f'Ground truth calculating took {time()-start:.2f} seconds.')
-
         # Voxelise inputs
+       
         coordinates = dict()
         features = dict()
         truth = dict()
+        process = dict()
 
         # Transform spacepoint positions
         transform = np.array([800, -6.5, 0])
         pos = np.array(coords[idx])[m,:] + transform[None,:]
 
+
         start = time()
-        for sp_pos, sp_feats, sp_truth in zip(pos, np.array(feats[idx])[m,:], y[m,:]):
+        for sp_pos, sp_proc, sp_feats, sp_truth in zip(pos, p[m,:], np.array(feats[idx])[m,:], y[m,:]):
           vox = tuple( np.floor(val/voxel_size) for val in sp_pos )
           if not vox in coordinates:
             coordinates[vox] = np.array(vox)
@@ -93,34 +97,35 @@ class SparsePixelMap3D(Dataset):
             features[vox][3:6] = sp_pos
             features[vox][6] = 1
             truth[vox] = sp_truth
+            process[vox] = sp_proc
           else:
             features[vox][:3] += sp_feats
             features[vox][6] += 1
             truth[vox] += sp_truth
-
+#            process[vox] += sp_proc
         logging.info(f'Voxelising took {time()-start:.2f} seconds.')
-
+        
         c = torch.IntTensor([np.array(coordinates[key]) for key in coordinates])
         x = torch.FloatTensor([np.array(features[key]) for key in coordinates])
         norm = np.array(feat_norm)
         x = x * norm[None,:] # Normalise features
         y = torch.FloatTensor([truth[key]/truth[key].sum() for key in coordinates])
-
+        p = [process[key] for key in coordinates]
         if x.max() > 1: print('Feature greater than one at ', x.argmax())
 
-        data = { 'c': c, 'x': x, 'y': y }
+        data = { 'c': c, 'x': x, 'y': y, 'p':p}
         fname = f'pdune_{uuid}_{idx}.pt'
         logging.info(f'Saving file {fname} with {c.shape[0]} voxels.')
         torch.save(data, f'{self.processed_dir}/{fname}')
 
       #except:
       #  logging.info(f'Exception occurred during processing of event {idx} in file {filename}! Skipping.')
-
   def process(self, processes, max_files=None, **kwargs):
     '''Process raw input files'''
     proc = partial(self.process_file, **kwargs)
     if max_files is not None:
       files = self.raw_file_names[:max_files]
+      print(type(files),'  ', len(files))
     else:
       files = self.raw_file_names
     if processes == 1:

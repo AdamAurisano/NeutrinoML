@@ -39,6 +39,19 @@ def get_legend(names):
   colour = mpl.cm.get_cmap('tab10')
   return plt.legend(handles=[mpatches.Patch(color=colour(i), label=name) for i, name in enumerate(names)])
 
+
+def get_frame(c, y, i, names):
+  #nclasses = y.max():
+  #for i in range(nclasses+1):
+  #names = ['e_shower', 'ph_shower','diffuse','delta','michel','hip','mu','pi']  
+  colors = colorscale=px.colors.qualitative.G10
+  mask = (y == i)
+  df = pd.DataFrame(c[mask], columns=['x','y','z'])
+  #df['process'] = p[mask]
+  f = go.Scatter3d(x=df.x, y=df.y, z=df.z, mode = 'markers',
+                         marker=dict(color=colors[i], size=1), name = names[i] ) #text=df.process)
+  return f
+
 def main():
   '''Main function'''
   args = parse_args()
@@ -78,31 +91,32 @@ def main():
       
       mask = (data['c'][:,3] == j)
       #coords = data['c'][mask, :-1]
-      y_pred = batch_output[mask].argmax(dim=1)
-      y_true = batch_target[mask].argmax(dim=1)
-     # df = pd.DataFrame(data['x'][mask].cpu().numpy()[:,3:6], columns=['x', 'y', 'z'])
-      df = pd.DataFrame(data['c'][mask, :-1].cpu().numpy(), columns=['x', 'y', 'z'])
-      df['truth'] = y_true.cpu().numpy()
-      df['pred'] = y_pred.cpu().numpy()
-#      c_pred = [ f'c{k}' for k in y_pred ]
-#      c_true = [ f'c{k}' for k in y_true ]
+      c = data['c'][mask, :-1].cpu().numpy()
+      y_pred = batch_output[mask].argmax(dim=1).cpu()
+      y_true = batch_target[mask].argmax(dim=1).cpu()
+      #proc = np.array(data['p'])
+      #p = [] 
+      #for k in range(len(y_true)):
+      #  p.append(proc[k][y_true[k].item()])
+      #p = np.array(p)
       if config['inference']['event_display']:
-        #true
-        fig_true = go.Figure(data=[go.Scatter3d(x=df.x, y=df.y, z=df.z, mode='markers', 
-            marker=dict(color=df.truth, size=1, colorscale=px.colors.qualitative.G10))])
+        n_classes = config['model']['n_classes']
+        names = config['model']['class_names']
+        fig_true = go.Figure()
+        fig_pred = go.Figure()
+        for k in range(n_classes):
+          frame_true = get_frame(c, y_true, k,names)
+          frame_pred = get_frame(c, y_pred, k,names)
+          #frame_true = get_frame(c, y_true, p, k)
+          #frame_pred = get_frame(c, y_pred, p, k)
+          fig_true.add_trace(frame_true) 
+          fig_pred.add_trace(frame_pred) 
+        fig_true.update_traces(showlegend=True)
+        fig_pred.update_traces(showlegend=True)
         plotly.offline.plot(fig_true, filename =f'plots/evd/evd_{i}_{j}_true.html', auto_open=False)
-        fig = plt.figure(figsize=(8,5))
-        plt.gca().add_artist(get_legend(config['model']['class_names']))
-        plt.savefig(f'plots/evd/evd_{i}_{j}_true_Legend.png')      
-        fig.clf()
-	#prediction
-        fig_pred = go.Figure(data=[go.Scatter3d(x=df.x, y=df.y, z=df.z, mode='markers', 
-            marker=dict(color=df.pred, size=1, colorscale=px.colors.qualitative.G10))])
-        plotly.offline.plot(fig_pred, filename = f'plots/evd/evd_{i}_{j}_pred.html', auto_open=False)
-        fig = plt.figure(figsize=(8,5))
-        plt.gca().add_artist(get_legend(config['model']['class_names']))
-        plt.savefig(f'plots/evd/evd_{i}_{j}_pred_Legend.png')      
-        fig.clf()
+        plotly.offline.plot(fig_pred, filename =f'plots/evd/evd_{i}_{j}_pred.html', auto_open=False)
+        del fig_true 
+        del fig_pred 
 
     if config['inference']['confusion']:
       if y_true_all is None: y_true_all = batch_target.argmax(dim=1)

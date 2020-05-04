@@ -86,7 +86,7 @@ def main():
         c = data['c'][mask, :-1]
         c = np.array(c)
         showers=[]
-        difuse=[]
+        diffuse=[]
         mic=[]
         hip=[]
         mu=[]
@@ -105,7 +105,7 @@ def main():
          if y_true[idx].item() == 5:
             pi.append(c[idx])
         showers = torch.FloatTensor(showers)
-        difuse  = torch.FloatTensor(difuse)
+        diffuse  = torch.FloatTensor(diffuse)
         mu = torch.FloatTensor(mu)
         pi = torch.FloatTensor(pi)
         mic = torch.FloatTensor(mic)
@@ -141,12 +141,12 @@ def main():
 
         fig.update_traces(showlegend=True)
         plotly.offline.plot(fig, filename =f'plots/evd/evd_{i}_{j}_true.html', auto_open=False)
-        del showers, difuse, mic, hip, mu, pi 
+        del showers, diffuse, mic, hip, mu, pi 
         del df1, df2, df3, df4, df5, df6
         del fig
 	#prediction
         showers =[]
-        difuse  =[]
+        diffuse  =[]
         mic =[]
         hip =[]
         mu = []
@@ -165,7 +165,7 @@ def main():
           if y_pred[idx].item() == 5:
             pi.append(c[idx])
         showers = torch.FloatTensor(showers)
-        difuse  = torch.FloatTensor(difuse)
+        diffuse  = torch.FloatTensor(diffuse)
         mu = torch.FloatTensor(mu)
         pi = torch.FloatTensor(pi)
         mic = torch.FloatTensor(mic)
@@ -201,7 +201,7 @@ def main():
 
         fig.update_traces(showlegend=True)
         plotly.offline.plot(fig, filename =f'plots/evd/evd_{i}_{j}_pred.html', auto_open=False)
-        del showers, difuse, mic, hip, mu, pi
+        del showers, diffuse, mic, hip, mu, pi
         del df1, df2, df3, df4, df5, df6
         del fig
 

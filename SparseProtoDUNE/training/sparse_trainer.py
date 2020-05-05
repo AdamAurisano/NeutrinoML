@@ -12,6 +12,7 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import LambdaLR, StepLR
 import tqdm, numpy as np, psutil
+import ranger
 
 # Locals
 from models import get_model
@@ -26,7 +27,7 @@ class SparseTrainer(base):
     self.writer = SummaryWriter(summary_dir)
 
   def build_model(self, name='NodeConv', loss_func='cross_entropy',
-      optimizer='Adam', learning_rate=0.01, weight_decay=0.01,
+      optimizer='Adam', ranger_params={}, learning_rate=0.01, weight_decay=0.01,
       step_size=1, gamma=0.5, class_names=[], **model_args): #state_dict=None, **model_args):
     '''Instantiate our model'''
 
@@ -42,8 +43,11 @@ class SparseTrainer(base):
       self.loss_func = getattr(nn.modules.loss, loss_func)()
 
     # Construct the optimizer
-    self.optimizer = getattr(torch.optim, optimizer)(
-      self.model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    if optimizer == 'Ranger':
+      self.optimizer = ranger.Ranger(self.model.parameters(), **ranger_params)
+    else:
+      self.optimizer = getattr(torch.optim, optimizer)(
+        self.model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
     self.lr_scheduler = StepLR(self.optimizer, step_size, gamma)
 

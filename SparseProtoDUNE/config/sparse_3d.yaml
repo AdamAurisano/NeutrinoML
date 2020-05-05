@@ -30,7 +30,7 @@ model:
     alpha:            0.5
     k:                6
     N_sma_threshhold: 5
-    betas:            ( 0.95, 0.999 )
+    betas:            [ 0.95, 0.999 ]
     eps:              1.e-5
     weight_decay:     0
     use_gc:           True

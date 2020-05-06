@@ -1,3 +1,3 @@
 #!/bin/bash
-nohup jupyter lab --port=${USERPORT} > logs/jupyter.log 2>&1 &
+nohup jupyter lab --port=${USERPORT} > /scratch/GraphDUNE/logs/jupyter.log 2>&1 &
 

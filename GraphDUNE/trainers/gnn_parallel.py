@@ -14,7 +14,7 @@ import torch_geometric
 from torch.optim.lr_scheduler import LambdaLR, StepLR
 import tqdm
 
-from models import get_model
+from GraphDUNE.models import get_model
 # Locals
 from .base import base
 
@@ -38,14 +38,12 @@ def categorical_cross_entropy(y_pred, y_true):
 class GNNParallelTrainer(base):
     """Trainer code for basic classification problems with binomial cross entropy."""
 
-    def __init__(self, real_weight=1, fake_weight=1, summary_dir='summary', **kwargs):
+    def __init__(self, summary_dir='summary', **kwargs):
         super(GNNParallelTrainer, self).__init__(**kwargs)
-        self.real_weight = real_weight
-        self.fake_weight = fake_weight
         self.writer = SummaryWriter(summary_dir)
 
     def build_model(self, name='NodeConv', gpus=[0],
-                    loss_func='binary_cross_entropy',
+                    loss_func='binary_cross_entropy', pos_weight=1,
                     optimizer='Adam', learning_rate=0.01,
                     step_size=5, gamma=0.5, **model_args):
         """Instantiate our model"""
@@ -57,12 +55,16 @@ class GNNParallelTrainer(base):
 
         # Construct the loss function
         if loss_func == 'categorical_cross_entropy':
-            self.loss_func = categorical_cross_entropy
+          self.loss_func = categorical_cross_entropy
+        elif loss_func == 'CrossEntropyLoss':
+          self.loss_func = nn.CrossEntropyLoss()
+        elif loss_func == 'WeightedBCE':
+          self.loss_func = nn.BCELoss(reduction='none')
+          self.weight = pos_weight
         else:
-            self.loss_func = getattr(nn.functional, loss_func)
+          self.loss_func = getattr(nn, loss_func)(pos_weight=torch.tensor(pos_weight).to(self.device))
 
         # Construct the optimizer
-        print('Learning rate is', learning_rate)
         self.optimizer = getattr(torch.optim, optimizer)(
             self.model.parameters(), lr=learning_rate)
 
@@ -81,38 +83,34 @@ class GNNParallelTrainer(base):
         batch_size = data_loader.batch_size
         t = tqdm.tqdm(enumerate(data_loader),total=int(math.ceil(total/batch_size)))
         for i, data in t:
-        #for i, data in enumerate(data_loader):
-            #data = data.to(self.device)
+
             self.optimizer.zero_grad()
             batch_output = self.model(data)
             batch_target = torch.cat([ d.y for d in data ]).to(batch_output.device)
-            #batch_weights_real = batch_target*self.real_weight
-            #batch_weights_fake = (1 - batch_target)*self.fake_weight
-            #batch_weights = batch_weights_real + batch_weights_fake
-            #frac = batch_target.sum(dim=0) / batch_target.shape[0]
-            #batch_weights = 2*((frac*(1-batch_target))+((1-frac)*batch_target))
             batch_loss = self.loss_func(batch_output, batch_target)
+            if hasattr(self, 'weight'):
+              batch_loss[(batch_target==1)] *= self.weight
+              batch_loss = batch_loss.mean()
             batch_loss.backward()
             batch_loss_item = batch_loss.item()
             self.optimizer.step()
 
             mask = (batch_target==1)
             n_true = batch_target.sum().item()
+            batch_acc = 100*(batch_output.round()==batch_target).sum() / batch_target.shape[0]
             true_acc = 100*(batch_output[mask].round()==batch_target[mask]).sum() / n_true
             false_acc = 100*(batch_output[~mask].round() == batch_target[~mask]).sum() / (batch_target.shape[0]-n_true)
 
-            #print('true accuracy', true_acc, 'false_accuracy', false_acc)
-
             sum_loss += batch_loss.item()
             t.set_description("loss = %.5f" % batch_loss.item() )
-            t.refresh() # to show immediately the update
+            t.refresh() # Immediately show the update
 
-            # add to tensorboard summary
-            self.writer.add_scalar('Loss/batch', batch_loss, self.iteration)
-            self.writer.add_scalar('Accuracy/true', true_acc, self.iteration)
-            self.writer.add_scalar('Accuracy/false', false_acc, self.iteration)
+            # Add to tensorboard summary
+#             self.writer.add_scalar('Loss/batch', batch_loss, self.iteration)
+#             self.writer.add_scalar('Accuracy/batch_all', batch_acc, self.iteration)
+#             self.writer.add_scalar('Accuracy/batch_true', true_acc, self.iteration)
+#             self.writer.add_scalar('Accuracy/batch_false', false_acc, self.iteration)
             self.iteration += 1
-            #self.logger.debug('  batch %i, loss %f', i, batch_loss.item())
 
         if self.lr_scheduler != None:
             self.lr_scheduler.step()
@@ -131,14 +129,11 @@ class GNNParallelTrainer(base):
         self.model.eval()
         summary = dict()
         sum_loss = 0
-        sum_correct = 0
         sum_total = 0
         sum_true = 0
-        sum_false = 0
-        sum_misid = 0
-        sum_missed = 0
-        sum_total_true = 0
-        sum_total_false = 0
+        sum_correct = 0
+        sum_true_correct = 0
+        sum_false_correct = 0
         start_time = time.time()
         # Loop over batches
         total = len(data_loader.dataset)
@@ -149,29 +144,22 @@ class GNNParallelTrainer(base):
             batch_output = self.model(data)
             batch_target = torch.cat([ d.y for d in data ]).to(batch_output.device)
             batch_loss = self.loss_func(batch_output, batch_target)
+            if hasattr(self, 'weight'):
+              batch_loss[(batch_target==1)] *= self.weight
+              batch_loss = batch_loss.mean()
             sum_loss += batch_loss.item()
             # Count number of correct predictions
-            matches = ((batch_output > 0.5) == (batch_target > 0.5))
-            sum_true += ((batch_output > 0.5) & (batch_target > 0.5)).sum().item()
-            sum_false += ((batch_output < 0.5) & (batch_target < 0.5)).sum().item()
-            sum_misid += ((batch_output > 0.5) & (batch_target < 0.5)).sum().item()
-            sum_missed += ((batch_output < 0.5) & (batch_target > 0.5)).sum().item()
-            sum_total_true += (batch_target > 0.5).sum().item()
-            sum_total_false += (batch_target < 0.5).sum().item()
-            sum_correct += matches.sum().item()
-            sum_total += matches.numel()
-            #self.logger.debug(' batch %i loss %.3f correct %i total %i',
-            #                  i, batch_loss.item(), matches.sum().item(),
-            #                  matches.numel())                           
+            mask = (batch_target==1)
+            sum_total += batch_target.shape[0]
+            sum_true += batch_target.sum().item()
+            sum_correct += (batch_output.round()==batch_target).sum().item()
+            sum_true_correct += (batch_output[mask].round()==batch_target[mask]).sum().item()
+            sum_false_correct += (batch_output[~mask].round()==batch_target[~mask]).sum().item()           
         summary['valid_time'] = time.time() - start_time
         summary['valid_loss'] = sum_loss / (i + 1)
-        summary['valid_acc'] = sum_correct / sum_total
-        summary['valid_true'] = sum_true / sum_total
-        summary['valid_false'] = sum_false / sum_total
-        summary['valid_misid'] = sum_misid / sum_total
-        summary['valid_missed'] = sum_missed / sum_total
-        summary['valid_true_eff'] = sum_true / sum_total_true
-        summary['valid_false_eff'] = sum_false / sum_total_false
+        summary['valid_acc'] = 100*sum_correct/sum_total
+        summary['valid_acc_true'] = 100*sum_true_correct/sum_true
+        summary['valid_acc_false'] = 100*sum_false_correct/(sum_total-sum_true)
         self.logger.debug(' Processed %i samples in %i batches',
                           len(data_loader.sampler), i + 1)
         self.logger.info('  Validation loss: %.3f acc: %.3f' %
@@ -212,9 +200,9 @@ class GNNParallelTrainer(base):
             self.writer.add_scalar('Loss/train', summary['train_loss'], i+1)
             if valid_data_loader is not None:
                 self.writer.add_scalar('Loss/valid', summary['valid_loss'], i+1)
-                self.writer.add_scalar('Acc/valid', summary['valid_acc'], i+1)
-                self.writer.add_scalar('Acc/valid_true_eff', summary['valid_true_eff'], i+1)
-                self.writer.add_scalar('Acc/valid_false_eff', summary['valid_false_eff'], i+1)
+                self.writer.add_scalar('Accuracy/valid_all', summary['valid_acc'], i+1)
+                self.writer.add_scalar('Accuracy/valid_true', summary['valid_acc_true'], i+1)
+                self.writer.add_scalar('Accuracy/valid_false', summary['valid_acc_false'], i+1)
 
         return self.summaries
 

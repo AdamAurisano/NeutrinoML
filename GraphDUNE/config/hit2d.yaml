@@ -1,0 +1,28 @@
+data:
+  name: 'simple'
+  path: '/data/hit2d/processed'
+  t_v_split: 0.05
+
+trainer:
+  batch_size: 40 # 80
+  n_epochs: 20
+  step_size: 1
+  gamma: 0.8
+  summary_dir: '/scratch/GraphDUNE/summary/hit2d_v2/4iters-256feats'
+
+  #test:
+  #model_file: 'test/checkpoints/model_checkpoint_DataParallel_13579_587e2f9a5c_hewesje.best.pth.tar'
+
+model:
+  name: 'message'
+  gpus: [ 6,7 ]
+  input_dim: 9
+  hidden_dim: 256
+  optimizer: 'AdamW'
+  weight_decay: 0.01
+  n_iters: 4
+  learning_rate: 1.e-4
+  loss_func: 'WeightedBCE'
+  pos_weight: 2
+#   true_weight: 15
+#   transforms: [ 'NormDUNE' ]

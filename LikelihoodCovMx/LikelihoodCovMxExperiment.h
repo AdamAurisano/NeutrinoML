@@ -71,7 +71,6 @@ namespace ana
     void GetGradAndHess() const;
     void GetReducedGradAndHess() const;
 
-    void QuadraticIteration() const;
     void Solve(int N, double* hess, double* grad) const;
     double LikelihoodCovMxNewton() const;
     
@@ -97,8 +96,6 @@ namespace ana
     double fNu;             /// Levenberg-Marquardt nu
     mutable double fLambda; /// Levenberg-Marquardt lambda
 
-    bool fLLUseROOT;
-    bool fLLUseSVD;
     TH1D* fBetaHist;
     TH1D* fMuHist;
     TH1D* fBetaMuHist;
@@ -107,7 +104,6 @@ namespace ana
     TH1D* fDataHist;
     TMatrixD* fMxInv;
     bool fShapeOnly;
-    // std::vector<TH1D*> fUnoscillated;
     bool fVerbose;
 
     mutable double fStatChiSq;

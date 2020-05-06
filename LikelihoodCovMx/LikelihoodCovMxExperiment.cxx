@@ -315,86 +315,7 @@ namespace ana
       }
     }
 
-    // TCanvas canvas("c", "c", 1600, 900);
-    // TH2D* hFull = new TH2D("hFull", "",
-    //   fCovMx->GetFullBinning().NBins(), 0, fCovMx->GetFullBinning().NBins(),
-    //   fCovMx->GetFullBinning().NBins(), 0, fCovMx->GetFullBinning().NBins());
-    // TH2D* hReduced = new TH2D("hReduced", "",
-    //   maskedSize, 0, maskedSize, maskedSize, 0, maskedSize);
-
-    // for (size_t i = 0; i < fNBinsFull; ++i) {
-    //   for (size_t j = 0; j < fNBinsFull; ++j) {
-    //     hFull->SetBinContent(i+1, j+1, fHess[fNBinsFull*j+i]);
-    //   }
-    // }
-    // for (size_t i = 0; i < maskedSize; ++i) {
-    //   for (size_t j = 0; j < maskedSize; ++j) {
-    //     hReduced->SetBinContent(i+1, j+1, fHessReduced[maskedSize*j+i]);
-    //   }
-    // }
-    // hFull->Draw("colz");
-    // canvas.SaveAs("full.png");
-    // hReduced->Draw("colz");
-    // canvas.SaveAs("reduced.png");
-
-    // abort();
-
-    // for (size_t i = 0; i < fNBinsFull*fNBinsFull; ++i) {
-    //   if (fBetaMask[i/fNBinsFull] && fBetaMask[i%fNBinsFull]) {
-    //     cout << "Setting element (" << i/fNBinsFull << "," <<
-    //       i%fNBinsFull << ") to " << fHess[i] << endl;
-    //     fHessReduced[c] = fHess[i];
-    //     ++c;
-    //   }
-    // }
-    
   } // function LikelihoodCovMxExperiment::GetReducedGradAndHess
-
-  //---------------------------------------------------------------------------
-  void LikelihoodCovMxExperiment::QuadraticIteration() const {
-
-    size_t iFullOffset(0.), iScaledOffset(0.);
-    for (size_t iS = 0; iS < fSamples.size(); ++iS) { // loop over samples
-      for (size_t iC = 0; iC < fComps[iS].size(); ++iC) { // loop over components
-        for (size_t iB = 0; iB < fNBinsPerSample[iS]; ++iB) { // loop over bins
-    // Get the current scaled & full bin
-    unsigned int iScaled = iScaledOffset+iB;
-    unsigned int iFull = iFullOffset+(iC*fNBinsPerSample[iS])+iB;
-    double y(0.); // calculate y
-    for (size_t jC = 0; jC < fComps[iS].size(); ++jC) {
-      if (jC != iC) {
-        unsigned int jFull = iFullOffset+(jC*fNBinsPerSample[iS])+iB;
-        y += fMu[jFull] * fBeta[jFull];
-      }
-    } // for component j
-    if (y < 1e-40) y = 1e-40; // clamp y
-    double z(0.); // calculate z
-    for (size_t jFull = 0; jFull < fNBinsFull; ++jFull) {
-      if (jFull != iFull) z += (fBeta[jFull]-1)*(*fMxInv)(iFull, jFull);
-    }
-
-    // Perform quadratic iteration
-    const double a = fMu[iFull]*(*fMxInv)(iFull, iFull);
-    const double b = pow(fMu[iFull],2) + y*(*fMxInv)(iFull,iFull) + z*fMu[iFull] - fMu[iFull]*(*fMxInv)(iFull,iFull);
-    const double c = fMu[iFull]*y - fMu[iFull]*fData[iScaled] - y*(*fMxInv)(iFull,iFull) + y*z;
-
-    // cout << "Updating beta " << iFull+1 << " from " << fBeta[iFull];
-    if (a == 0) fBeta[iFull] = -c/b;
-    else {
-      const double desc = b*b-4*a*c;
-      assert(desc >= 0);
-      // The other solution is always negative since M is positive definite
-      fBeta[iFull] = ( -b + sqrt(desc) ) / (2*a);
-      if (fBeta[iFull] < 1e-10) fBeta[iFull] = 1e-10;
-    }
-    // cout << " to " << fBeta[iFull] << endl;
-        } // for bin i
-      } // for component i
-      iScaledOffset += fNBinsPerSample[iS]; // increase offset in scaled matrix
-      iFullOffset += fComps[iS].size() * fNBinsPerSample[iS];
-    } // for sample i
-
-  } // function LikelihoodCovMxExperiment::QuadraticIteration
 
   //---------------------------------------------------------------------------
   void LikelihoodCovMxExperiment::Solve(int N, double* hess,
@@ -448,62 +369,41 @@ namespace ana
         throw runtime_error(err.str());
       }
 
-      // if (!quadratic) {
-    
-        // Get the gradient vector and Hessian matrix for each bin
-        // GetGradAndHess();
-        // Solve(fNBinsFull, fHess, fGrad);
+      vector<double> newBeta(fNBinsFull);
 
-        vector<double> newBeta(fNBinsFull);
-        // for (size_t i = 0; i < fNBinsFull; ++i) {
-          // newBeta[i] = fBeta[i] + fGrad[i];
-          // fBetaMask[i] = newBeta[i] >= 0;
-          // if (!fBetaMask[i]) cout << "Masking off bin " << i+1 << endl;
-        // }
-
-        // If we have negative betas, mask them out
-        unsigned int N = count(fBetaMask.begin(), fBetaMask.end(), true);
-        // if (N != fNBinsFull) {
-          bool maskChange = true;
-          while (maskChange) { // Keep reducing the matrix until we have no negative pulls
-            // cout << "Iterating to mask off bins..." << endl;
-            maskChange = false;
-            GetReducedGradAndHess(); // Cut out any masked bins
-            Solve(N, fHessReduced, fGradReduced);
-            size_t c = 0;
-            for (size_t i = 0; i < fNBinsFull; ++i) {
-              newBeta[i] = fBeta[i];
-              if (fBetaMask[i]) {
-                newBeta[i] += fGradReduced[c]; // Update betas
-                ++c;
-              }
-              if (newBeta[i] < 0) { // If we have negative pulls...
-                // cout << "Masking off beta " << i+1 << endl;
-                fBetaMask[i] = false; // ...mask them out...
-                newBeta[i] = 0; // ...set them to zero...
-                maskChange = true; // ...and iterate again.
-                // cout << "Masking off beta " << i+1 << endl;
-              }
-            } // for bin i
-            N = count(fBetaMask.begin(), fBetaMask.end(), true);
-            delete fGradReduced;
-            delete fHessReduced;
-          } // while mask keeps changing
-        // }
-
-        // Update betas
-        // cout << "Updating betas" << endl << endl;
-        for (size_t i = 0; i < fNBinsFull; ++i) fBeta[i] = newBeta[i];
-
-      // } // if not quadratic
-
-      // Re-compute beta values
-      // else {
-        // throw runtime_error("Cholesky factorisation failed!");
-        // cout << "Iteration " << fIteration << ": Cholesky solution failed, reverting to quadratic iteration." << endl;
-        // fLambda *= fNu;
-        // QuadraticIteration();
+      // If we have negative betas, mask them out
+      unsigned int N = count(fBetaMask.begin(), fBetaMask.end(), true);
+      // if (N != fNBinsFull) {
+        bool maskChange = true;
+        while (maskChange) { // Keep reducing the matrix until we have no negative pulls
+          // cout << "Iterating to mask off bins..." << endl;
+          maskChange = false;
+          GetReducedGradAndHess(); // Cut out any masked bins
+          Solve(N, fHessReduced, fGradReduced);
+          size_t c = 0;
+          for (size_t i = 0; i < fNBinsFull; ++i) {
+      newBeta[i] = fBeta[i];
+      if (fBetaMask[i]) {
+        newBeta[i] += fGradReduced[c]; // Update betas
+        ++c;
+      }
+      if (newBeta[i] < 0) { // If we have negative pulls...
+        // cout << "Masking off beta " << i+1 << endl;
+        fBetaMask[i] = false; // ...mask them out...
+        newBeta[i] = 0; // ...set them to zero...
+        maskChange = true; // ...and iterate again.
+        // cout << "Masking off beta " << i+1 << endl;
+      }
+          } // for bin i
+          N = count(fBetaMask.begin(), fBetaMask.end(), true);
+          delete fGradReduced;
+          delete fHessReduced;
+        } // while mask keeps changing
       // }
+
+      // Update betas
+      // cout << "Updating betas" << endl << endl;
+      for (size_t i = 0; i < fNBinsFull; ++i) fBeta[i] = newBeta[i];
 
       // Predict collapsed spectrum
       e = GetExpectedSpectrum();
@@ -524,37 +424,7 @@ namespace ana
       }
       double chisq = fStatChiSq + fSystChiSq;
 
-      // if (!quadratic && fIteration > 1 && chisq < prev) fLambda /= fNu;
       if (fIteration > 1 && chisq < prev) fLambda /= fNu;
-
-      // if (chisq < best || best == -999) {
-      //   best = chisq;
-      //   for (size_t i = 0; i < fNBinsFull; ++i) betaBest[i] = fBeta[i];
-      // }
-
-      // if (quadratic) cout << "At iteration " << fIteration-1000 << " chisq is " << chisq << endl; 
-
-      // if (fIteration == 1000) {
-        // quadratic = true;
-        // for (size_t i = 0; i < fNBinsFull; ++i) fBeta[i] = betaBest[i];
-      // }
-
-      // if (fabs(chisq-prevprev) < 1e-4) {
-      //   stuck = true;
-      //   for (size_t i = 0; i < fNBinsFull; ++i) fBeta[i] = betaBest[i];
-      //     std::cout << "Best chisq is " << best << std::endl;
-      // }
-      // for (int i = 0; i < 10; ++i) {
-        // if (quadratic && fabs(chisq-prev) < pow(0.1, i) && !foundTest[i]) {
-          // cout << "Using quadratic method - for 1e-" << i << " tolerance, we have chisq " << chisq << " after " << fIteration << " iterations." << endl;
-          // foundTest[i] = true;
-        // }
-      // }
-
-      // if (N < fNBinsFull && fabs(chisq-prev) < 0.001*chisq) {
-      //   fLambda /= fNu;
-      //   for (size_t i = 0; i < fNBinsFull; ++i) fBetaMask[i] = true;
-      // }
 
       // If the updates didn't change anything at all then we're done
       if (fabs(chisq-prev) < 1e-10) {
@@ -566,26 +436,15 @@ namespace ana
 
         else {
 
-          cout << "Converged to " << chisq << " (" << fStatChiSq << " stat, " << fSystChiSq
-            << " syst) after " << fIteration << " iterations and ";
-          auto end = high_resolution_clock::now();
-          double secs = duration_cast<seconds>(end-start).count();
-          if (secs < 60) cout << secs << " seconds." << endl;
-          else {
-            double mins = duration_cast<minutes>(end-start).count();
-            cout << mins << " minutes." << endl;
-          }
-
-          // cout << "HOW MANY POINTS?????? " << g.GetN() << endl;
-
-          // g1.Draw("AC");
-          // c.SetLogy(true);
-          // c.SaveAs("chisq1.pdf");
-          // f->WriteTObject(&c, "iterations");
-
-          // g2.Draw("AC");
-          // c.SetLogy(true);
-          // c.SaveAs("chisq2.pdf");
+          // cout << "Converged to " << chisq << " (" << fStatChiSq << " stat, " << fSystChiSq
+          //   << " syst) after " << fIteration << " iterations and ";
+          // auto end = high_resolution_clock::now();
+          // double secs = duration_cast<seconds>(end-start).count();
+          // if (secs < 60) cout << secs << " seconds." << endl;
+          // else {
+          //   double mins = duration_cast<minutes>(end-start).count();
+          //   cout << mins << " minutes." << endl;
+          // }
 
           // Fill histograms if necessary
           if (fBetaHist)        for (size_t i = 0; i < fNBinsFull; ++i) fBetaHist->SetBinContent(i+1, fBeta[i]);
@@ -595,13 +454,10 @@ namespace ana
   	
           delete fGrad;
           delete fHess;
-          // delete f;
           return chisq;
         }
       }
       prev = chisq;
-
-      // cout << "Iteration " << fIteration << ", lambda " << fLambda << ", ChiSq " << chisq << endl;
 
     } // end while
     

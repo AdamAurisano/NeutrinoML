@@ -25,5 +25,5 @@ fi
 
 export USERPORT=${PORTPREFIX}1${1}
 
-nvidia-docker run --name ${USER}-nova-${1} --expose=${USERPORT} -p ${USERPORT}:${USERPORT} -e USER -e USERPORT -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v /raid/nova:/data nvcr.io/univcinci/pytorch-sparseconv:19.12-py3
+nvidia-docker run --name ${USER}-nova-${1} --expose=${USERPORT} -p ${USERPORT}:${USERPORT} -e USER -e USERPORT -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v /raid/nova:/data nvcr.io/univcinci/pytorch-sparseconv:20.03-py3
 

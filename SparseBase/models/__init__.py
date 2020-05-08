@@ -4,10 +4,12 @@ Module for retrieving PyTorch network architectures
 
 from .minkowski_seg import MinkowskiSeg
 from .minkowski_class import MinkowskiClass, Minkowski2StackClass
+from.nova_mobilenet import MobileNet
 
 _models = { 'MinkowskiSeg':   MinkowskiSeg,
             'MinkowskiClass': MinkowskiClass,
-            'Minkowski2StackClass': Minkowski2StackClass }
+            'Minkowski2StackClass': Minkowski2StackClass,
+            'MobileNet': MobileNet }
 
 def get_model(name, **model_args):
     

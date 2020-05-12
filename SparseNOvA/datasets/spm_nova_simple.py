@@ -10,7 +10,7 @@ class SparsePixelMapNOvA(Dataset):
     def __init__(self, filedir, **kwargs):
         '''Initialiser for SparsePixelMapNOvA class'''
         self.filedir = filedir
-        self.files = sorted(glob.glob(f'{self.filedir}/processed/*.pt'))
+        self.files = sorted(glob.glob(f'{self.filedir}/*.pt'))
         
     def __len__(self):
         return len(self.files)

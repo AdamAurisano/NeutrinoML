@@ -1,6 +1,6 @@
 data:
   name: 'SparsePixelMapNOvA'
-  filedir: '/data/mp5'
+  filedir: '/data/mp5/preselection'
   t_v_split: 0.05
 
 model:
@@ -8,14 +8,14 @@ model:
   D: 2
   alpha: 0.25
   depth: 1
-  classes: 5
+  classes: 3
   loss_func: 'CrossEntropyLoss'
   optimizer: 'AdamW'
-  learning_rate: 1.e-5
+  learning_rate: 1.e-4
   weight_decay: 0.01
   step_size: 1 # How many epochs between LR reduction
   gamma: 0.8 # Factor to reduce learning rate by
-  class_names: ['numu','nue','nutau','nc','nuone']
+  class_names: ['numu','nue','nc']
 
 data_loader:
   batch_size: 1000
@@ -24,11 +24,12 @@ data_loader:
 trainer:
   benchmark: False
   device: 0 # Which GPU to use
-  n_epochs: 50
+  n_epochs: 20
   max_iters_train: None
   max_iters_eval:  None
-  summary_dir: '/scratch/SparseNOvA/summary/mobile/v3'
-  output_dir: 'params'
+  train_name:  'train1'
+  summary_dir: '/scratch/SparseNOvA/summary'
+  output_dir:  '/scratch/SparseNOvA/params'
 
 inference:
   max_images: 100 # Maximum number of images to process

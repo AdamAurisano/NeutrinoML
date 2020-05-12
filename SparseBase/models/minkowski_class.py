@@ -109,7 +109,7 @@ class Minkowski2StackClass(ME.MinkowskiNetwork):
         ME.MinkowskiBatchNorm(hidden)))
 
     # Global pooling and output
-    self.pool = ME.MinkowskiGlobalMaxPooling(dimension=n_dims)
+    self.pool = ME.MinkowskiGlobalMaxPooling()
     output_size = 0
     for i in range(unet_depth): output_size += 2**(i+2) * n_feats # Add up features from every layer of the UNet
     self.out_net = Seq(

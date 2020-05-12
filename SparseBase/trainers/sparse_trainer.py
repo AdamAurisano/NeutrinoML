@@ -21,9 +21,9 @@ from SparseBase.loss import categorical_cross_entropy
 class SparseTrainer(base):
   '''Trainer code for basic classification problems with categorical cross entropy.'''
 
-  def __init__(self, summary_dir='summary', **kwargs):
+  def __init__(self, train_name='test1', summary_dir='summary', **kwargs):
     super(SparseTrainer, self).__init__(**kwargs)
-    self.writer = SummaryWriter(summary_dir)
+    self.writer = SummaryWriter(f'{summary_dir}/{train_name}')
 
   def build_model(self, name='NodeConv', loss_func='cross_entropy',
       optimizer='Adam', learning_rate=0.01, weight_decay=0.01,
@@ -51,7 +51,7 @@ class SparseTrainer(base):
 
     self.class_names = class_names
 
-  def load_state_dict(self, state_dict, **inference_args):
+  def load_state_dict(self, state_dict, **kwargs):
     '''Load state dict from trained model'''
     self.model.load_state_dict(torch.load(state_dict, map_location=f'cuda:{self.device}')['model'])
 
@@ -95,8 +95,9 @@ class SparseTrainer(base):
       t.refresh() # to show immediately the update
 
       # add to tensorboard summary
-      self.writer.add_scalar('Loss/batch', batch_loss.item(), self.iteration)
-      self.writer.add_scalar('Acc/batch', batch_acc, self.iteration)
+      if self.iteration%100 == 0:
+        self.writer.add_scalar('Loss/batch', batch_loss.item(), self.iteration)
+        self.writer.add_scalar('Acc/batch', batch_acc, self.iteration)
       #for name, acc in zip(self.class_names, acc_indiv):
       #  self.writer.add_scalar(f'batch_acc/{name}', acc, self.iteration)
       #self.writer.add_scalar('Memory usage', psutil.virtual_memory().used, self.iteration)

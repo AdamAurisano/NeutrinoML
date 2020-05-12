@@ -18,9 +18,9 @@ class base(object):
     logging of summaries, and checkpoints.
     """
 
-    def __init__(self, output_dir=None, device='cpu', distributed=False, **kwargs):
+    def __init__(self, output_dir=None, train_name='test1', device='cpu', distributed=False, **kwargs):
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.output_dir = (os.path.expandvars(output_dir)
+        self.output_dir = (f'{output_dir}/{train_name}'
                            if output_dir is not None else None)
         self.device = device
         self.distributed = distributed

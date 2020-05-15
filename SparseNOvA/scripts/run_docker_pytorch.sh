@@ -19,6 +19,8 @@ elif [ "$USER" == "haejunoh" ]; then
   export PORTPREFIX=92
 elif [ "$USER" == "naporana" ]; then
   export PORTPREFIX=93
+elif [ "$USER" == "rajaoama" ]; then
+  export PORTPREFIX=94
 else
   echo "Username not recognised! Ask to be added as a user before running Docker."
 fi

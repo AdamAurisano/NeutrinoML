@@ -30,8 +30,7 @@ class TauRNN(nn.Module):
     dense.append(nn.Linear(
       in_features=hidden_feats,
       out_features=out_feats))
-    dense.append(nn.ReLU())
-    dense.append(nn.Softmax(-1))
+    dense.append(nn.Sigmoid())
     self.dense=nn.Sequential(*dense)
 
   def forward(self, x):

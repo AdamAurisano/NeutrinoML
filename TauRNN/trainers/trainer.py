@@ -70,7 +70,7 @@ class Trainer(base):
                       data['x_point_var'].to(self.device),
                       data['x_hit_var'].to(self.device) )
       batch_output = self.model(batch_input)
-      batch_target = data['y'].float().to(batch_output.device)
+      batch_target = data['y'].to(batch_output.device)
       batch_loss = self.loss_func(batch_output, batch_target)
       batch_loss.backward()
 

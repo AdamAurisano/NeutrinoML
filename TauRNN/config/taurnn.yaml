@@ -1,0 +1,30 @@
+data:
+  name: 'simple'
+  filedir: '/scratch/testfile'
+  t_v_split: 0.05
+
+model:
+  name: 'TauRNN'
+  in_feats: 6
+  hit_feats: 2
+  point_feats: 2
+  rnn_feats: 64
+  hidden_feats: 64
+  out_feats: 1
+  loss_func: 'BCELoss'
+  optimizer: 'AdamW'
+  learning_rate: 1.e-4
+  weight_decay: 0.01
+  step_size: 1 # How many epochs between LR reduction
+  gamma: 0.8 # Factor to reduce learning rate by
+
+data_loader:
+  batch_size: 10
+
+trainer:
+  benchmark: False
+  device: 0 # Which GPU to use
+  n_epochs: 20
+  train_name:  'train1'
+  summary_dir: '/scratch/TauRNN/summary'
+  output_dir:  '/scratch/TauRNN/params'

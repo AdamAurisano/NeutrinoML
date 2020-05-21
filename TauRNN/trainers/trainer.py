@@ -17,11 +17,11 @@ import tqdm, numpy as np, psutil
 from TauRNN.models import get_model
 from .base import base
 
-class SparseTrainer(base):
+class Trainer(base):
   '''Trainer code for basic classification problems with categorical cross entropy.'''
 
   def __init__(self, train_name='test1', summary_dir='summary', **kwargs):
-    super(SparseTrainer, self).__init__(**kwargs)
+    super(Trainer, self).__init__(**kwargs)
     self.writer = SummaryWriter(f'{summary_dir}/{train_name}')
 
   def build_model(self, name='TauRNN', loss_func='cross_entropy',
@@ -66,22 +66,16 @@ class SparseTrainer(base):
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
     for i, data in t:
       self.optimizer.zero_grad()
-      # Different input shapes for SparseConvNet vs MinkowskiEngine
-      if 'sparse' in data.keys():
-        if isinstance(data['sparse'], list): 
-          batch_input = [ data['sparse'][0].to(self.device),
-                          data['sparse'][1],   
-                          data['sparse'][2].to(self.device),
-                          data['sparse'][3] ]
-        else: batch_input = data['sparse'].to(self.device)
-      else: batch_input = (data['c'].to(self.device), data['x'].to(self.device), batch_size)
+      batch_input = ( data['x_fixed'].to(self.device),
+                      data['x_point_var'].to(self.device),
+                      data['x_hit_var'].to(self.device) )
       batch_output = self.model(batch_input)
-      batch_target = data['y'].to(batch_output.device)
+      batch_target = data['y'].float().to(batch_output.device)
       batch_loss = self.loss_func(batch_output, batch_target)
       batch_loss.backward()
 
       # Calculate accuracy
-      w_pred = batch_output.argmax(dim=1)
+      w_pred = batch_output.round()
       w_true = batch_target.argmax(dim=1) if batch_target.ndim == 2 else batch_target
       correct = (w_pred==w_true)
       batch_acc = 100*correct.sum().float().item()/w_pred.shape[0]
@@ -126,20 +120,16 @@ class SparseTrainer(base):
     n_batches = int(math.ceil(len(data_loader.dataset)/batch_size))
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
     for i, data in t:
-      # Different input shapes for SparseConvNet vs MinkowskiEngine
-      if 'sparse' in data.keys():
-        if isinstance(data['sparse'], list):
-          batch_input = [ data['sparse'][0].to(self.device),
-                          data['sparse'][1],
-                          data['sparse'][2].to(self.device),
-                          data['sparse'][3] ]
-        else: batch_input = data['sparse'].to(self.device)
-      else: batch_input = (data['c'].to(self.device), data['x'].to(self.device), batch_size)
+      batch_input = ( data['x_fixed'].to(self.device),
+                      data['x_point_var'].to(self.device),
+                      data['x_hit_var'].to(self.device))
       batch_output = self.model(batch_input)
-      batch_target = data['y'].to(batch_output.device)
+      batch_target = data['y'].float().to(batch_output.device)
       batch_loss = self.loss_func(batch_output, batch_target)
+      print(batch_output)
+      print(batch_target)
       sum_loss += batch_loss.item()
-      w_pred = batch_output.argmax(dim=1)
+      w_pred = batch_output.round()
       w_true = batch_target.argmax(dim=1) if batch_target.ndim == 2 else batch_target
       correct = (w_pred==w_true)
       sum_correct += correct.sum().float().item()
@@ -196,6 +186,6 @@ class SparseTrainer(base):
     return self.summaries
 
 def _test():
-  t = SparseTrainer(output_dir='./')
+  t = Trainer(output_dir='./')
   t.build_model()
 

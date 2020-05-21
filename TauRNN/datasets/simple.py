@@ -2,7 +2,6 @@
 
 from torch.utils.data import Dataset
 import os.path as osp, glob, h5py, tqdm, numpy as np, torch
-from SparseBase import utils
 
 class SimpleDataset(Dataset):
     def __init__(self, filedir, **kwargs):
@@ -17,5 +16,4 @@ class SimpleDataset(Dataset):
         '''Return training information at provided index'''
         if not 0 <= idx < len(self):
             raise Exception(f'Event number {idx} invalid – must be in range 0 -> {len(self)-1}.')
-            
         return torch.load(self.files[idx])

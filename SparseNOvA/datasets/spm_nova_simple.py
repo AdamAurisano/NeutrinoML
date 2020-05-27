@@ -4,6 +4,7 @@ PyTorch data structure for sparse pixel maps
 
 from torch.utils.data import Dataset
 import os.path as osp, glob, h5py, tqdm, numpy as np, torch
+import random
 from SparseBase import utils
 
 class SparsePixelMapNOvA(Dataset):
@@ -19,5 +20,13 @@ class SparsePixelMapNOvA(Dataset):
         '''Return training information at provided index'''
         if not 0 <= idx < len(self):
             raise Exception(f'Event number {idx} invalid – must be in range 0 -> {len(self)-1}.')
-            
-        return torch.load(self.files[idx])
+
+        data = torch.load(self.files[idx])
+        scale = random.gauss(1, 0.1)
+        print(data['xfeats'], data['yfeats'])
+        data['xfeats'] *= scale
+        data['yfeats'] *= scale
+        print(data['xfeats'], data['yfeats'])
+        
+        return data
+#         return torch.load(self.files[idx])

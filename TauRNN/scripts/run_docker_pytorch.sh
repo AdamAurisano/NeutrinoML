@@ -7,8 +7,6 @@ fi
 
 # Get script directory
 topdir=/home/$USER/NeutrinoML # is this hack going to work?
-#scriptdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-#topdir=`dirname $scriptdir`
 
 # Get docker port prefix based on username
 if   [ "$USER" == "hewesje"  ]; then
@@ -25,7 +23,7 @@ else
   echo "Username not recognised! Ask to be added as a user before running Docker."
 fi
 
-export USERPORT=${PORTPREFIX}1${1}
+export USERPORT=${PORTPREFIX}3${1}
 
-nvidia-docker run --name ${USER}-nova-${1} --expose=${USERPORT} -p ${USERPORT}:${USERPORT} -e USER -e USERPORT -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v /raid/nova:/data nvcr.io/univcinci/pytorch-sparseconv:20.03-py3
+nvidia-docker run --name ${USER}-tau-${1} --expose=${USERPORT} -p ${USERPORT}:${USERPORT} -e USER -e USERPORT -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v /raid/taurnn:/data nvcr.io/univcinci/pytorch-sparseconv:20.03-py3
 

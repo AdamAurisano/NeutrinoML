@@ -96,7 +96,7 @@ class SparseTrainer(base):
       self.writer.add_scalar('Acc/batch', batch_acc, self.iteration)
       for name, acc in zip(self.class_names, acc_indiv):
         self.writer.add_scalar(f'batch_acc/{name}', acc, self.iteration)
-      self.writer.add_scalar('Memory usage', psutil.virtual_memory().used, self.iteration)
+      # self.writer.add_scalar('Memory usage', psutil.virtual_memory().used, self.iteration)
       self.iteration += 1
 
     if self.lr_scheduler != None: self.lr_scheduler.step()

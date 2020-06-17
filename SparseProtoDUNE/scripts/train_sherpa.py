@@ -41,15 +41,20 @@ def main():
   train_loader = DataLoader(train_dataset, collate_fn=collate, **config['data_loader'], shuffle=True, pin_memory=True)
   valid_loader = DataLoader(valid_dataset, collate_fn=collate, **config['data_loader'], shuffle=False)
 
-  parameters = [sherpa.Continuous('learning_rate', [1e-1, 1e-5])]
-  alg = sherpa.algorithms.BayesianOptimization(max_num_trials=50)
+  parameters = [sherpa.Continuous('learning_rate',
+                                  [1e-5, 1e-1]),
+                sherpa.Continuous('weight_decay',
+                                  [0.01, 0.1])]
+  alg = sherpa.algorithms.GPyOpt(max_num_trials=50)
 
   study = sherpa.Study(parameters=parameters,
                        algorithm=alg,
-                       lower_is_better=True)
+                       lower_is_better=True,
+                       dashboard_port=9309)
 
   for trial in study:
     config['model']['learning_rate'] = trial.parameters['learning_rate']
+    config['model']['weight_decay'] = trial.parameters['weight_decay']
     trainer.build_model(**config['model'])
     train_summary = trainer.train(
       train_loader,

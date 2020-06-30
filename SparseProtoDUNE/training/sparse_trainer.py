@@ -99,8 +99,6 @@ class SparseTrainer(base):
       # self.writer.add_scalar('Memory usage', psutil.virtual_memory().used, self.iteration)
       self.iteration += 1
 
-    if self.lr_scheduler != None: self.lr_scheduler.step()
-
     summary['lr'] = self.optimizer.param_groups[0]['lr']
     summary['train_time'] = time.time() - start_time
     summary['train_loss'] = sum_loss / n_batches
@@ -188,6 +186,7 @@ class SparseTrainer(base):
         self.write_checkpoint(checkpoint_id=i)
 
       self.writer.add_scalar('Loss/train', summary['train_loss'], i+1)
+      self.writer.add_scalar('learning_rate', summary['lr'], i+1)
       if valid_data_loader is not None:
         self.writer.add_scalar('Loss/valid', summary['valid_loss'], i+1)
         self.writer.add_scalar('Acc/valid', summary['valid_acc'], i+1)

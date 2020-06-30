@@ -20,7 +20,7 @@ model:
   unet_depth: 5
   res_blocks: True # Whether to use residual blocks in unet
   loss_func: 'categorical_cross_entropy'
-  optimizer: 'Ranger'
+  optimizer: 'AdamW'
   learning_rate: 1.e-3
   weight_decay: 0.01
   step_size: 1 # How many epochs between LR reduction
@@ -43,8 +43,8 @@ data_loader:
   num_workers: 1
 
 trainer:
-  device: 4 # Which GPU to use
-  n_epochs: 1
+  device: 0 # Which GPU to use
+  n_epochs: 5
   max_iters_train: None 
   max_iters_eval:  None 
   summary_dir: 'summary/3d/test1'

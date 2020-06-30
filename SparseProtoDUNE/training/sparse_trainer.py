@@ -152,7 +152,7 @@ class SparseTrainer(base):
                      (summary['valid_loss'], summary['valid_acc']))
     return summary
 
-  def train(self, train_data_loader, n_epochs, valid_data_loader=None, **kwargs):
+  def train(self, train_data_loader, n_epochs, valid_data_loader=None, sherpa_study=None, sherpa_trial=None, **kwargs):
     '''Run the model training'''
 
     # Loop over epochs
@@ -174,6 +174,11 @@ class SparseTrainer(base):
           best_valid_loss = sum_valid['valid_loss']
           self.logger.debug('Checkpointing new best model with loss: %.3f', best_valid_loss)
           self.write_checkpoint(checkpoint_id=i,best=True)
+          if sherpa_study is not None and sherpa_trial is not None:
+            sherpa_study.add_observation(
+              trial=sherpa_trial,
+              iteration=i,
+              objective=sum_valid['valid_acc'])
 
       if self.lr_scheduler is not None: self.lr_scheduler.step()
 

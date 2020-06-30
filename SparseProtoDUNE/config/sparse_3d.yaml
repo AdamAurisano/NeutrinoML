@@ -1,7 +1,7 @@
 data:
   name: 'SparsePixelMap3D'
   root: '/data/3d'
-  trainfiles: 'processed'
+  trainfiles: 'new_sample'
   t_v_split: 0.05
 
 process:
@@ -20,7 +20,7 @@ model:
   unet_depth: 5
   res_blocks: True # Whether to use residual blocks in unet
   loss_func: 'categorical_cross_entropy'
-  optimizer: 'AdamW'
+  optimizer: 'Ranger'
   learning_rate: 1.e-3
   weight_decay: 0.01
   step_size: 1 # How many epochs between LR reduction
@@ -36,15 +36,15 @@ model:
     use_gc:           True
     gc_conv_only:     False
   class_names: ['shower','diffuse','kaon','michel','hip','mu','pi']
-  n_classes: 7
+  n_classes: 6
 
 data_loader:
   batch_size: 35 
   num_workers: 1
 
 trainer:
-  device: 0 # Which GPU to use
-  n_epochs: 5
+  device: 4 # Which GPU to use
+  n_epochs: 1
   max_iters_train: None 
   max_iters_eval:  None 
   summary_dir: 'summary/3d/test1'

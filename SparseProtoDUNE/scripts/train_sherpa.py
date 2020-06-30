@@ -50,7 +50,7 @@ def main():
   study = sherpa.Study(parameters=parameters,
                        algorithm=alg,
                        lower_is_better=True,
-                       dashboard_port=9309)
+                       dashboard_port=9307)
 
   for trial in study:
     config['model']['learning_rate'] = trial.parameters['learning_rate']

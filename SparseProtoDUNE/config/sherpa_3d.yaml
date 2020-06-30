@@ -24,7 +24,7 @@ model:
   learning_rate: 1.e-3
   weight_decay: 0.01
   step_size: 1 # How many epochs between LR reduction
-  gamma: 0.1 # Factor to reduce learning rate by
+  gamma: 0.95 # Factor to reduce learning rate by
   ranger_params: # Configuration parameters for Ranger optimiser
     lr:               1.e-3
     alpha:            0.5

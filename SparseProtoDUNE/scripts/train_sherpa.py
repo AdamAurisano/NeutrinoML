@@ -16,7 +16,7 @@ def parse_args():
   '''Parse arguments'''
   parser = argparse.ArgumentParser('process.py')
   add_arg = parser.add_argument
-  add_arg('config', nargs='?', default='config/sparse_3d.yaml')
+  add_arg('config', nargs='?', default='config/sherpa_3d.yaml')
   return parser.parse_args()
 
 def configure(config):

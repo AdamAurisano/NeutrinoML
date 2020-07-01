@@ -45,8 +45,8 @@ data_loader:
 trainer:
   device: 4 # Which GPU to use
   n_epochs: 5
-  max_iters_train: 10
-  max_iters_eval:  10
+  max_iters_train: None
+  max_iters_eval:  None
   summary_dir: 'summary/3d/test1'
   output_dir: 'params'
 

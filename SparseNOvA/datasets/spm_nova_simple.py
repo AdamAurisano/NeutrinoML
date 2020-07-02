@@ -8,10 +8,10 @@ import random
 from SparseBase import utils
 
 class SparsePixelMapNOvA(Dataset):
-    def __init__(self, filedir, **kwargs):
+    def __init__(self, filelist, apply_jitter, **kwargs):
         '''Initialiser for SparsePixelMapNOvA class'''
-        self.filedir = filedir
-        self.files = sorted(glob.glob(f'{self.filedir}/*.pt'))
+        self.files = filelist
+        self.apply_jitter = apply_jitter
         
     def __len__(self):
         return len(self.files)
@@ -22,11 +22,9 @@ class SparsePixelMapNOvA(Dataset):
             raise Exception(f'Event number {idx} invalid – must be in range 0 -> {len(self)-1}.')
 
         data = torch.load(self.files[idx])
-        scale = random.gauss(1, 0.1)
-        print(data['xfeats'], data['yfeats'])
-        data['xfeats'] *= scale
-        data['yfeats'] *= scale
-        print(data['xfeats'], data['yfeats'])
-        
+        if self.apply_jitter:
+            scale = random.gauss(1, 0.1)
+            data['xfeats'] *= scale
+            data['yfeats'] *= scale
+
         return data
-#         return torch.load(self.files[idx])

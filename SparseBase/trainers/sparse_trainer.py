@@ -16,7 +16,7 @@ import tqdm, numpy as np, psutil
 # Locals
 from SparseBase.models import get_model
 from .base import base
-from SparseBase.loss import categorical_cross_entropy
+from SparseBase.loss import get_loss #categorical_cross_entropy
 
 class SparseTrainer(base):
   '''Trainer code for basic classification problems with categorical cross entropy.'''
@@ -36,12 +36,7 @@ class SparseTrainer(base):
     self.model = self.model.to(self.device)
 
     # Construct the loss function
-    if loss_func == 'categorical_cross_entropy':
-      self.loss_func = categorical_cross_entropy
-    elif loss_func == 'CrossEntropyLoss':
-      self.loss_func = nn.CrossEntropyLoss()
-    else:
-      self.loss_func = getattr(nn.modules.loss, loss_func)()
+    self.loss_func = get_loss(loss_func)()
 
     # Construct the optimizer
     self.optimizer = getattr(torch.optim, optimizer)(

@@ -17,6 +17,7 @@ import tqdm, numpy as np, psutil
 from SparseBase.models import get_model
 from .base import base
 from SparseBase.loss import get_loss #categorical_cross_entropy
+from SparseBase.optim import get_optim
 
 class SparseTrainer(base):
   '''Trainer code for basic classification problems with categorical cross entropy.'''
@@ -25,8 +26,8 @@ class SparseTrainer(base):
     super(SparseTrainer, self).__init__(**kwargs)
     self.writer = SummaryWriter(f'{summary_dir}/{train_name}')
 
-  def build_model(self, name='NodeConv', loss_func='cross_entropy',
-      optimizer='Adam', learning_rate=0.01, weight_decay=0.01,
+  def build_model(self, optimizer_params, name='NodeConv',
+      loss_func='cross_entropy', learning_rate=0.01, weight_decay=0.01,
       step_size=1, gamma=0.5, class_names=[], **model_args): #state_dict=None, **model_args):
     '''Instantiate our model'''
 
@@ -39,6 +40,7 @@ class SparseTrainer(base):
     self.loss_func = get_loss(loss_func)()
 
     # Construct the optimizer
+    self.optimizer = get_optim(model_params=self.model.parameters(), **optimizer_params)
     self.optimizer = getattr(torch.optim, optimizer)(
       self.model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 

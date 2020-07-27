@@ -5,12 +5,12 @@ Script for sparse convolutional network training
 '''
 
 import yaml, argparse, logging, math, numpy as np
-import models, datasets, utils
+from SparseProtoDUNE import models, datasets, utils
 import torch, torchvision
 from torch.utils.data import DataLoader
 import MinkowskiEngine as ME
 
-from training import SparseTrainer
+from SparseProtoDUNE.training import SparseTrainer
 
 def parse_args():
   '''Parse arguments'''

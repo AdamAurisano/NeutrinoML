@@ -16,7 +16,8 @@ import tqdm, numpy as np, psutil
 # Locals
 from SparseBase.models import get_model
 from .base import base
-from SparseBase.loss import categorical_cross_entropy
+from SparseBase.loss import get_loss #categorical_cross_entropy
+from SparseBase.optim import get_optim
 
 class SparseTrainer(base):
   '''Trainer code for basic classification problems with categorical cross entropy.'''
@@ -25,8 +26,8 @@ class SparseTrainer(base):
     super(SparseTrainer, self).__init__(**kwargs)
     self.writer = SummaryWriter(f'{summary_dir}/{train_name}')
 
-  def build_model(self, name='NodeConv', loss_func='cross_entropy',
-      optimizer='Adam', learning_rate=0.01, weight_decay=0.01,
+  def build_model(self, optimizer_params, name='NodeConv',
+      loss_func='cross_entropy', learning_rate=0.01, weight_decay=0.01,
       step_size=1, gamma=0.5, class_names=[], **model_args): #state_dict=None, **model_args):
     '''Instantiate our model'''
 
@@ -36,14 +37,10 @@ class SparseTrainer(base):
     self.model = self.model.to(self.device)
 
     # Construct the loss function
-    if loss_func == 'categorical_cross_entropy':
-      self.loss_func = categorical_cross_entropy
-    elif loss_func == 'CrossEntropyLoss':
-      self.loss_func = nn.CrossEntropyLoss()
-    else:
-      self.loss_func = getattr(nn.modules.loss, loss_func)()
+    self.loss_func = get_loss(loss_func)()
 
     # Construct the optimizer
+    self.optimizer = get_optim(model_params=self.model.parameters(), **optimizer_params)
     self.optimizer = getattr(torch.optim, optimizer)(
       self.model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
@@ -82,10 +79,12 @@ class SparseTrainer(base):
       batch_loss.backward()
 
       # Calculate accuracy
+      metrics = self.metrics(batch_target, batch_loss)
+      for metric in metrics: 
       w_pred = batch_output.argmax(dim=1)
       w_true = batch_target.argmax(dim=1) if batch_target.ndim == 2 else batch_target
-      correct = (w_pred==w_true)
-      batch_acc = 100*correct.sum().float().item()/w_pred.shape[0]
+      #correct = (w_pred==w_true)
+      #batch_acc = 100*correct.sum().float().item()/w_pred.shape[0]
       #acc_indiv = [ 100*((w_pred[correct]==i).sum().float()/(w_true==i).sum().float()).item() for i in range(batch_target.shape[1]) ]
 
       self.optimizer.step()
@@ -97,7 +96,10 @@ class SparseTrainer(base):
       # add to tensorboard summary
       if self.iteration%100 == 0:
         self.writer.add_scalar('Loss/batch', batch_loss.item(), self.iteration)
-        self.writer.add_scalar('Acc/batch', batch_acc, self.iteration)
+        metrics = self.metrics(batch_target, batch_loss)
+        for name, xval, yval in metrics:
+          self.writer.add_scalar(name, yval, xval)
+        #self.writer.add_scalar('Acc/batch', batch_acc, self.iteration)
       #for name, acc in zip(self.class_names, acc_indiv):
       #  self.writer.add_scalar(f'batch_acc/{name}', acc, self.iteration)
       #self.writer.add_scalar('Memory usage', psutil.virtual_memory().used, self.iteration)

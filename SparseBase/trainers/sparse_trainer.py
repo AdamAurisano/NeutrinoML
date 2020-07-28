@@ -1,5 +1,5 @@
 """
-This module defines a generic trainer for simple models and datasets.
+This module defines a generic trainer for simple models and datasets. 
 """
 
 # System

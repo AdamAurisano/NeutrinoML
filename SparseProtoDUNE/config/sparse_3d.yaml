@@ -1,7 +1,7 @@
 data:
   name: 'SparsePixelMap3D'
   root: '/data/3d'
-  trainfiles: 'new_sample'
+  trainfiles: 'processed_1'
   t_v_split: 0.05
 
 process:
@@ -13,6 +13,7 @@ process:
 
 model:
   name: 'SparseSegmentation'
+  #name: 'MinkowskiSeg'
   n_dims: 3
   extent: 6000 # Maximum dimension of pixel map
   input_feats: 7
@@ -20,6 +21,7 @@ model:
   unet_depth: 5
   res_blocks: True # Whether to use residual blocks in unet
   loss_func: 'categorical_cross_entropy'
+<<<<<<< Updated upstream
   optimizer_params:
     optimizer: 'AdamW'
     AdamW:
@@ -40,13 +42,32 @@ model:
       gamma:     0.1
   class_names: ['shower','diffuse','kaon','michel','hip','mu','pi']
   n_classes: 6
+=======
+  optimizer: 'AdamW'
+  learning_rate: 1.e-3
+  weight_decay: 0.01
+  step_size: 1 # How many epochs between LR reduction
+  gamma: 0.1 # Factor to reduce learning rate by
+  # ranger_params: # Configuration parameters for Ranger optimiser
+  #  lr:               1.e-3
+  #  alpha:            0.5
+  #  k:                6
+  #  N_sma_threshhold: 5
+  #  betas:            [ 0.95, 0.999 ]
+  #  eps:              1.e-5
+  #  weight_decay:     0
+  #  use_gc:           True
+  #  gc_conv_only:     False
+  class_names: ['shower','delta','diffuse','kaons','michel','hip','mu','pi']  
+  n_classes: 8
+>>>>>>> Stashed changes
 
 data_loader:
   batch_size: 35 
   num_workers: 1
 
 trainer:
-  device: 0 # Which GPU to use
+  device: 7 # Which GPU to use
   n_epochs: 5
   max_iters_train: None 
   max_iters_eval:  None 
@@ -55,7 +76,7 @@ trainer:
 
 inference:
   max_images: 100 # Maximum number of images to process
-  event_display: True # Whether to draw event displays
+  event_display: False # Whether to draw event displays
   confusion: False # Whether to draw a confusion matrix
   state_dict: None # Replace this with a string path to a trained .pth.tar file after training! They're written to params/checkpoints
  

@@ -1,5 +1,5 @@
 """
-This module defines a generic trainer for simple models and datasets.
+This module defines a generic trainer for simple models and datasets.  PROTODUNE
 """
 
 # System
@@ -17,7 +17,7 @@ import ranger
 # Locals
 from models import get_model
 from .base import base
-from loss import categorical_cross_entropy
+from SparseProtoDUNE.loss import categorical_cross_entropy
 
 class SparseTrainer(base):
   '''Trainer code for basic classification problems with categorical cross entropy.'''

@@ -79,10 +79,12 @@ class SparseTrainer(base):
       batch_loss.backward()
 
       # Calculate accuracy
+      metrics = self.metrics(batch_target, batch_loss)
+      for metric in metrics: 
       w_pred = batch_output.argmax(dim=1)
       w_true = batch_target.argmax(dim=1) if batch_target.ndim == 2 else batch_target
-      correct = (w_pred==w_true)
-      batch_acc = 100*correct.sum().float().item()/w_pred.shape[0]
+      #correct = (w_pred==w_true)
+      #batch_acc = 100*correct.sum().float().item()/w_pred.shape[0]
       #acc_indiv = [ 100*((w_pred[correct]==i).sum().float()/(w_true==i).sum().float()).item() for i in range(batch_target.shape[1]) ]
 
       self.optimizer.step()
@@ -94,7 +96,10 @@ class SparseTrainer(base):
       # add to tensorboard summary
       if self.iteration%100 == 0:
         self.writer.add_scalar('Loss/batch', batch_loss.item(), self.iteration)
-        self.writer.add_scalar('Acc/batch', batch_acc, self.iteration)
+        metrics = self.metrics(batch_target, batch_loss)
+        for name, xval, yval in metrics:
+          self.writer.add_scalar(name, yval, xval)
+        #self.writer.add_scalar('Acc/batch', batch_acc, self.iteration)
       #for name, acc in zip(self.class_names, acc_indiv):
       #  self.writer.add_scalar(f'batch_acc/{name}', acc, self.iteration)
       #self.writer.add_scalar('Memory usage', psutil.virtual_memory().used, self.iteration)

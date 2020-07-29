@@ -37,14 +37,14 @@ class SparseTrainer(base):
     self.model = self.model.to(self.device)
 
     # Construct the loss function
-    self.loss_func = get_loss(loss_func)()
+    self.loss_func = get_loss(loss_func)
 
     # Construct the optimizer
+
     self.optimizer = get_optim(model_params=self.model.parameters(), **optimizer_params)
     self.optimizer = getattr(torch.optim, optimizer)(
-      self.model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-
-    self.lr_scheduler = StepLR(self.optimizer, step_size, gamma)
+       self.model.parameters(), lr=learning_rate, weight_decay=weight_decay) 
+    #self.lr_scheduler = StepLR(self.optimizer, step_size, gamma)
 
     self.class_names = class_names
 
@@ -81,8 +81,8 @@ class SparseTrainer(base):
       # Calculate accuracy
       metrics = self.metrics(batch_target, batch_loss)
       for metric in metrics: 
-      w_pred = batch_output.argmax(dim=1)
-      w_true = batch_target.argmax(dim=1) if batch_target.ndim == 2 else batch_target
+        w_pred = batch_output.argmax(dim=1)
+        w_true = batch_target.argmax(dim=1) if batch_target.ndim == 2 else batch_target
       #correct = (w_pred==w_true)
       #batch_acc = 100*correct.sum().float().item()/w_pred.shape[0]
       #acc_indiv = [ 100*((w_pred[correct]==i).sum().float()/(w_true==i).sum().float()).item() for i in range(batch_target.shape[1]) ]

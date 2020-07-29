@@ -100,7 +100,7 @@ class MobileNet(ME.MinkowskiNetwork):
     def forward(self, x):
         xview = ME.SparseTensor(x[0], x[1])
         yview = ME.SparseTensor(x[2], x[3])
-        x = self.merge(self.input_x(xview), self.input_y(xview))
+        x = self.merge(self.input_x(xview), self.input_y(yview))
         x = self.net(x)
         return self.final(x.F)
         

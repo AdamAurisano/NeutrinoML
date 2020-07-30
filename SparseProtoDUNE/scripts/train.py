@@ -4,7 +4,8 @@
 Script for sparse convolutional network training PROTODUNE
 '''
 
-import yaml, argparse, logging, math, numpy as np
+import yaml, argparse, logging, math, numpy as np, sys
+if '/scratch' not in sys.path: sys.path.append('/scratch')
 from SparseProtoDUNE import datasets
 from SparseBase import utils
 from SparseBase.trainers import SparseTrainer

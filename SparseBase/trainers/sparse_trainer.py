@@ -18,6 +18,7 @@ from SparseBase.models import get_model
 from .base import base
 from SparseBase.loss import get_loss #categorical_cross_entropy
 from SparseBase.optim import get_optim
+from SparseBase.utils import get_metrics
 
 class SparseTrainer(base):
   '''Trainer code for basic classification problems with categorical cross entropy.'''
@@ -42,9 +43,7 @@ class SparseTrainer(base):
     # Construct the optimizer
 
     self.optimizer = get_optim(model_params=self.model.parameters(), **optimizer_params)
-    self.optimizer = getattr(torch.optim, optimizer)(
-       self.model.parameters(), lr=learning_rate, weight_decay=weight_decay) 
-    #self.lr_scheduler = StepLR(self.optimizer, step_size, gamma)
+    self.lr_scheduler = StepLR(self.optimizer, step_size, gamma)
 
     self.class_names = class_names
 

@@ -14,11 +14,11 @@ from torch.optim.lr_scheduler import LambdaLR, StepLR
 import tqdm, numpy as np, psutil
 
 # Locals
-from SparseBase.models import get_model
+from Core.models import get_model
 from .base import base
-from SparseBase.loss import get_loss #categorical_cross_entropy
-from SparseBase.optim import get_optim
-from SparseBase.utils import get_metrics
+from Core.loss import get_loss #categorical_cross_entropy
+from Core.optim import get_optim
+from Core.metrics import get_metrics
 
 class SparseTrainer(base):
   '''Trainer code for basic classification problems with categorical cross entropy.'''

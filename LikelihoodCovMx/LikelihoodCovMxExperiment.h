@@ -67,10 +67,9 @@ namespace ana
     std::vector<double> GetExpectedSpectrum() const;
 
     void InitialiseBetas() const;
-
+    bool MaskBetas() const;
     void GetGradAndHess() const;
     void GetReducedGradAndHess() const;
-
     void Solve(int N, double* hess, double* grad) const;
     double LikelihoodCovMxNewton() const;
     
@@ -96,14 +95,18 @@ namespace ana
     double fNu;             /// Levenberg-Marquardt nu
     mutable double fLambda; /// Levenberg-Marquardt lambda
 
+    bool fLLUseROOT;
+    bool fLLUseSVD;
     TH1D* fBetaHist;
     TH1D* fMuHist;
     TH1D* fBetaMuHist;
     TH1D* fPredShiftedHist;
     TH1D* fPredUnshiftedHist;
     TH1D* fDataHist;
+    // Eigen::MatrixXd fMxInv;
     TMatrixD* fMxInv;
     bool fShapeOnly;
+    // std::vector<TH1D*> fUnoscillated;
     bool fVerbose;
 
     mutable double fStatChiSq;

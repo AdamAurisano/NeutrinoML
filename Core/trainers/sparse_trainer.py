@@ -28,7 +28,7 @@ class SparseTrainer(base):
     self.writer = SummaryWriter(f'{summary_dir}/{train_name}')
 
   def build_model(self, optimizer_params, name='NodeConv',
-      loss_func='cross_entropy', learning_rate=0.01, weight_decay=0.01,
+      loss_func='cross_entropy', arrange_data = "Minkowski2StackClass", learning_rate=0.01, weight_decay=0.01,
       step_size=1, gamma=0.5, class_names=[], **model_args): #state_dict=None, **model_args):
     '''Instantiate our model'''
 
@@ -46,6 +46,8 @@ class SparseTrainer(base):
     self.lr_scheduler = StepLR(self.optimizer, step_size, gamma)
 
     self.class_names = class_names
+    
+    self.arrange_data = arrange_data
 
   def load_state_dict(self, state_dict, **kwargs):
     '''Load state dict from trained model'''
@@ -64,14 +66,7 @@ class SparseTrainer(base):
     for i, data in t:
       self.optimizer.zero_grad()
       # Different input shapes for SparseConvNet vs MinkowskiEngine
-      if 'sparse' in data.keys():
-        if isinstance(data['sparse'], list): 
-          batch_input = [ data['sparse'][0].to(self.device),
-                          data['sparse'][1],   
-                          data['sparse'][2].to(self.device),
-                          data['sparse'][3] ]
-        else: batch_input = data['sparse'].to(self.device)
-      else: batch_input = (data['c'].to(self.device), data['x'].to(self.device), batch_size)
+      batch_input = self.arrange_data(data, self.device)
       batch_output = self.model(batch_input)
       batch_target = data['y'].to(batch_output.device)
       batch_loss = self.loss_func(batch_output, batch_target)
@@ -129,14 +124,7 @@ class SparseTrainer(base):
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
     for i, data in t:
       # Different input shapes for SparseConvNet vs MinkowskiEngine
-      if 'sparse' in data.keys():
-        if isinstance(data['sparse'], list):
-          batch_input = [ data['sparse'][0].to(self.device),
-                          data['sparse'][1],
-                          data['sparse'][2].to(self.device),
-                          data['sparse'][3] ]
-        else: batch_input = data['sparse'].to(self.device)
-      else: batch_input = (data['c'].to(self.device), data['x'].to(self.device), batch_size)
+      batch_input = self.arrange_data(data, self.device)
       batch_output = self.model(batch_input)
       batch_target = data['y'].to(batch_output.device)
       batch_loss = self.loss_func(batch_output, batch_target)

@@ -1,5 +1,6 @@
 from .transforms import *
 from .collate import *
+from .arrange_data import *
 
 def get_metrics(metrics):
     '''Function that returns a function definition for calculating training metrics'''

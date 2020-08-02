@@ -11,6 +11,7 @@ _models = { 'MinkowskiSeg':   MinkowskiSeg,
             'MinkowskiClass': MinkowskiClass,
             'Minkowski2StackClass': Minkowski2StackClass,
             'MobileNet': MobileNet,
+            'DenseMobileNet': DenseMobileNet,
             'SparseSegmentation': SparseSegmentation}
 
 def get_model(name, **model_args):

@@ -21,6 +21,7 @@ model:
   res_blocks: True # Whether to use residual blocks in unet
   loss_func: 'categorical_cross_entropy'
   optimizer: 'Ranger'
+  activation: 'ReLU'
   learning_rate: 1.e-3
   weight_decay: 0.01
   step_size: 1 # How many epochs between LR reduction

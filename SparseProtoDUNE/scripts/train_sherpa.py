@@ -4,7 +4,7 @@
 Script for sparse convolutional network training
 '''
 
-import yaml, argparse, logging, math, numpy as np
+import yaml, argparse, logging, math, numpy as np, ReLU, LeakyReLU
 import models, datasets, utils
 import torch, torchvision, sherpa
 from torch.utils.data import DataLoader
@@ -46,18 +46,21 @@ def main():
                 sherpa.Continuous('weight_decay',
                                   [0.01, 0.1]),
                 sherpa.Discrete('unet_depth',
-                                [2, 6])]
+                                [2, 6]),
+                sherpa.Choice('activation',
+                                  (ReLU, LeakyReLU))]
   alg = sherpa.algorithms.GPyOpt(max_num_trials=50)
 
   study = sherpa.Study(parameters=parameters,
                        algorithm=alg,
                        lower_is_better=True,
-                       dashboard_port=9307)
+                       dashboard_port=9304)
 
   for trial in study:
     config['model']['learning_rate'] = trial.parameters['learning_rate']
     config['model']['weight_decay'] = trial.parameters['weight_decay']
     config['model']['unet_depth'] = trial.parameters['unet_depth']
+    config['model']['activation'] = trial.parameters['activation']
     trainer.build_model(**config['model'])
     train_summary = trainer.train(
       train_loader,

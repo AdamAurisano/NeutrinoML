@@ -18,8 +18,8 @@ from Core.models import get_model
 from .base import base
 from Core.loss import get_loss #categorical_cross_entropy
 from Core.optim import get_optim
-from Core.metrics import get_metrics
-
+#from Core.utils import get_metrics
+from Core.utils import *
 class SparseTrainer(base):
   '''Trainer code for basic classification problems with categorical cross entropy.'''
 
@@ -28,7 +28,7 @@ class SparseTrainer(base):
     self.writer = SummaryWriter(f'{summary_dir}/{train_name}')
 
   def build_model(self, optimizer_params, name='NodeConv',
-      loss_func='cross_entropy', arrange_data = "Minkowski2StackClass", learning_rate=0.01, weight_decay=0.01,
+      loss_func='cross_entropy', arrange_data = 'arrange_sparse_minkowski',lr = 0.01, weight_decay=0.01,
       step_size=1, gamma=0.5, class_names=[], **model_args): #state_dict=None, **model_args):
     '''Instantiate our model'''
 
@@ -41,14 +41,13 @@ class SparseTrainer(base):
     self.loss_func = get_loss(loss_func)
 
     # Construct the optimizer
-
     self.optimizer = get_optim(model_params=self.model.parameters(), **optimizer_params)
     self.lr_scheduler = StepLR(self.optimizer, step_size, gamma)
-
+    #print('model params:', self.model.parameters())
+    #print('learning_rate:',lr)
     self.class_names = class_names
-    
-    self.arrange_data = arrange_data
-
+    #self.arrange_data = get_arrange('arrange_sparse_minkowski')
+    self.arrange_data = get_arrange(arrange_data)
   def load_state_dict(self, state_dict, **kwargs):
     '''Load state dict from trained model'''
     self.model.load_state_dict(torch.load(state_dict, map_location=f'cuda:{self.device}')['model'])
@@ -66,6 +65,9 @@ class SparseTrainer(base):
     for i, data in t:
       self.optimizer.zero_grad()
       # Different input shapes for SparseConvNet vs MinkowskiEngine
+      #print("Carlos ", arrange_data)
+     # print("Carlos1", self.loss_func)  
+     # print('lr ', self.optimizer.param_groups[0]['lr'])     
       batch_input = self.arrange_data(data, self.device)
       batch_output = self.model(batch_input)
       batch_target = data['y'].to(batch_output.device)
@@ -73,13 +75,8 @@ class SparseTrainer(base):
       batch_loss.backward()
 
       # Calculate accuracy
-      metrics = self.metrics(batch_target, batch_loss)
-      for metric in metrics: 
-        w_pred = batch_output.argmax(dim=1)
-        w_true = batch_target.argmax(dim=1) if batch_target.ndim == 2 else batch_target
-      #correct = (w_pred==w_true)
-      #batch_acc = 100*correct.sum().float().item()/w_pred.shape[0]
-      #acc_indiv = [ 100*((w_pred[correct]==i).sum().float()/(w_true==i).sum().float()).item() for i in range(batch_target.shape[1]) ]
+      metrics = get_metrics('semantic_segmentation')(batch_target,batch_output,self.class_names) 
+      acc_indiv =  metrics['batch']['IndivAcc/acc_indiv']
 
       self.optimizer.step()
 
@@ -90,13 +87,13 @@ class SparseTrainer(base):
       # add to tensorboard summary
       if self.iteration%100 == 0:
         self.writer.add_scalar('Loss/batch', batch_loss.item(), self.iteration)
-        metrics = self.metrics(batch_target, batch_loss)
-        for name, xval, yval in metrics:
-          self.writer.add_scalar(name, yval, xval)
-        #self.writer.add_scalar('Acc/batch', batch_acc, self.iteration)
-      #for name, acc in zip(self.class_names, acc_indiv):
-      #  self.writer.add_scalar(f'batch_acc/{name}', acc, self.iteration)
-      #self.writer.add_scalar('Memory usage', psutil.virtual_memory().used, self.iteration)
+        #metrics = self.metrics(batch_target, batch_loss)
+        #for name, xval, yval in metrics:
+        #  self.writer.add_scalar(name, yval, xval)
+        self.writer.add_scalar('Acc/batch', metrics['batch']['Acc/batch'], self.iteration)
+      for name, acc in zip(self.class_names, acc_indiv):
+        self.writer.add_scalar(f'batch_acc/{name}', acc, self.iteration)
+      self.writer.add_scalar('Memory usage', psutil.virtual_memory().used, self.iteration)
       self.iteration += 1
 
     summary['lr'] = self.optimizer.param_groups[0]['lr']

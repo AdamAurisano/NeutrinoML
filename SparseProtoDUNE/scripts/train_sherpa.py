@@ -4,11 +4,13 @@
 Script for sparse convolutional network training
 '''
 
-import yaml, argparse, logging, math, numpy as np, ReLU, LeakyReLU
+import yaml, argparse, logging, math, numpy as np
 import models, datasets, utils
 import torch, torchvision, sherpa
 from torch.utils.data import DataLoader
 import MinkowskiEngine as ME
+from torch import nn
+from torch.nn import LeakyReLU, ReLU
 
 from training import SparseTrainer
 
@@ -48,7 +50,7 @@ def main():
                 sherpa.Discrete('unet_depth',
                                 [2, 6]),
                 sherpa.Choice('activation',
-                                  (ReLU, LeakyReLU))]
+                                  [ReLU, LeakyReLU])]
   alg = sherpa.algorithms.GPyOpt(max_num_trials=50)
 
   study = sherpa.Study(parameters=parameters,

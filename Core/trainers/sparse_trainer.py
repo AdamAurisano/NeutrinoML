@@ -43,11 +43,11 @@ class SparseTrainer(base):
     # Construct the optimizer
     self.optimizer = get_optim(model_params=self.model.parameters(), **optimizer_params)
     self.lr_scheduler = StepLR(self.optimizer, step_size, gamma)
-    #print('model params:', self.model.parameters())
-    #print('learning_rate:',lr)
+    
+    # Select function to arrange data
     self.class_names = class_names
-    #self.arrange_data = get_arrange('arrange_sparse_minkowski')
     self.arrange_data = get_arrange(arrange_data)
+  
   def load_state_dict(self, state_dict, **kwargs):
     '''Load state dict from trained model'''
     self.model.load_state_dict(torch.load(state_dict, map_location=f'cuda:{self.device}')['model'])
@@ -65,9 +65,6 @@ class SparseTrainer(base):
     for i, data in t:
       self.optimizer.zero_grad()
       # Different input shapes for SparseConvNet vs MinkowskiEngine
-      #print("Carlos ", arrange_data)
-     # print("Carlos1", self.loss_func)  
-     # print('lr ', self.optimizer.param_groups[0]['lr'])     
       batch_input = self.arrange_data(data, self.device)
       batch_output = self.model(batch_input)
       batch_target = data['y'].to(batch_output.device)

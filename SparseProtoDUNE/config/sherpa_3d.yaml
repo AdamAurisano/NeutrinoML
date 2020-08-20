@@ -12,7 +12,7 @@ process:
   feat_norm: [1.e-5, 1.e-5, 1.e-5, 6.25e-4, 1.667e-3, 1.429e-3, 5.e-2]
 
 model:
-  name: 'SparseSegmentation'
+  name: 'MinkowskiSeg'
   n_dims: 3
   extent: 6000 # Maximum dimension of pixel map
   input_feats: 7
@@ -20,8 +20,7 @@ model:
   unet_depth: 5
   res_blocks: True # Whether to use residual blocks in unet
   loss_func: 'categorical_cross_entropy'
-  optimizer: 'Ranger'
-  activation: 'ReLU'
+  optimizer: 'AdamW'
   learning_rate: 1.e-3
   weight_decay: 0.01
   step_size: 1 # How many epochs between LR reduction
@@ -44,7 +43,7 @@ data_loader:
   num_workers: 1
 
 trainer:
-  device: 4 # Which GPU to use
+  device: 2 # Which GPU to use
   n_epochs: 5
   max_iters_train: None
   max_iters_eval:  None

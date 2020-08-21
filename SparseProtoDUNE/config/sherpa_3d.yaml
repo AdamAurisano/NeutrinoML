@@ -47,7 +47,7 @@ data_loader:
   #  num_workers: 1
 
 trainer:
-  device: 4 # Which GPU to use
+  device: 2 # Which GPU to use
   n_epochs: 5
   max_iters_train: None
   max_iters_eval:  None

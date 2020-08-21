@@ -1,7 +1,7 @@
 data:
   name: 'SparsePixelMap3D'
   root: '/data/3d'
-  trainfiles: 'processed'
+  trainfiles: 'processed_2'
   t_v_split: 0.05
 
 process:
@@ -20,10 +20,11 @@ model:
   unet_depth: 5
   res_blocks: True # Whether to use residual blocks in unet
   loss_func: 'categorical_cross_entropy'
+  arrange_data: 'arrange_sparse_minkowski'
   optimizer_params:
     optimizer: 'AdamW'
     AdamW:
-      lr:    1.e-3
+      lr: 1.e-4
       weight_decay:     0.01
     Ranger:
       lr:               1.e-3
@@ -38,17 +39,19 @@ model:
     lr_policy:
       step_size: 1
       gamma:     0.1
-  class_names: ['shower','delta','diffuse','kaons','michel','hip','mu','pi']  
   n_classes: 8
   metrics: 'SemanticSegmentation'
+  metric_params:
+    SemanticSegmentation:
+      class_names: ['shower','delta','diffuse','kaons','michel','hip','mu','pi']
 
 data_loader:
-  batch_size: 35 
+  batch_size: 30 
   num_workers: 0
 
 trainer:
   device: 7 # Which GPU to use
-  n_epochs: 5
+  n_epochs: 1
   max_iters_train: None 
   max_iters_eval:  None 
   summary_dir: 'summary/3d/test1'

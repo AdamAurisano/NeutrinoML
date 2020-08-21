@@ -19,7 +19,7 @@ from .base import base
 from Core.loss import get_loss #categorical_cross_entropy
 from Core.optim import get_optim
 from Core.metrics import get_metrics
-
+from Core.utils import *
 class SparseTrainer(base):
   '''Trainer code for basic classification problems with categorical cross entropy.'''
 
@@ -27,9 +27,10 @@ class SparseTrainer(base):
     super(SparseTrainer, self).__init__(**kwargs)
     self.writer = SummaryWriter(f'{summary_dir}/{train_name}')
 
-  def build_model(self, optimizer_params, metrics, name='NodeConv',
-      loss_func='cross_entropy', learning_rate=0.01, weight_decay=0.01,
-      step_size=1, gamma=0.5, class_names=[], **model_args): #state_dict=None, **model_args):
+  def build_model(self, optimizer_params, name='NodeConv',
+      loss_func='cross_entropy', arrange_data = 'arrange_sparse_minkowski',
+      metrics = 'SemanticSegmentation', metric_params=[],
+      step_size=1, gamma=0.5, **model_args):
     '''Instantiate our model'''
 
     # Construct the model
@@ -44,10 +45,11 @@ class SparseTrainer(base):
     self.optimizer = get_optim(model_params=self.model.parameters(), **optimizer_params)
     self.lr_scheduler = StepLR(self.optimizer, step_size, gamma)
 
-    self.metrics = get_metrics(metrics)(class_names)
+    self.metrics = get_metrics(metrics)(**metric_params[metrics])
 
-    self.class_names = class_names
-
+    # Select function to arrange data
+    self.arrange_data = get_arrange(arrange_data)
+  
   def load_state_dict(self, state_dict, **kwargs):
     '''Load state dict from trained model'''
     self.model.load_state_dict(torch.load(state_dict, map_location=f'cuda:{self.device}')['model'])
@@ -66,18 +68,14 @@ class SparseTrainer(base):
     for i, data in t:
       self.optimizer.zero_grad()
       # Different input shapes for SparseConvNet vs MinkowskiEngine
-      if 'sparse' in data.keys():
-        if isinstance(data['sparse'], list): 
-          batch_input = [ data['sparse'][0].to(self.device),
-                          data['sparse'][1],   
-                          data['sparse'][2].to(self.device),
-                          data['sparse'][3] ]
-        else: batch_input = data['sparse'].to(self.device)
-      else: batch_input = (data['c'].to(self.device), data['x'].to(self.device), batch_size)
+      batch_input = self.arrange_data(data, self.device)
       batch_output = self.model(batch_input)
       batch_target = data['y'].to(batch_output.device)
       batch_loss = self.loss_func(batch_output, batch_target)
       batch_loss.backward()
+
+      # Calculate accuracy
+      metrics = self.metrics.train_batch_metrics(batch_target, batch_output) 
 
       self.optimizer.step()
 
@@ -106,10 +104,6 @@ class SparseTrainer(base):
     self.model.eval()
     summary = dict()
     sum_loss = 0
-    sum_correct = 0
-    sum_correct_indiv = np.zeros(len(self.class_names))
-    sum_total = 0
-    sum_total_indiv = np.zeros(len(self.class_names))
     start_time = time.time()
     # Loop over batches
     batch_size = data_loader.batch_size
@@ -117,14 +111,7 @@ class SparseTrainer(base):
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
     for i, data in t:
       # Different input shapes for SparseConvNet vs MinkowskiEngine
-      if 'sparse' in data.keys():
-        if isinstance(data['sparse'], list):
-          batch_input = [ data['sparse'][0].to(self.device),
-                          data['sparse'][1],
-                          data['sparse'][2].to(self.device),
-                          data['sparse'][3] ]
-        else: batch_input = data['sparse'].to(self.device)
-      else: batch_input = (data['c'].to(self.device), data['x'].to(self.device), batch_size)
+      batch_input = self.arrange_data(data, self.device)
       batch_output = self.model(batch_input)
       batch_target = data['y'].to(batch_output.device)
       batch_loss = self.loss_func(batch_output, batch_target)

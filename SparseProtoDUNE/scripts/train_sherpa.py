@@ -4,13 +4,14 @@
 Script for sparse convolutional network training
 '''
 
-import yaml, argparse, logging, math, numpy as np
-import models, datasets, utils
+import yaml, argparse, logging, math, numpy as np, sys
+if '/scratch' not in sys.path: sys.path.append('/scratch')
+from SparseProtoDUNE import datasets
+from Core import utils
+from Core.trainers import SparseTrainer
 import torch, torchvision, sherpa
 from torch.utils.data import DataLoader
 import MinkowskiEngine as ME
-
-from training import SparseTrainer
 
 def parse_args():
   '''Parse arguments'''
@@ -34,7 +35,7 @@ def main():
   fulllen = len(full_dataset)
   tv_num = math.ceil(fulllen*config['data']['t_v_split'])
   splits = np.cumsum([fulllen-tv_num,0,tv_num])
-  collate = utils.collate_sparse_minkowski if 'Minkowski' in config['model']['name'] else utils.collate_sparse
+  collate = utils.collate_sparse_minkowski
 
   train_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=0,stop=splits[0]))
   valid_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=splits[1],stop=splits[2]))

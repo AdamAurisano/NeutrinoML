@@ -27,7 +27,7 @@ class SparseTrainer(base):
     super(SparseTrainer, self).__init__(**kwargs)
     self.writer = SummaryWriter(f'{summary_dir}/{train_name}')
 
-  def build_model(self, optimizer_params, name='NodeConv',
+  def build_model(self, optimizer_params, metrics, name='NodeConv',
       loss_func='cross_entropy', learning_rate=0.01, weight_decay=0.01,
       step_size=1, gamma=0.5, class_names=[], **model_args): #state_dict=None, **model_args):
     '''Instantiate our model'''
@@ -41,9 +41,10 @@ class SparseTrainer(base):
     self.loss_func = get_loss(loss_func)
 
     # Construct the optimizer
-
     self.optimizer = get_optim(model_params=self.model.parameters(), **optimizer_params)
     self.lr_scheduler = StepLR(self.optimizer, step_size, gamma)
+
+    self.metrics = get_metrics(metrics)(class_names)
 
     self.class_names = class_names
 
@@ -54,6 +55,7 @@ class SparseTrainer(base):
   def train_epoch(self, data_loader, **kwargs):
     '''Train for one epoch'''
     self.model.train()
+    self.metrics.new_epoch()
     summary = dict()
     sum_loss = 0.
     start_time = time.time()
@@ -77,15 +79,6 @@ class SparseTrainer(base):
       batch_loss = self.loss_func(batch_output, batch_target)
       batch_loss.backward()
 
-      # Calculate accuracy
-      metrics = self.metrics(batch_target, batch_loss)
-      for metric in metrics: 
-        w_pred = batch_output.argmax(dim=1)
-        w_true = batch_target.argmax(dim=1) if batch_target.ndim == 2 else batch_target
-      #correct = (w_pred==w_true)
-      #batch_acc = 100*correct.sum().float().item()/w_pred.shape[0]
-      #acc_indiv = [ 100*((w_pred[correct]==i).sum().float()/(w_true==i).sum().float()).item() for i in range(batch_target.shape[1]) ]
-
       self.optimizer.step()
 
       sum_loss += batch_loss.item()
@@ -93,15 +86,10 @@ class SparseTrainer(base):
       t.refresh() # to show immediately the update
 
       # add to tensorboard summary
+      metrics = self.metrics.train_batch_metrics(batch_output, batch_target)
       if self.iteration%100 == 0:
         self.writer.add_scalar('Loss/batch', batch_loss.item(), self.iteration)
-        metrics = self.metrics(batch_target, batch_loss)
-        for name, xval, yval in metrics:
-          self.writer.add_scalar(name, yval, xval)
-        #self.writer.add_scalar('Acc/batch', batch_acc, self.iteration)
-      #for name, acc in zip(self.class_names, acc_indiv):
-      #  self.writer.add_scalar(f'batch_acc/{name}', acc, self.iteration)
-      #self.writer.add_scalar('Memory usage', psutil.virtual_memory().used, self.iteration)
+        for key, val in metrics.items(): self.writer.add_scalar(key, val, self.iteration)
       self.iteration += 1
 
     summary['lr'] = self.optimizer.param_groups[0]['lr']
@@ -141,21 +129,12 @@ class SparseTrainer(base):
       batch_target = data['y'].to(batch_output.device)
       batch_loss = self.loss_func(batch_output, batch_target)
       sum_loss += batch_loss.item()
-      w_pred = batch_output.argmax(dim=1)
-      w_true = batch_target.argmax(dim=1) if batch_target.ndim == 2 else batch_target
-      correct = (w_pred==w_true)
-      sum_correct += correct.sum().float().item()
-      sum_total += w_pred.shape[0]
+      self.metrics.valid_batch_metrics(batch_output, batch_target)
     summary['valid_time'] = time.time() - start_time
     summary['valid_loss'] = sum_loss / n_batches
-    summary['valid_acc'] = 100 * sum_correct / sum_total
-    if len(self.class_names) > 0:
-      for name, corr, tot in zip(self.class_names, sum_correct_indiv, sum_total_indiv):
-        summary[f'{name}_acc'] =100 * corr / tot
     self.logger.debug(' Processed %i samples in %i batches',
                       len(data_loader.sampler), n_batches)
-    self.logger.info('  Validation loss: %.3f acc: %.3f' %
-                     (summary['valid_loss'], summary['valid_acc']))
+    self.logger.info('  Validation loss: %.3f' % (summary['valid_loss']))
     return summary
 
   def train(self, train_data_loader, n_epochs, valid_data_loader=None, **kwargs):
@@ -188,12 +167,11 @@ class SparseTrainer(base):
       if self.output_dir is not None:
         self.write_checkpoint(checkpoint_id=i)
 
-      self.writer.add_scalar('Loss/train', summary['train_loss'], i+1)
-      if valid_data_loader is not None:
-        self.writer.add_scalar('Loss/valid', summary['valid_loss'], i+1)
-        self.writer.add_scalar('Acc/valid', summary['valid_acc'], i+1)
-        for name in self.class_names:
-          self.writer.add_scalar(f'valid_acc/{name}', summary[f'{name}_acc'], i+1)
+      self.writer.add_scalars('loss/epoch', {
+          'train': summary['train_loss'],
+          'valid': summary['valid_loss'] }, i+1)
+      metrics = self.metrics.epoch_metrics()
+      for key, val in metrics.items(): self.writer.add_scalars(key, val, i+1)
 
     return self.summaries
 

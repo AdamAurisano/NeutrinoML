@@ -1,15 +1,14 @@
 '''Segmentation architecture using MinkowskiEngine UNet'''
 from torch.nn import Sequential as Seq, Softmax
+import torch.nn.functional as f
 import MinkowskiEngine as ME
-import MinkowskiEngine.MinkowskiFunctional as MF
 from .minkowski_unet import UNetUp, UNetDown
+from Core.activation import MinkowskiActivation
 
 class MinkowskiSeg(ME.MinkowskiNetwork):
 
-  def __init__(self, n_dims, unet_depth, input_feats, n_classes, n_feats, activation=MF.relu, **kwargs):
+  def __init__(self, n_dims, unet_depth, input_feats, n_classes, n_feats, activation, **kwargs):
     super(MinkowskiSeg, self).__init__(n_dims)
-
-    self.a = activation
 
     self.in_net = Seq(
       ME.MinkowskiConvolution(
@@ -18,7 +17,8 @@ class MinkowskiSeg(ME.MinkowskiNetwork):
         kernel_size=3,
         stride=1,
         dimension=n_dims),
-      ME.MinkowskiBatchNorm(n_feats))
+      ME.MinkowskiBatchNorm(n_feats),
+      MinkowskiActivation(n_dims, activation))
 
     # Downward layers
     self.down_net = UNetDown(
@@ -46,7 +46,6 @@ class MinkowskiSeg(ME.MinkowskiNetwork):
 
     # Input network
     x = self.in_net(x)
-    x = self.a(x)
     
     # Down network
     x = self.down_net(x)

@@ -16,7 +16,8 @@ import tqdm, numpy as np, psutil
 # Locals
 from Core.models import get_model
 from .base import base
-from Core.loss import get_loss #categorical_cross_entropy
+from Core.loss import get_loss
+from Core.activation import get_activation
 from Core.optim import get_optim
 from Core.metrics import get_metrics
 from Core.utils import *
@@ -27,7 +28,7 @@ class SparseTrainer(base):
     super(SparseTrainer, self).__init__(**kwargs)
     self.writer = SummaryWriter(f'{summary_dir}/{train_name}')
 
-  def build_model(self, optimizer_params, name='NodeConv',
+  def build_model(self, activation_params, optimizer_params, name='NodeConv',
       loss_func='cross_entropy', arrange_data = 'arrange_sparse_minkowski',
       metrics = 'SemanticSegmentation', metric_params=[],
       step_size=1, gamma=0.5, **model_args):
@@ -35,6 +36,7 @@ class SparseTrainer(base):
 
     # Construct the model
     torch.cuda.set_device(self.device)
+    model_args['activation'] = get_activation(**activation_params)
     self.model = get_model(name=name, **model_args)
     self.model = self.model.to(self.device)
 

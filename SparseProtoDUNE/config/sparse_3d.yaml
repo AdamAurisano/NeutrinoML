@@ -19,8 +19,15 @@ model:
   n_feats: 48 # Number of features
   unet_depth: 5
   res_blocks: True # Whether to use residual blocks in unet
+
   loss_func: 'categorical_cross_entropy'
   arrange_data: 'arrange_sparse_minkowski'
+
+  activation_params:
+    activation: 'ReLU'
+    LeakyReLU:
+      negative_slope: 0.01
+
   optimizer_params:
     optimizer: 'AdamW'
     AdamW:
@@ -39,9 +46,11 @@ model:
     lr_policy:
       step_size: 1
       gamma:     0.1
+
   n_classes: 8
-  metrics: 'SemanticSegmentation'
+
   metric_params:
+    metrics: 'SparseSegmentation'
     SemanticSegmentation:
       class_names: ['shower','delta','diffuse','kaons','michel','hip','mu','pi']
 

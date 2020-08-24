@@ -70,5 +70,5 @@ class UNetUp(ME.MinkowskiNetwork):
     # Last upward layer
     x = self.up[-1](x)
     x = self.a(x)
-    
+
     return x

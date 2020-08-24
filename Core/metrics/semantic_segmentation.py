@@ -50,7 +50,7 @@ class SemanticSegmentationMetrics(MetricsBase):
 
         # Sanity check
         if len(self.class_names) != y_pred.shape[1]:
-            raise Exception(f'Number of class names ({len(class_names)}) does not match shape of network output ({y_pred.shape[1]})!')
+            raise Exception(f'Number of class names ({len(self.class_names)}) does not match shape of network output ({y_pred.shape[1]})!')
 
         metrics = {}
 

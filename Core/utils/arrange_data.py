@@ -9,8 +9,8 @@ def arrange_sparse_minkowski(data, device):
     return batch_input
 
 def arrange_sparse_minkowski_2stack(data, device):
-    batch_input = [data['sparse'][0].to(device),
-                   data['sparse'][1],   
-                   data['sparse'][2].to(device),
-                   data['sparse'][3] ]
+    batch_input = [ data['sparse'][0].to(device),
+                    data['sparse'][1],   
+                    data['sparse'][2].to(device),
+                    data['sparse'][3] ]
     return batch_input

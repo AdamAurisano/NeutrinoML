@@ -54,3 +54,4 @@ class MinkowskiSeg(ME.MinkowskiNetwork):
     
     x = self.out_net(x)
     return self.softmax(x.F)
+

@@ -20,6 +20,7 @@ model:
   unet_depth: 5
   res_blocks: True # Whether to use residual blocks in unet
   loss_func: 'categorical_cross_entropy'
+  arrange_data: 'arrange_sparse_minkowski'
   optimizer_params:
     optimizer: 'AdamW'
     AdamW:
@@ -38,13 +39,15 @@ model:
     lr_policy:
       step_size: 1
       gamma:     0.1
-  class_names: ['shower', 'diffuse', 'kaon', 'michel', 'hip', 'mu', 'pi']
   n_classes: 7
   metrics: 'SemanticSegmentation'
+  metric_params:
+    SemanticSegmentation:
+      class_names: ['shower', 'diffuse', 'kaon', 'michel', 'hip', 'mu', 'pi']
 
 data_loader:
-  batch_size: 1 #35
-  #  num_workers: 1
+  batch_size: 35
+  #num_workers: 1
 
 trainer:
   device: 2 # Which GPU to use

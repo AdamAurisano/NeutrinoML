@@ -12,8 +12,7 @@ from Core.trainers import SparseTrainer
 import torch, torchvision, sherpa
 from torch.utils.data import DataLoader
 import MinkowskiEngine as ME
-from torch import nn
-from torch.nn import LeakyReLU, ReLU
+#from torch.nn import LeakyReLU, ReLU
 
 def parse_args():
   '''Parse arguments'''
@@ -49,9 +48,9 @@ def main():
                 sherpa.Continuous('weight_decay',
                                   [0.01, 0.1]),
                 sherpa.Discrete('unet_depth',
-                                [2, 6]),
-                sherpa.Choice('activation',
-                                  [ReLU, LeakyReLU])]
+                                [2, 6]) ]#,
+#                sherpa.Choice('activation',
+#                                  [ ReLU(), LeakyReLU() ])]
   alg = sherpa.algorithms.GPyOpt(max_num_trials=50)
 
   study = sherpa.Study(parameters=parameters,
@@ -63,7 +62,7 @@ def main():
     config['model']['learning_rate'] = trial.parameters['learning_rate']
     config['model']['weight_decay'] = trial.parameters['weight_decay']
     config['model']['unet_depth'] = trial.parameters['unet_depth']
-    config['model']['activation'] = trial.parameters['activation']
+#    config['model']['activation'] = trial.parameters['activation']
     trainer.build_model(**config['model'])
     train_summary = trainer.train(
       train_loader,

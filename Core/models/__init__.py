@@ -2,7 +2,6 @@
 Module for retrieving PyTorch network architectures
 '''
 
-from .seg import *
 from .minkowski_seg import MinkowskiSeg
 from .minkowski_class import MinkowskiClass, Minkowski2StackClass
 from .nova_mobilenet import MobileNet
@@ -12,8 +11,7 @@ _models = { 'MinkowskiSeg':   MinkowskiSeg,
             'MinkowskiClass': MinkowskiClass,
             'Minkowski2StackClass': Minkowski2StackClass,
             'MobileNet': MobileNet,
-            'DenseMobileNet': DenseMobileNet,
-            'SparseSegmentation': SparseSegmentation}
+            'DenseMobileNet': DenseMobileNet }
 
 def get_model(name, **model_args):
     

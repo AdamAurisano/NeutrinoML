@@ -32,8 +32,8 @@ class SemanticSegmentationMetrics(MetricsBase):
     def __accuracy_helper(self, y_pred, y_true):
         '''Utility function to help calculate accuracy for a batch'''
 
-        w_pred = y_pred.argmax(dim=0)
-        w_true = y_true.argmax(dim=0)
+        w_pred = y_pred.argmax(dim=1)
+        w_true = y_true.argmax(dim=1)
         correct = (w_pred==w_true)
 
         # Calculate batch accuracy
@@ -55,7 +55,6 @@ class SemanticSegmentationMetrics(MetricsBase):
         metrics = {}
 
         batch_correct, batch_total, class_correct, class_total = self.__accuracy_helper(y_pred, y_true)
-
         metrics['acc/batch'] = 100 * batch_correct / batch_total
         self.train_correct += batch_correct
         self.train_total += batch_total

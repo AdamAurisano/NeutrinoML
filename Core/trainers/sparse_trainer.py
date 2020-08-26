@@ -50,7 +50,7 @@ class SparseTrainer(base):
     self.metrics = get_metrics(metrics)(**metric_params[metrics])
 
     # Select function to arrange data
-    self.arrange_data = arrange_data
+    self.arrange_data = get_arrange(arrange_data)
   
   def load_state_dict(self, state_dict, **kwargs):
     '''Load state dict from trained model'''

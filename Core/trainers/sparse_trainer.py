@@ -39,7 +39,7 @@ class SparseTrainer(base):
     model_args['activation'] = get_activation(**activation_params)
     self.model = get_model(name=name, **model_args)
     self.model = self.model.to(self.device)
-
+    
     # Construct the loss function
     self.loss_func = get_loss(loss_func)
 
@@ -77,17 +77,17 @@ class SparseTrainer(base):
       batch_loss.backward()
 
       # Calculate accuracy
-      metrics = self.metrics.train_batch_metrics(batch_target, batch_output) 
-
+      metrics = self.metrics.train_batch_metrics(batch_output, batch_target) 
+      
       self.optimizer.step()
-
+      
       sum_loss += batch_loss.item()
       t.set_description("loss = %.5f" % batch_loss.item() )
       t.refresh() # to show immediately the update
 
       # add to tensorboard summary
       metrics = self.metrics.train_batch_metrics(batch_output, batch_target)
-      if self.iteration%100 == 0:
+      if self.iteration%10 == 0:
         self.writer.add_scalar('Loss/batch', batch_loss.item(), self.iteration)
         for key, val in metrics.items(): self.writer.add_scalar(key, val, self.iteration)
       self.iteration += 1

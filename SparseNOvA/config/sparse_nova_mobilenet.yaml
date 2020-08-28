@@ -6,13 +6,17 @@ data:
 model:
   name: 'MobileNet'
   D: 2
-  alpha: 0.25
+  alpha: 1
   depth: 1
   classes: 3
   loss_func: 'CrossEntropyLoss'
   arrange_data: 'arrange_sparse_minkowski_2stack'
   step_size: 1 # How many epochs between LR reduction
   gamma: 0.8 # Factor to reduce learning rate by
+  activation_params:
+    activation: 'ReLU'
+    LeakyReLU:
+      negative_slope: 0.01
   optimizer_params:
     optimizer: 'AdamW'
     AdamW:
@@ -31,6 +35,8 @@ model:
     lr_policy:
       step_size: 1
       gamma:     0.1
+    SGD:
+      lr: 2.e-3
   n_classes: 4
   metrics: 'SemanticSegmentation'
   metric_params:

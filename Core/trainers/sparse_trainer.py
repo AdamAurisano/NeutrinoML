@@ -126,7 +126,7 @@ class SparseTrainer(base):
     self.logger.info('  Validation loss: %.3f' % (summary['valid_loss']))
     return summary
 
-  def train(self, train_data_loader, n_epochs, valid_data_loader=None, **kwargs):
+  def train(self, train_data_loader, n_epochs, valid_data_loader=None, sherpa_study=None, sherpa_trial=None, **kwargs):
     '''Run the model training'''
 
     # Loop over epochs
@@ -160,6 +160,11 @@ class SparseTrainer(base):
           'train': summary['train_loss'],
           'valid': summary['valid_loss'] }, i+1)
       metrics = self.metrics.epoch_metrics()
+      if sherpa_study is not None and sherpa_trial is not None:
+          sherpa_study.add_observation(
+              trial=sherpa_trial,
+              iteration=i,
+              objective=metrics['acc/epoch']['valid'])
       for key, val in metrics.items(): self.writer.add_scalars(key, val, i+1)
 
     return self.summaries

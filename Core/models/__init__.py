@@ -6,8 +6,9 @@ from .minkowski_seg import MinkowskiSeg
 from .minkowski_class import MinkowskiClass, Minkowski2StackClass
 from .nova_mobilenet import MobileNet
 from .nova_dense_mobilenet import DenseMobileNet
-
+from .minkowski_ASPPSeg  import MinkowskiASPPSeg
 _models = { 'MinkowskiSeg':   MinkowskiSeg,
+            'MinkowskiASPPSeg': MinkowskiASPPSeg,
             'MinkowskiClass': MinkowskiClass,
             'Minkowski2StackClass': Minkowski2StackClass,
             'MobileNet': MobileNet,

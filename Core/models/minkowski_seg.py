@@ -7,7 +7,7 @@ from Core.activation import MinkowskiActivation
 
 class MinkowskiSeg(ME.MinkowskiNetwork):
 
-  def __init__(self, n_dims, unet_depth, input_feats, n_classes, n_feats, activation, **kwargs):
+  def __init__(self, n_dims, unet_depth, input_feats, n_classes, n_feats, A, **kwargs):
     super(MinkowskiSeg, self).__init__(n_dims)
 
     self.in_net = Seq(
@@ -18,21 +18,21 @@ class MinkowskiSeg(ME.MinkowskiNetwork):
         stride=1,
         dimension=n_dims),
       ME.MinkowskiBatchNorm(n_feats),
-      MinkowskiActivation(n_dims, activation))
+      MinkowskiActivation(n_dims, A))
 
     # Downward layers
     self.down_net = UNetDown(
       n_dims=n_dims,
       unet_depth=unet_depth,
       n_feats=n_feats,
-      activation=activation)
+      activation=A)
     
     # Upward layers
     self.up_net = UNetUp(
       n_dims=n_dims,
       unet_depth=unet_depth,
       n_feats=n_feats,
-      activation=activation)
+      activation=A)
 
     self.out_net = ME.MinkowskiConvolution(
       in_channels=n_feats,

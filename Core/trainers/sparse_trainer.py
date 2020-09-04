@@ -36,7 +36,7 @@ class SparseTrainer(base):
 
     # Construct the model
     torch.cuda.set_device(self.device)
-    model_args['activation'] = get_activation(**activation_params)
+    model_args['A'] = get_activation(**activation_params)
     self.model = get_model(name=name, **model_args)
     self.model = self.model.to(self.device)
     

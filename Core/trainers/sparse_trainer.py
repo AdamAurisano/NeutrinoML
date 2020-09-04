@@ -88,7 +88,7 @@ class SparseTrainer(base):
       # add to tensorboard summary
       metrics = self.metrics.train_batch_metrics(batch_output, batch_target)
       if self.iteration%10 == 0:
-        self.writer.add_scalar('Loss/batch', batch_loss.item(), self.iteration)
+        self.writer.add_scalar('loss/batch', batch_loss.item(), self.iteration)
         for key, val in metrics.items(): self.writer.add_scalar(key, val, self.iteration)
       self.iteration += 1
 

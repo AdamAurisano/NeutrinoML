@@ -1,6 +1,6 @@
 data:
   name: 'SparsePixelMapNOvA'
-  filedir: '/data/mp5/preselection'
+  filedir: '/data/mp5/preselection_v3'
   t_v_split: 0.05
 
 model:
@@ -8,15 +8,17 @@ model:
   D: 2
   alpha: 1
   depth: 1
-  classes: 3
+  n_classes: 4
   loss_func: 'CrossEntropyLoss'
   arrange_data: 'arrange_sparse_minkowski_2stack'
   step_size: 1 # How many epochs between LR reduction
   gamma: 0.8 # Factor to reduce learning rate by
+  
   activation_params:
     activation: 'ReLU'
     LeakyReLU:
       negative_slope: 0.01
+      
   optimizer_params:
     optimizer: 'AdamW'
     AdamW:
@@ -37,12 +39,11 @@ model:
       gamma:     0.1
     SGD:
       lr: 2.e-3
-  n_classes: 4
-  metrics: 'SemanticSegmentation'
+
+  metrics: 'Classification'
   metric_params:
-#     metrics: 'SemanticSegmentation' should restructure config like this
-    SemanticSegmentation:
-      class_names: ['numu','nue','nc']
+    Classification:
+      class_names: ['numu','nue','nc','cosmic']
 
 data_loader:
   batch_size: 1000

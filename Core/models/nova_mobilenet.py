@@ -74,7 +74,7 @@ class SubNet(ME.MinkowskiNetwork):
         return self.net(x)
 
 class MobileNet(ME.MinkowskiNetwork):
-    def __init__(self, D, A, alpha, depth, n_classes, **kwargs):
+    def __init__(self, D, A, alpha, depth, classes, **kwargs):
         super(MobileNet, self).__init__(D)
 
         self.input_x = SubNet(D, A, alpha)
@@ -93,7 +93,7 @@ class MobileNet(ME.MinkowskiNetwork):
             Linear(int(alpha*1280), 1024),
             A,
             Dropout(0.4),
-            Linear(1024, n_classes, bias=False))
+            Linear(1024, classes, bias=False))
         
     def merge_views(self, x, y):
         

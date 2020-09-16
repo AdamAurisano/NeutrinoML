@@ -1,6 +1,6 @@
 data:
   name: 'SparsePixelMapNOvA'
-  filedir: '/data/mp5/preselection_v3'
+  filedir: '/data/mp5/preselection_v2'
   t_v_split: 0.05
 
 model:
@@ -8,22 +8,24 @@ model:
   D: 2
   alpha: 1
   depth: 1
-  n_classes: 4
+  classes: 4
   loss_func: 'CrossEntropyLoss'
   arrange_data: 'arrange_sparse_minkowski_2stack'
-  step_size: 1 # How many epochs between LR reduction
+  step_size: 5 # How many epochs between LR reduction
   gamma: 0.8 # Factor to reduce learning rate by
   
   activation_params:
-    activation: 'ReLU'
+    activation: 'mish'
     LeakyReLU:
       negative_slope: 0.01
       
   optimizer_params:
-    optimizer: 'AdamW'
+    optimizer: 'Fromage'
     AdamW:
-      lr: 1.e-4
+      lr: 1.e-5
       weight_decay:     0.01
+    Fromage:
+      lr:               0.01
     Ranger:
       lr:               1.e-3
       alpha:            0.5
@@ -34,9 +36,6 @@ model:
       weight_decay:     0
       use_gc:           True
       gc_conv_only:     False
-    lr_policy:
-      step_size: 1
-      gamma:     0.1
     SGD:
       lr: 2.e-3
 

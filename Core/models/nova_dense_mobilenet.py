@@ -95,12 +95,12 @@ class DenseMobileNet(Module):
             Softmax(dim=1))
         
     def forward(self, x):                                  
-        xview = ME.SparseTensor(x[0], x[1])
+        xview = torch.sparse.Tensor(x[0], x[1])
         xview = xview.dense(min_coords=[0,0], max_coords=[100,80])
-        yview = ME.SparseTensor(x[2], x[3])
+        yview = torch.sparse.Tensor(x[2], x[3])
         yview = yview.dense(min_coords=[0,0], max_coords=[100,80])
-        x = self.input_x(xview) + self.input_y(xview)
+        
+        x = self.input_x(xview) + self.input_y(yview)
         x = self.net(x)
-        print(x.shape)
-        return self.final(x.F)
+        return self.final(x)
 

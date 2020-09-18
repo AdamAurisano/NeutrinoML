@@ -1,27 +1,29 @@
 '''
 Script for sparse convolutional network inference
 '''
-import pandas as pd
-import plotly.graph_objects as go, plotly.express as px
-import plotly
-import yaml, argparse, logging, math, numpy as np, tqdm
-import models, datasets
-import torch, torchvision
+from Core import utils
+from Core.trainers import SparseTrainer
+from SparseProtoDUNE import datasets
 from torch.utils.data import DataLoader
+
+import plotly
+import pandas as pd
 import matplotlib as mpl
+import torch, torchvision
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import plotly.graph_objects as go, plotly.express as px
+import yaml, argparse, logging, math, numpy as np, tqdm
 
 from sklearn.metrics import confusion_matrix
 import seaborn as sn
 
-from training.sparse_trainer import SparseTrainer
 
 def parse_args():
   '''Parse arguments'''
   parser = argparse.ArgumentParser('process.py')
   add_arg = parser.add_argument
-  add_arg('config', nargs='?', default='config/sparse_3d.yaml')
+  add_arg('config', nargs='?', default='/scratch/SparseProtoDUNE/config/sparse_3d.yaml')
   return parser.parse_args()
 
 def configure(config):
@@ -29,21 +31,12 @@ def configure(config):
   with open(config) as f:
     return yaml.load(f, Loader=yaml.FullLoader)
 
-def collate_sparse(batch):
-  for idx, d in enumerate(batch):
-    d['c'] = torch.cat((d['c'], torch.LongTensor(d['c'].shape[0],1).fill_(idx)), dim=1)
-  ret = { key: torch.cat([d[key] for d in batch], dim=0) for key in batch[0].keys() }
-  return ret
-
 def get_legend(names):
   colour = mpl.cm.get_cmap('tab10')
   return plt.legend(handles=[mpatches.Patch(color=colour(i), label=name) for i, name in enumerate(names)])
 
 
 def get_frame(c, y, i, names):
-  #nclasses = y.max():
-  #for i in range(nclasses+1):
-  #names = ['e_shower', 'ph_shower','diffuse','delta','michel','hip','mu','pi']  
   colors = colorscale=px.colors.qualitative.G10
   mask = (y == i)
   df = pd.DataFrame(c[mask], columns=['x','y','z'])
@@ -62,12 +55,13 @@ def main():
   fulllen = len(full_dataset)
   tv_num = math.ceil(fulllen*config['data']['t_v_split'])
   splits = np.cumsum([fulllen-tv_num,0,tv_num])
+  collate = utils.collate_sparse_minkowski
 
   if config['inference']['max_images'] < splits[2] - splits[1]:
     splits[2] = splits[1] + config['inference']['max_images']
 
   valid_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=splits[1],stop=splits[2]))
-  valid_loader = DataLoader(valid_dataset, collate_fn=collate_sparse, **config['data_loader'], shuffle=False)
+  valid_loader = DataLoader(valid_dataset, collate_fn=collate, **config['data_loader'], shuffle=False)
 
   trainer.build_model(**config['model'])
   trainer.load_state_dict(**config['inference'])
@@ -80,28 +74,27 @@ def main():
   y_pred_all = None
   colour = mpl.cm.get_cmap('tab10')
 
+  names = config['model']['metric_params']['SemanticSegmentation']['class_names']
   for i, data in t:
-    batch_output = trainer.model((data['c'].to(trainer.device), data['x'].to(trainer.device), batch_size))
+    batch_input  = utils.arrange_data.arrange_sparse_minkowski(data,trainer.device)
+    batch_output = trainer.model(batch_input)
     batch_target = data['y'].to(batch_output.device)
-    #print(batch_target.shape)
-    #print(data['c'][:,3].max())
-    # Unpack individual pixel maps from batch
 
-    for j in range(data['c'][:,3].max()):
-      
-      mask = (data['c'][:,3] == j)
-      #coords = data['c'][mask, :-1]
-      c = data['c'][mask, :-1].cpu().numpy()
+    # Unpack individual pixel maps from batch
+    for j in range (batch_input.coords[:,0].max() +1):
+      mask = (batch_input.coords[:,0] == j)
+      c = batch_input.coords[mask,1:]
       y_pred = batch_output[mask].argmax(dim=1).cpu()
       y_true = batch_target[mask].argmax(dim=1).cpu()
+     
       #proc = np.array(data['p'])
       #p = [] 
       #for k in range(len(y_true)):
       #  p.append(proc[k][y_true[k].item()])
       #p = np.array(p)
+
       if config['inference']['event_display']:
         n_classes = config['model']['n_classes']
-        names = config['model']['class_names']
         fig_true = go.Figure()
         fig_pred = go.Figure()
         for k in range(n_classes):
@@ -127,7 +120,6 @@ def main():
     del batch_output
     del batch_target
   if config['inference']['confusion']:
-    names = config['model']['class_names']
     confusion = confusion_matrix(y_true=y_true_all.cpu().numpy(), y_pred=y_pred_all.cpu().numpy(), normalize='true')
     plt.figure(figsize=[8,6])
     torch.save(confusion, 'plots/confusion.py')
@@ -135,7 +127,7 @@ def main():
     plt.ylim(0, len(names))
     plt.xlabel('Assigned label')
     plt.ylabel('True label')
-    plt.savefig(f'plots/confusion.png')
+    plt.savefig(f'plots/confusion1.png')
     plt.clf()
   
 

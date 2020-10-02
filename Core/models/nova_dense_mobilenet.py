@@ -1,7 +1,7 @@
 from torch.nn import Sequential as Seq, Dropout, Linear, ReLU, Softmax, Module, Conv2d, BatchNorm2d, AvgPool2d
 import MinkowskiEngine as ME
-
-from torch.nn import ModuleList # delete me
+import torch 
+# from torch.nn import ModuleList # delete me
 
 class Conv(Module):
     def __init__(self, in_feat, out_feat, kernel_size=1, stride=1):
@@ -95,12 +95,29 @@ class DenseMobileNet(Module):
             Softmax(dim=1))
         
     def forward(self, x):                                  
-        xview = torch.sparse.Tensor(x[0], x[1])
-        xview = xview.dense(min_coords=[0,0], max_coords=[100,80])
-        yview = torch.sparse.Tensor(x[2], x[3])
-        yview = yview.dense(min_coords=[0,0], max_coords=[100,80])
+        xview = ME.SparseTensor(x[0], x[1])
+        xview, xmin, xstride = xview.dense(min_coords=torch.IntTensor([0,0]), max_coords=torch.IntTensor([99,79]))
         
-        x = self.input_x(xview) + self.input_y(yview)
+        yview = ME.SparseTensor(x[2], x[3])
+        yview, ymin, ystride = yview.dense(min_coords=torch.IntTensor([0,0]), max_coords=torch.IntTensor([99,79]))
+        
+        print(type(xview))
+        print(xview.shape)
+        print(type(yview))
+        print(yview.shape)
+        
+        xview = self.input_x(xview)
+        yview = self.input_y(yview)
+        
+        print(type(xview))
+        print(xview.shape)
+        print(type(yview))
+        print(yview.shape)
+        
+        x = xview + yview
+        print(type(x))
+        print(x)
+
         x = self.net(x)
         return self.final(x)
 

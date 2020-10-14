@@ -1,13 +1,13 @@
 data:
   name: 'simple'
-  path: '/data/hit2d/processed-flav-shower-delaunay'
+  path: '/data/hit2d/processed-flav-shower'
   t_v_split: 0.05
 
 trainer:
-  device: 6
-  batch_size: 32
+  device: 7
+  batch_size: 16
   n_epochs: 50
-  train_name: 'delaunay1'
+  train_name: 'denseshower1'
   summary_dir: '/scratch/GraphDUNE/summary'
   output_dir: '/scratch/GraphDUNE/params'
 

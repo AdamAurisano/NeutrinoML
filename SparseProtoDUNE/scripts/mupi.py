@@ -15,7 +15,7 @@ import matplotlib.patches as mpatches
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
-from training.sparse_trainer import SparseTrainer
+from Core.trainers import Trainer
 
 def parse_args():
   '''Parse arguments'''
@@ -45,7 +45,7 @@ def main():
   config = configure(args.config)
   plt.style.use('ggplot')
   full_dataset = datasets.get_dataset(**config['data'])
-  trainer = SparseTrainer(**config['trainer'])
+  trainer = Trainer(**config['trainer'])
 
   fulllen = len(full_dataset)
   tv_num = math.ceil(fulllen*config['data']['t_v_split'])

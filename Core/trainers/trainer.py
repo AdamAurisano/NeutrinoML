@@ -1,5 +1,5 @@
 """
-This module defines a generic trainer for simple models and datasets.  PROTODUNE
+This module defines a generic trainer for simple models and datasets. 
 """
 
 # System
@@ -12,54 +12,56 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import LambdaLR, StepLR
 import tqdm, numpy as np, psutil
-import ranger
 
 # Locals
-from models import get_model
+from Core.models import get_model
 from .base import base
-from SparseProtoDUNE.loss import categorical_cross_entropy
+from Core.loss import get_loss
+from Core.activation import get_activation
+from Core.optim import get_optim
+from Core.metrics import get_metrics
+from Core.utils import *
 
-class SparseTrainer(base):
+class Trainer(base):
   '''Trainer code for basic classification problems with categorical cross entropy.'''
 
-  def __init__(self, summary_dir='summary', **kwargs):
-    super(SparseTrainer, self).__init__(**kwargs)
-    self.writer = SummaryWriter(summary_dir)
+  def __init__(self, train_name='test1', summary_dir='summary', **kwargs):
+    super(Trainer, self).__init__(train_name=train_name, **kwargs)
+    self.writer = SummaryWriter(f'{summary_dir}/{train_name}')
 
-  def build_model(self, name='NodeConv', loss_func='cross_entropy',
-      optimizer='Adam', ranger_params={}, learning_rate=0.01, weight_decay=0.01,
-      step_size=1, gamma=0.5, class_names=[], **model_args): #state_dict=None, **model_args):
+  def build_model(self, activation_params, optimizer_params, name='NodeConv',
+      loss_func='cross_entropy', arrange_data = 'arrange_sparse_minkowski',
+      arrange_truth='arrange_sparse', metrics = 'SemanticSegmentation',
+      metric_params=[], step_size=1, gamma=0.5, **model_args):
     '''Instantiate our model'''
 
     # Construct the model
     torch.cuda.set_device(self.device)
+    model_args['A'] = get_activation(**activation_params)
     self.model = get_model(name=name, **model_args)
     self.model = self.model.to(self.device)
-
+    
     # Construct the loss function
-    if loss_func == 'categorical_cross_entropy':
-      self.loss_func = categorical_cross_entropy
-    else:
-      self.loss_func = getattr(nn.modules.loss, loss_func)()
+    self.loss_func = get_loss(loss_func)
 
     # Construct the optimizer
-    if optimizer == 'Ranger':
-      self.optimizer = ranger.Ranger(self.model.parameters(), **ranger_params)
-    else:
-      self.optimizer = getattr(torch.optim, optimizer)(
-        self.model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-
+    self.optimizer = get_optim(model_params=self.model.parameters(), **optimizer_params)
     self.lr_scheduler = StepLR(self.optimizer, step_size, gamma)
 
-    self.class_names = class_names
+    self.metrics = get_metrics(metrics)(**metric_params[metrics])
 
-  def load_state_dict(self, state_dict, **inference_args):
+    # Select function to arrange data
+    self.arrange_data = get_arrange_data(arrange_data)
+    self.arrange_truth = get_arrange_truth(arrange_truth)
+ 
+  def load_state_dict(self, state_dict, **kwargs):
     '''Load state dict from trained model'''
     self.model.load_state_dict(torch.load(state_dict, map_location=f'cuda:{self.device}')['model'])
 
   def train_epoch(self, data_loader, **kwargs):
     '''Train for one epoch'''
     self.model.train()
+    self.metrics.new_epoch()
     summary = dict()
     sum_loss = 0.
     start_time = time.time()
@@ -70,33 +72,26 @@ class SparseTrainer(base):
     for i, data in t:
       self.optimizer.zero_grad()
       # Different input shapes for SparseConvNet vs MinkowskiEngine
-      batch_input = data['sparse'].to(self.device) if 'sparse' in data.keys() \
-        else (data['c'].to(self.device), data['x'].to(self.device), batch_size)
+      batch_input = self.arrange_data(data, self.device)
       batch_output = self.model(batch_input)
-      batch_target = data['y'].to(batch_output.device)
+      batch_target = self.arrange_truth(data).to(batch_output.device) #data['y'].to(batch_output.device)
       batch_loss = self.loss_func(batch_output, batch_target)
       batch_loss.backward()
 
       # Calculate accuracy
-      w_pred = batch_output.argmax(dim=1)
-      w_true = batch_target.argmax(dim=1)
-      w_diff = (batch_target-batch_output).abs()
-      correct = (w_pred==w_true)
-      batch_acc = 100*correct.sum().float().item()/w_pred.shape[0]
-      acc_indiv = [ 100*((w_pred[correct]==i).sum().float()/(w_true==i).sum().float()).item() for i in range(batch_target.shape[1]) ]
-
+      metrics = self.metrics.train_batch_metrics(batch_output, batch_target) 
+      
       self.optimizer.step()
-
+      
       sum_loss += batch_loss.item()
       t.set_description("loss = %.5f" % batch_loss.item() )
       t.refresh() # to show immediately the update
 
       # add to tensorboard summary
-      self.writer.add_scalar('Loss/batch', batch_loss.item(), self.iteration)
-      self.writer.add_scalar('Acc/batch', batch_acc, self.iteration)
-      for name, acc in zip(self.class_names, acc_indiv):
-        self.writer.add_scalar(f'batch_acc/{name}', acc, self.iteration)
-      # self.writer.add_scalar('Memory usage', psutil.virtual_memory().used, self.iteration)
+      metrics = self.metrics.train_batch_metrics(batch_output, batch_target)
+      if self.iteration%100 == 0:
+        self.writer.add_scalar('loss/batch', batch_loss.item(), self.iteration)
+        for key, val in metrics.items(): self.writer.add_scalar(key, val, self.iteration)
       self.iteration += 1
 
     summary['lr'] = self.optimizer.param_groups[0]['lr']
@@ -113,10 +108,6 @@ class SparseTrainer(base):
     self.model.eval()
     summary = dict()
     sum_loss = 0
-    sum_correct = 0
-    sum_correct_indiv = np.zeros(len(self.class_names))
-    sum_total = 0
-    sum_total_indiv = np.zeros(len(self.class_names))
     start_time = time.time()
     # Loop over batches
     batch_size = data_loader.batch_size
@@ -124,30 +115,17 @@ class SparseTrainer(base):
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
     for i, data in t:
       # Different input shapes for SparseConvNet vs MinkowskiEngine
-      batch_input = data['sparse'].to(self.device) if 'sparse' in data.keys() \
-        else (data['c'].to(self.device), data['x'].to(self.device), batch_size)
+      batch_input = self.arrange_data(data, self.device)
       batch_output = self.model(batch_input)
-      batch_target = data['y'].to(batch_output.device)
+      batch_target = self.arrange_truth(data).to(batch_output.device)
       batch_loss = self.loss_func(batch_output, batch_target)
       sum_loss += batch_loss.item()
-      w_pred = batch_output.argmax(dim=1)
-      w_true = batch_target.argmax(dim=1)
-      correct = (w_pred==w_true)
-      sum_correct += correct.sum().float().item()
-      sum_total += w_pred.shape[0]
-      for i in range(batch_target.shape[1]):
-        sum_correct_indiv[i] += (w_pred[correct]==i).sum().float().item()
-        sum_total_indiv[i] += (w_true==i).sum().float().item()
+      self.metrics.valid_batch_metrics(batch_output, batch_target)
     summary['valid_time'] = time.time() - start_time
     summary['valid_loss'] = sum_loss / n_batches
-    summary['valid_acc'] = 100 * sum_correct / sum_total
-    if len(self.class_names) > 0:
-      for name, corr, tot in zip(self.class_names, sum_correct_indiv, sum_total_indiv):
-        summary[f'{name}_acc'] =100 * corr / tot
     self.logger.debug(' Processed %i samples in %i batches',
                       len(data_loader.sampler), n_batches)
-    self.logger.info('  Validation loss: %.3f acc: %.3f' %
-                     (summary['valid_loss'], summary['valid_acc']))
+    self.logger.info('  Validation loss: %.3f' % (summary['valid_loss']))
     return summary
 
   def train(self, train_data_loader, n_epochs, valid_data_loader=None, sherpa_study=None, sherpa_trial=None, **kwargs):
@@ -172,11 +150,6 @@ class SparseTrainer(base):
           best_valid_loss = sum_valid['valid_loss']
           self.logger.debug('Checkpointing new best model with loss: %.3f', best_valid_loss)
           self.write_checkpoint(checkpoint_id=i,best=True)
-          if sherpa_study is not None and sherpa_trial is not None:
-            sherpa_study.add_observation(
-              trial=sherpa_trial,
-              iteration=i,
-              objective=sum_valid['valid_acc'])
 
       if self.lr_scheduler is not None: self.lr_scheduler.step()
 
@@ -185,17 +158,20 @@ class SparseTrainer(base):
       if self.output_dir is not None:
         self.write_checkpoint(checkpoint_id=i)
 
-      self.writer.add_scalar('Loss/train', summary['train_loss'], i+1)
-      self.writer.add_scalar('learning_rate', summary['lr'], i+1)
-      if valid_data_loader is not None:
-        self.writer.add_scalar('Loss/valid', summary['valid_loss'], i+1)
-        self.writer.add_scalar('Acc/valid', summary['valid_acc'], i+1)
-        for name in self.class_names:
-          self.writer.add_scalar(f'valid_acc/{name}', summary[f'{name}_acc'], i+1)
+      self.writer.add_scalars('loss/epoch', {
+          'train': summary['train_loss'],
+          'valid': summary['valid_loss'] }, i+1)
+      metrics = self.metrics.epoch_metrics()
+      if sherpa_study is not None and sherpa_trial is not None:
+          sherpa_study.add_observation(
+              trial=sherpa_trial,
+              iteration=i,
+              objective=metrics['acc/epoch']['valid'])
+      for key, val in metrics.items(): self.writer.add_scalars(key, val, i+1)
 
     return self.summaries
 
 def _test():
-  t = SparseTrainer(output_dir='./')
+  t = Trainer(output_dir='./')
   t.build_model()
 

@@ -1,18 +1,17 @@
 from .transforms import *
 from .collate import *
-from .arrange_data import *
+from Core.utils import arrange_data, arrange_truth
+# import arrange_data, arrange_truth
 
-def get_arrange(arrange_data):
-    '''Function that returns a function to arrange de format of data depending on Sparse or Minkowski Network '''
-    if arrange_data == 'arrange_sparse':
-        from .arrange_data import arrange_sparse
-        return arrange_sparse
-    if arrange_data == 'arrange_sparse_minkowski':
-        from .arrange_data import arrange_sparse_minkowski
-        return arrange_sparse_minkowski
-    if arrange_data == 'arrange_sparse_minkowski_2stack':
-        from .arrange_data import arrange_sparse_minkowski_2stack
-        return arrange_sparse_minkowski_2stack
-    else:
-        raise Exception(f'Function {arrange_data} does not exist!')
+def get_arrange_data(name):
+    '''Function that returns a function to arrange input tensors across a batch'''
+    ret = getattr(arrange_data, name)
+    if ret is None: raise Exception(f'Function {name} does not exist!')
+    else: return ret
 
+def get_arrange_truth(name):
+    '''Function that returns a function to arrange ground truth across a batch'''
+    ret = getattr(arrange_truth, name)
+    if ret is None: raise Exception(f'Function {name} does not exist!')
+    else: return ret
+    

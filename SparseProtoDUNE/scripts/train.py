@@ -8,7 +8,7 @@ import yaml, argparse, logging, math, numpy as np, sys
 if '/scratch' not in sys.path: sys.path.append('/scratch')
 from SparseProtoDUNE import datasets
 from Core import utils
-from Core.trainers import SparseTrainer
+from Core.trainers import Trainer
 import torch, torchvision
 from torch.utils.data import DataLoader
 import MinkowskiEngine as ME
@@ -32,7 +32,7 @@ def main():
   args = parse_args()
   config = configure(args.config)
   full_dataset = datasets.get_dataset(**config['data'])
-  trainer = SparseTrainer(**config['trainer'])
+  trainer = Trainer(**config['trainer'])
 
   fulllen = len(full_dataset)
   tv_num = math.ceil(fulllen*config['data']['t_v_split'])

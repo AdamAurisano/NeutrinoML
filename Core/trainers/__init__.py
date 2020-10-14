@@ -1,1 +1,1 @@
-from .sparse_trainer import SparseTrainer
+from .trainer import Trainer

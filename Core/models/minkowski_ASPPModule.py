@@ -14,7 +14,7 @@ class ASPPConvMinkowski(ME.MinkowskiNetwork):
         out_channels = out_feats,
         kernel_size=3,
         dilation=dilation,
-        has_bias=False,
+        bias=False,
         dimension=n_dims),
         ME.MinkowskiBatchNorm(out_feats),
         MinkowskiActivation(n_dims,nn.ReLU())
@@ -37,7 +37,7 @@ class ASPPPoling(ME.MinkowskiNetwork):
         in_channels = input_feats,
         out_channels = input_feats,
         kernel_size=1,
-        has_bias=False,
+        bias=False,
         dimension=n_dims),
         ME.MinkowskiBatchNorm(input_feats),
         MinkowskiActivation(n_dims,nn.ReLU()),
@@ -66,7 +66,7 @@ class ASPP(ME.MinkowskiNetwork):
         in_channels = input_feats,
         out_channels = input_feats,
         kernel_size=1,
-        has_bias=False,
+        bias=False,
         dimension=n_dims),
       ME.MinkowskiBatchNorm(input_feats),
       MinkowskiActivation(n_dims,nn.ReLU())
@@ -85,7 +85,7 @@ class ASPP(ME.MinkowskiNetwork):
         in_channels = (n+2)*input_feats,
         out_channels = input_feats,
         kernel_size =1,
-        has_bias = False,
+        bias = False,
         dimension = n_dims),
       ME.MinkowskiBatchNorm(input_feats),
       MinkowskiActivation(n_dims,nn.ReLU())

@@ -11,6 +11,7 @@ model:
   classes: 4
   loss_func: 'CrossEntropyLoss'
   arrange_data: 'arrange_sparse_minkowski_2stack'
+  arrange_truth: 'arrange_sparse'
   step_size: 5 # How many epochs between LR reduction
   gamma: 0.8 # Factor to reduce learning rate by
   

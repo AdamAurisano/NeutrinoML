@@ -22,6 +22,7 @@ model:
 
   loss_func: 'categorical_cross_entropy'
   arrange_data: 'arrange_sparse_minkowski'
+  arrange_truth: 'arrange_sparse'
 
   activation_params:
     activation: 'ReLU'

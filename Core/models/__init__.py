@@ -7,12 +7,14 @@ from .minkowski_class import MinkowskiClass, Minkowski2StackClass
 from .nova_mobilenet import MobileNet
 from .nova_dense_mobilenet import DenseMobileNet
 from .minkowski_ASPPSeg  import MinkowskiASPPSeg
+from .message_passing_multihead import MultiHead
 _models = { 'MinkowskiSeg':   MinkowskiSeg,
             'MinkowskiASPPSeg': MinkowskiASPPSeg,
             'MinkowskiClass': MinkowskiClass,
             'Minkowski2StackClass': Minkowski2StackClass,
             'MobileNet': MobileNet,
-            'DenseMobileNet': DenseMobileNet }
+            'DenseMobileNet': DenseMobileNet,
+            'MultiHead': MultiHead }
 
 def get_model(name, **model_args):
     

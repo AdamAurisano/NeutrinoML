@@ -4,7 +4,7 @@
 Script for sparse convolutional network training
 '''
 
-import yaml, argparse, logging, math, numpy as np, sys
+import os, yaml, argparse, logging, math, numpy as np, sys
 if '/scratch' not in sys.path: sys.path.append('/scratch')
 from SparseProtoDUNE import datasets
 from Core import utils
@@ -56,7 +56,7 @@ def main():
   study = sherpa.Study(parameters=parameters,
                        algorithm=alg,
                        lower_is_better=True,
-                       dashboard_port=9304)
+                       dashboard_port=os.environ['SHERPA_PORT'])
 
   for trial in study:
     config['model']['learning_rate'] = trial.parameters['learning_rate']

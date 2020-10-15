@@ -5,7 +5,7 @@ PyTorch data structure for sparse pixel maps
 from torch.utils.data import Dataset
 import os.path as osp, glob, h5py, tqdm, numpy as np, torch
 import random
-from SparseBase import utils
+from Core import utils
 
 class SparsePixelMapNOvA(Dataset):
     def __init__(self, filelist, apply_jitter, **kwargs):

@@ -16,9 +16,8 @@ class SimpleDataset(tg.data.Dataset):
         filename = self.trainfiles[int(idx)]
         data = torch.load(filename)
         data['x'] = torch.tensor(data['x']).float()
-        if data.x.shape[0] == 0:
-            print(data.x.shape)
-        data['edge_index'] = torch.tensor(data['edge_index']).long()
-        data['y'] = torch.tensor(data['y']).float()
-        data['true_id'] = torch.tensor(data['true_id']).long()
+        if type(data.edge_index) is not torch.Tensor:
+            data['edge_index'] = torch.tensor(data.edge_index)
+        data['edge_index'] = data.edge_index.long()
+        data['y'] = torch.tensor(data['y']).long()
         return data

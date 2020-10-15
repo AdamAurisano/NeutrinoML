@@ -40,11 +40,11 @@ class SparsePixelMap3D(Dataset):
     data = torch.load(self.data_files[idx])
     c = torch.LongTensor(data['c'])
     x = torch.FloatTensor(data['x'])
-   # y = torch.FloatTensor(data['y'])
+    y = torch.FloatTensor(data['y'])
     #Mix kaons and hip
-    y = np.array(data['y']) 
-    y = np.hstack((y[:,:2], (y[:,2:3] + y[:,4:5]) ,y[:,3:4], y[:,5:]) )
-    y = torch.FloatTensor(y)
+   # y = np.array(data['y']) 
+   # y = np.hstack((y[:,:2], (y[:,2:3] + y[:,4:5]) ,y[:,3:4], y[:,5:]) )
+   # y = torch.FloatTensor(y)
     del data
     return { 'x': x, 'c': c, 'y': y }
 

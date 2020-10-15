@@ -1,32 +1,28 @@
 data:
   name: 'SparsePixelMapNOvA'
-  filedir: '/data/mp5/preselection_v2'
+  filedir: '/data/mp5/preselection_cvnmap'
   t_v_split: 0.05
 
 model:
-  name: 'MobileNet'
+  name: 'DenseMobileNet'
   D: 2
   alpha: 1
   depth: 1
-  classes: 4
+  classes: 3
   loss_func: 'CrossEntropyLoss'
   arrange_data: 'arrange_sparse_minkowski_2stack'
   arrange_truth: 'arrange_sparse'
-  step_size: 5 # How many epochs between LR reduction
+  step_size: 1 # How many epochs between LR reduction
   gamma: 0.8 # Factor to reduce learning rate by
-  
   activation_params:
-    activation: 'mish'
+    activation: 'ReLU'
     LeakyReLU:
       negative_slope: 0.01
-      
   optimizer_params:
-    optimizer: 'Fromage'
+    optimizer: 'AdamW'
     AdamW:
-      lr: 1.e-5
+      lr: 2.e-3
       weight_decay:     0.01
-    Fromage:
-      lr:               0.01
     Ranger:
       lr:               1.e-3
       alpha:            0.5
@@ -37,13 +33,17 @@ model:
       weight_decay:     0
       use_gc:           True
       gc_conv_only:     False
+    lr_policy:
+      step_size: 1
+      gamma:     0.1
     SGD:
       lr: 2.e-3
-
-  metrics: 'Classification'
+  n_classes: 4
+  metrics: 'SemanticSegmentation'
   metric_params:
-    Classification:
-      class_names: ['numu','nue','nc','cosmic']
+#     metrics: 'SemanticSegmentation' should restructure config like this
+    SemanticSegmentation:
+      class_names: ['numu','nue','nc']
 
 data_loader:
   batch_size: 1000
@@ -52,11 +52,11 @@ data_loader:
 trainer:
   benchmark: False
   device: 0 # Which GPU to use
-  n_epochs: 20
+  n_epochs: 30
   max_iters_train: None
   max_iters_eval:  None
-  train_name:  'train1'
-  summary_dir: '/scratch/SparseNOvA/summary'
+  train_name:  'cvnmap'
+  summary_dir: '/scratch/SparseNOvA/summary/preselection/bestparam/dense_mobile_net'
   output_dir:  '/scratch/SparseNOvA/params'
 
 inference:

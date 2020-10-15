@@ -1,23 +1,26 @@
 #!/usr/bin/env python
 
 '''
-Script for sparse convolutional network training
+Script for sparse convolutional network training PROTODUNE
 '''
 
-import yaml, argparse, logging, math, numpy as np
-import models, datasets, utils
+import yaml, argparse, logging, math, numpy as np, sys
+if '/scratch' not in sys.path: sys.path.append('/scratch')
+from SparseProtoDUNE import datasets
+from Core import utils
+from Core.trainers import Trainer
 import torch, torchvision
 from torch.utils.data import DataLoader
 import MinkowskiEngine as ME
-
-from training import SparseTrainer
 
 def parse_args():
   '''Parse arguments'''
   parser = argparse.ArgumentParser('process.py')
   add_arg = parser.add_argument
-  add_arg('config', nargs='?', default='config/sparse_3d.yaml')
+  add_arg('config', nargs='?', default='/scratch/SparseProtoDUNE/config/sparse_3d.yaml')
   return parser.parse_args()
+
+
 
 def configure(config):
   '''Load configuration'''
@@ -29,12 +32,12 @@ def main():
   args = parse_args()
   config = configure(args.config)
   full_dataset = datasets.get_dataset(**config['data'])
-  trainer = SparseTrainer(**config['trainer'])
+  trainer = Trainer(**config['trainer'])
 
   fulllen = len(full_dataset)
   tv_num = math.ceil(fulllen*config['data']['t_v_split'])
   splits = np.cumsum([fulllen-tv_num,0,tv_num])
-  collate = utils.collate_sparse_minkowski if 'Minkowski' in config['model']['name'] else utils.collate_sparse
+  collate = utils.collate_sparse_minkowski
 
   train_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=0,stop=splits[0]))
   valid_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=splits[1],stop=splits[2]))

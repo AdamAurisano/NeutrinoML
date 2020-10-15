@@ -4,13 +4,15 @@
 Script for sparse convolutional network training
 '''
 
-import yaml, argparse, logging, math, numpy as np
-import models, datasets, utils
+import os, yaml, argparse, logging, math, numpy as np, sys
+if '/scratch' not in sys.path: sys.path.append('/scratch')
+from SparseProtoDUNE import datasets
+from Core import utils
+from Core.trainers import Trainer
 import torch, torchvision, sherpa
 from torch.utils.data import DataLoader
 import MinkowskiEngine as ME
-
-from training import SparseTrainer
+#from torch.nn import LeakyReLU, ReLU
 
 def parse_args():
   '''Parse arguments'''
@@ -29,12 +31,12 @@ def main():
   args = parse_args()
   config = configure(args.config)
   full_dataset = datasets.get_dataset(**config['data'])
-  trainer = SparseTrainer(**config['trainer'])
+  trainer = Trainer(**config['trainer'])
 
   fulllen = len(full_dataset)
   tv_num = math.ceil(fulllen*config['data']['t_v_split'])
   splits = np.cumsum([fulllen-tv_num,0,tv_num])
-  collate = utils.collate_sparse_minkowski if 'Minkowski' in config['model']['name'] else utils.collate_sparse
+  collate = utils.collate_sparse_minkowski
 
   train_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=0,stop=splits[0]))
   valid_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=splits[1],stop=splits[2]))
@@ -44,17 +46,23 @@ def main():
   parameters = [sherpa.Continuous('learning_rate',
                                   [1e-5, 1e-1]),
                 sherpa.Continuous('weight_decay',
-                                  [0.01, 0.1])]
+                                  [0.01, 0.1]),
+                sherpa.Discrete('unet_depth',
+                                [2, 6]),
+                sherpa.Choice('activation',
+                                  [ 'ReLU', 'LeakyReLU' ])]
   alg = sherpa.algorithms.GPyOpt(max_num_trials=50)
 
   study = sherpa.Study(parameters=parameters,
                        algorithm=alg,
                        lower_is_better=True,
-                       dashboard_port=9307)
+                       dashboard_port=os.environ['SHERPA_PORT'])
 
   for trial in study:
     config['model']['learning_rate'] = trial.parameters['learning_rate']
     config['model']['weight_decay'] = trial.parameters['weight_decay']
+    config['model']['unet_depth'] = trial.parameters['unet_depth']
+    config['model']['activation_params']['activation'] = trial.parameters['activation']
     trainer.build_model(**config['model'])
     train_summary = trainer.train(
       train_loader,

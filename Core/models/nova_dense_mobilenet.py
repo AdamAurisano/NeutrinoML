@@ -1,7 +1,5 @@
 from torch.nn import Sequential as Seq, Dropout, Linear, ReLU, Softmax, Module, Conv2d, BatchNorm2d, AvgPool2d
-import MinkowskiEngine as ME
 import torch 
-# from torch.nn import ModuleList # delete me
 
 class Conv(Module):
     def __init__(self, in_feat, out_feat, kernel_size=1, stride=1):
@@ -12,7 +10,8 @@ class Conv(Module):
                 out_channels=out_feat,
                 kernel_size=kernel_size,
                 stride=stride,
-                bias=False),
+                bias=False,
+                padding=int((kernel_size-1)/2)*stride),
             BatchNorm2d(out_feat),
             ReLU(out_feat))
         
@@ -33,7 +32,8 @@ class Bottleneck(Module):
                 out_channels=expansion,
                 kernel_size=kernel_size,
                 stride=stride,
-                groups=expansion),
+                groups=expansion,
+                padding=int((kernel_size-1)/2)*stride),
             BatchNorm2d(expansion),
             ReLU(expansion),
             Conv2d(
@@ -84,7 +84,7 @@ class DenseMobileNet(Module):
             InvertedResidual( 96, 160, alpha, 6, 3, 2, 3),
             InvertedResidual( 160, 320, alpha, 6, 3, 1, 1),
             Conv( int(alpha*320), int(alpha*1280)),
-            AvgPool2d(self.input_x,self.input_y))
+            AvgPool2d(kernel_size=[6,5]))
         
         self.final = Seq(
             Dropout(0.4),
@@ -94,30 +94,12 @@ class DenseMobileNet(Module):
             Linear(1024, classes, bias=False),
             Softmax(dim=1))
         
-    def forward(self, x):                                  
-        xview = ME.SparseTensor(x[0], x[1])
-        xview, xmin, xstride = xview.dense(min_coords=torch.IntTensor([0,0]), max_coords=torch.IntTensor([99,79]))
-        
-        yview = ME.SparseTensor(x[2], x[3])
-        yview, ymin, ystride = yview.dense(min_coords=torch.IntTensor([0,0]), max_coords=torch.IntTensor([99,79]))
-        
-        print(type(xview))
-        print(xview.shape)
-        print(type(yview))
-        print(yview.shape)
-        
+    def forward(self, x):
+        xview = x[0]
+        yview = x[1]
         xview = self.input_x(xview)
         yview = self.input_y(yview)
-        
-        print(type(xview))
-        print(xview.shape)
-        print(type(yview))
-        print(yview.shape)
-        
         x = xview + yview
-        print(type(x))
-        print(x)
-
-        x = self.net(x)
+        x = self.net(x).squeeze()
         return self.final(x)
 

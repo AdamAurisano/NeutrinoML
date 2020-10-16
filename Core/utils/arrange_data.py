@@ -15,5 +15,10 @@ def arrange_sparse_minkowski_2stack(data, device):
                     data['sparse'][3].to(device) ]
     return batch_input
 
+def arrange_dense_2stack(data, device):
+    xview = data['xview'].to(device)
+    yview = data['yview'].to(device)
+    return xview, yview
+    
 def arrange_graph(data, device):
     return data.to(device)

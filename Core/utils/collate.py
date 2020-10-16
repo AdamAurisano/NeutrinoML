@@ -21,3 +21,9 @@ def collate_sparse_minkowski_2stack(batch):
   y        = torch.stack([d['truth'] for d in batch])
   ret = { 'sparse': [x_feats, x_coords, y_feats, y_coords], 'y': y }
   return ret
+
+def collate_dense_2stack(batch):
+  xview = torch.stack([ x[0] for x in batch ])
+  yview = torch.stack([ x[1] for x in batch ])
+  y = torch.stack([ x[2] for x in batch ])
+  return { 'xview': xview, 'yview': yview, 'y': y }

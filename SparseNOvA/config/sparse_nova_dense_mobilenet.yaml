@@ -1,5 +1,5 @@
 data:
-  name: 'SparsePixelMapNOvA'
+  name: 'DensePixelMapNOvA'
   filedir: '/data/mp5/preselection_cvnmap'
   t_v_split: 0.05
 
@@ -8,10 +8,11 @@ model:
   D: 2
   alpha: 1
   depth: 1
-  classes: 3
+  classes: 4
   loss_func: 'CrossEntropyLoss'
-  arrange_data: 'arrange_sparse_minkowski_2stack'
-  arrange_truth: 'arrange_sparse'
+  arrange_data: 'arrange_dense_2stack'
+  arrange_truth: 'arrange_dense'
+  collate: 'collate_dense_2stack'
   step_size: 1 # How many epochs between LR reduction
   gamma: 0.8 # Factor to reduce learning rate by
   activation_params:
@@ -39,14 +40,14 @@ model:
     SGD:
       lr: 2.e-3
   n_classes: 4
-  metrics: 'SemanticSegmentation'
+  metrics: 'Classification'
   metric_params:
 #     metrics: 'SemanticSegmentation' should restructure config like this
-    SemanticSegmentation:
-      class_names: ['numu','nue','nc']
+    Classification:
+      class_names: ['numu','nue','nc','cosmic']
 
 data_loader:
-  batch_size: 1000
+  batch_size: 64
   num_workers: 3
 
 trainer:

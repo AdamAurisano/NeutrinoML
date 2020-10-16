@@ -13,7 +13,7 @@ class Conv(ME.MinkowskiNetwork):
                 out_channels=out_feat,
                 kernel_size=kernel_size,
                 stride=stride,
-                bias=False,
+                has_bias=False,
                 dimension=D),
             ME.MinkowskiBatchNorm(out_feat),
             MinkowskiActivation(D, A))

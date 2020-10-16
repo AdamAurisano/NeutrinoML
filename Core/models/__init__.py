@@ -2,26 +2,28 @@
 Module for retrieving PyTorch network architectures
 '''
 
-from .minkowski_seg import MinkowskiSeg
-from .minkowski_class import MinkowskiClass, Minkowski2StackClass
-from .nova_mobilenet import MobileNet
-from .nova_dense_mobilenet import DenseMobileNet
-from .minkowski_ASPPSeg  import MinkowskiASPPSeg
-from .message_passing_multihead import MultiHead
-_models = { 'MinkowskiSeg':   MinkowskiSeg,
-            'MinkowskiASPPSeg': MinkowskiASPPSeg,
-            'MinkowskiClass': MinkowskiClass,
-            'Minkowski2StackClass': Minkowski2StackClass,
-            'MobileNet': MobileNet,
-            'DenseMobileNet': DenseMobileNet,
-            'MultiHead': MultiHead }
-
 def get_model(name, **model_args):
     
-    if name in _models:
-        return _models[name](**model_args)
+    if name == 'MinkowskiSeg':
+        from .minkowski_seg import MinkowskiSeg
+        return MinkowskiSeg(**model_args)
+    elif name == 'MinkowskiASPPSeg':
+        from .minkowski_ASPPSeg  import MinkowskiASPPSeg
+        return MinkowskASPPSeg(**model_args)
+    elif name == 'MinkowskiClass':
+        from .minkowski_class import MinkowskiClass
+        return MinkowskiClass(**model_args)
+    elif name == 'Minkowski2StackClass':
+        from .minkowski_class import Minkowski2StackClass
+        return Minkowski2StackClass(**model_args)
+    elif name == 'MobileNet':
+        from .nova_mobilenet import MobileNet
+        return MobileNet(**model_args)
+    elif name == 'DenseMobileNet':
+        from .nova_dense_mobilenet import DenseMobileNet
+        return DenseMobileNet(**model_args)
+    elif name == 'MultiHead':
+        from .message_passing_multihead import MultiHead
+        return MultiHead(**model_args)
     else:
         raise Exception(f'Model {name} unknown.')
-
-
-

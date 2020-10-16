@@ -25,15 +25,19 @@ fi
 
 if [ "$2" == "protodune" ]; then
   datadir=/raid/hewesje/protodune_sparse
+  container=nvcr.io/univcinci/pytorch-sparseconv:19.12-py3
   exptport=0
 elif [ "$2" == "nova" ]; then
   datadir=/raid/nova
+  container=nvcr.io/univcinci/pytorch-sparseconv:20.03-py3
   exptport=1
 elif [ "$2" == "dunegraph" ]; then
   datadir=/raid/dune
+  container=nvcr.io/univcinci/pytorch-gcn:20.03-py3
   exptport=2
 elif [ "$2" == "taurnn" ]; then
   datadir=/raid/taurnn
+  container=nvcr.io/univcinci/pytorch-sparseconv:20.03-py3
   exptport=3
 else
   echo "Experiment \"${2}\" not recognised! Exiting."
@@ -43,5 +47,5 @@ fi
 export JUPYTER_PORT=${PORTPREFIX}${exptport}${1}0
 export SHERPA_PORT=${PORTPREFIX}${exptport}${1}1
 
-nvidia-docker run --name ${USER}-${2}-${1} --expose=${JUPYTER_PORT} -p ${JUPYTER_PORT}:${JUPYTER_PORT} --expose=${SHERPA_PORT} -p ${SHERPA_PORT}:${SHERPA_PORT} -e USER -e JUPYTER_PORT -e SHERPA_PORT -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v ${datadir}:/data nvcr.io/univcinci/pytorch-neutrinoml:20.09-py3
+nvidia-docker run --name ${USER}-${2}-${1} --expose=${JUPYTER_PORT} -p ${JUPYTER_PORT}:${JUPYTER_PORT} --expose=${SHERPA_PORT} -p ${SHERPA_PORT}:${SHERPA_PORT} -e USER -e JUPYTER_PORT -e SHERPA_PORT -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v ${datadir}:/data $container
 

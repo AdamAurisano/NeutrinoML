@@ -29,7 +29,7 @@ if [ "$2" == "protodune" ]; then
   exptport=0
 elif [ "$2" == "nova" ]; then
   datadir=/raid/nova
-  container=nvcr.io/univcinci/pytorch-sparseconv:20.03-py3
+  container=nvcr.io/univcinci/pytorch-neutrinoml:20.03-py3
   exptport=1
 elif [ "$2" == "dunegraph" ]; then
   datadir=/raid/dune
@@ -37,7 +37,7 @@ elif [ "$2" == "dunegraph" ]; then
   exptport=2
 elif [ "$2" == "taurnn" ]; then
   datadir=/raid/taurnn
-  container=nvcr.io/univcinci/pytorch-sparseconv:20.03-py3
+  container=nvcr.io/univcinci/pytorch-neutrinoml:20.03-py3
   exptport=3
 else
   echo "Experiment \"${2}\" not recognised! Exiting."

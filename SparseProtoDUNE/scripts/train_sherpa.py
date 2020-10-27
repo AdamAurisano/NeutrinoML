@@ -11,8 +11,9 @@ from Core import utils
 from Core.trainers import Trainer
 import torch, torchvision, sherpa
 from torch.utils.data import DataLoader
+import torch.nn.functional as F
 import MinkowskiEngine as ME
-#from torch.nn import LeakyReLU, ReLU
+#from torch.nn import LeakyReLU, ReLU, Mish
 
 def parse_args():
   '''Parse arguments'''
@@ -26,6 +27,9 @@ def configure(config):
   with open(config) as f:
     return yaml.load(f, Loader=yaml.FullLoader)
 
+def forward(self, x):
+  return x * torch.tanh(F.softplus(x))
+  
 def main():
   '''Main function'''
   args = parse_args()
@@ -50,7 +54,7 @@ def main():
                 sherpa.Discrete('unet_depth',
                                 [2, 6]),
                 sherpa.Choice('activation',
-                                  [ 'ReLU', 'LeakyReLU' ])]
+                                  [ 'ReLU', 'LeakyReLU', 'mish' ])]
   alg = sherpa.algorithms.GPyOpt(max_num_trials=50)
 
   study = sherpa.Study(parameters=parameters,

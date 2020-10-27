@@ -25,7 +25,7 @@ model:
   arrange_truth: 'arrange_sparse'
 
   activation_params:
-    activation: 'ReLU'
+    activation: 'mish'
     LeakyReLU:
       negative_slope: 0.01
 
@@ -56,11 +56,11 @@ model:
       class_names: ['shower', 'diffuse', 'kaon', 'michel', 'hip', 'mu', 'pi']
 
 data_loader:
-  batch_size: 35
+  batch_size: 30
   #num_workers: 1
 
 trainer:
-  device: 2 # Which GPU to use
+  device: 3 # Which GPU to use
   n_epochs: 5
   max_iters_train: None
   max_iters_eval:  None

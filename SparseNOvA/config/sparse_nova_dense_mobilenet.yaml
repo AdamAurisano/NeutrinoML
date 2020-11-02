@@ -15,15 +15,17 @@ model:
   collate: 'collate_dense_2stack'
   
   activation_params:
-    activation: 'mish'
+    activation: 'ReLU'
     LeakyReLU:
       negative_slope: 0.01
       
   optimizer_params:
-    optimizer: 'AdamW'
+    optimizer: 'SGD'
     AdamW:
-      lr: 2.e-3
+      lr:               2.e-3
       weight_decay:     0.01
+    Fromage:
+      lr:               0.01
     Ranger:
       lr:               1.e-3
       alpha:            0.5
@@ -34,12 +36,10 @@ model:
       weight_decay:     0
       use_gc:           True
       gc_conv_only:     False
-    lr_policy:
-      step_size: 5
-      gamma:     0.8
     SGD:
-      lr: 2.e-3
-  n_classes: 4
+      lr:               0.02
+      moomentum:        0.9
+      
   metrics: 'Classification'
   metric_params:
 #     metrics: 'SemanticSegmentation' should restructure config like this
@@ -47,17 +47,17 @@ model:
       class_names: ['numu','nue','nc','cosmic']
 
 data_loader:
-  batch_size: 64
+  batch_size: 128
   num_workers: 3
 
 trainer:
   benchmark: False
-  device: 0 # Which GPU to use
+  device: 1 # Which GPU to use
   n_epochs: 30
   max_iters_train: None
   max_iters_eval:  None
-  train_name:  'cvnmap'
-  summary_dir: '/scratch/SparseNOvA/summary/preselection/bestparam/dense_mobile_net'
+  train_name:  'SGD'
+  summary_dir: '/scratch/SparseNOvA/summary/preselection/Micahparam/dense_mobile_net/cvnmap/batchsize128/'
   output_dir:  '/scratch/SparseNOvA/params'
 
 inference:

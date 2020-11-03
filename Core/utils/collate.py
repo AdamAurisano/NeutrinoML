@@ -1,4 +1,4 @@
-import torch, MinkowskiEngine as ME
+import torch
 
 def collate_sparse(batch):
   for idx, d in enumerate(batch):
@@ -7,6 +7,7 @@ def collate_sparse(batch):
   return ret
 
 def collate_sparse_minkowski(batch):
+  import MinkowskiEngine as ME
   coords = ME.utils.batched_coordinates([d['c'].int() for d in batch])
   feats = torch.cat([d['x'] for d in batch])
   y = torch.cat([d['y'] for d in batch])
@@ -14,6 +15,7 @@ def collate_sparse_minkowski(batch):
   return ret
 
 def collate_sparse_minkowski_2stack(batch):
+  import MinkowskiEngine as ME
   x_coords = ME.utils.batched_coordinates([d['xcoords'] for d in batch])
   x_feats  = torch.cat([d['xfeats'] for d in batch])
   y_coords = ME.utils.batched_coordinates([d['ycoords'] for d in batch])

@@ -46,11 +46,13 @@ class_names = config['model']['metric_params']['Classification']['class_names']
 for name, weight in zip(class_names, weights):
     print(f'  {name}: {weight}')
 
+config['model']['loss_params']['weight'] = torch.tensor(weights)
+
 train_loader = DataLoader(train_dataset, batch_size=config['trainer']['batch_size'], shuffle=True, pin_memory=True)
 valid_loader = DataLoader(valid_dataset, batch_size=config['trainer']['batch_size'], shuffle=False)
 
 # Build model
-trainer.build_model(weights=weights, **config['model'])
+trainer.build_model(**config['model'])
 
 # Train!
 train_summary = trainer.train(train_loader, config['trainer']['n_epochs'], valid_data_loader=valid_loader)

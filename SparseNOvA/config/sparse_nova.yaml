@@ -11,7 +11,8 @@ model:
   n_feats: 64 # Number of features
   unet_depth: 5
   res_blocks: True # Whether to use residual blocks in unet
-  loss_func: 'CrossEntropyLoss'
+  loss_params:
+    func: 'CrossEntropyLoss'
   optimizer: 'AdamW'
   learning_rate: 1.e-4
   weight_decay: 0.01

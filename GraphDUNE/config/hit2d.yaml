@@ -17,7 +17,8 @@ model:
   hidden_dim: 64
   classes: 4
   n_iters: 4
-  loss_func: 'CrossEntropyLoss'
+  loss_params:
+    func: 'CrossEntropyLoss'
   arrange_data: 'arrange_graph'
   arrange_truth: 'arrange_graph'
 

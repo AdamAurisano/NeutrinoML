@@ -30,7 +30,7 @@ class Trainer(base):
     self.writer = SummaryWriter(f'{summary_dir}/{train_name}')
 
   def build_model(self, activation_params, optimizer_params, name='NodeConv',
-      loss_func='cross_entropy', arrange_data = 'arrange_sparse_minkowski',
+      loss_params = {}, arrange_data = 'arrange_sparse_minkowski',
       arrange_truth='arrange_sparse', metrics = 'SemanticSegmentation',
       metric_params=[], step_size=1, gamma=0.5, **model_args):
     '''Instantiate our model'''
@@ -42,7 +42,7 @@ class Trainer(base):
     self.model = self.model.to(self.device)
     
     # Construct the loss function
-    self.loss_func = get_loss(loss_func)
+    self.loss_func = get_loss(**loss_params)
 
     # Construct the optimizer
     self.optimizer = get_optim(model_params=self.model.parameters(), **optimizer_params)

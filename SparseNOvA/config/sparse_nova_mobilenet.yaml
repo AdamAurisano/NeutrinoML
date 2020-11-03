@@ -9,7 +9,8 @@ model:
   alpha: 1
   depth: 1
   classes: 4
-  loss_func: 'CrossEntropyLoss'
+  loss_params:
+    func: 'CrossEntropyLoss'
   arrange_data: 'arrange_sparse_minkowski_2stack'
   arrange_truth: 'arrange_sparse'
   collate: 'collate_sparse_minkowski_2stack'

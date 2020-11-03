@@ -20,7 +20,8 @@ model:
   unet_depth: 5
   res_blocks: True # Whether to use residual blocks in unet
 
-  loss_func: 'categorical_cross_entropy'
+  loss_params:
+    func: 'categorical_cross_entropy'
   arrange_data: 'arrange_sparse_minkowski'
   arrange_truth: 'arrange_sparse'
 

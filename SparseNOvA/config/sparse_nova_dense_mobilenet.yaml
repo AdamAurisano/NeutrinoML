@@ -41,9 +41,9 @@ model:
       lr:               0.02
       moomentum:        0.9
       
-  metrics: 'Classification'
   metric_params:
-#     metrics: 'SemanticSegmentation' should restructure config like this
+    metrics: 'Classification'
+    include_batch_metrics: True
     Classification:
       class_names: ['numu','nue','nc','cosmic']
 

@@ -36,7 +36,11 @@ model:
     Fromage:
       lr: 0.01
       
-  metrics: 'Classification'
   metric_params:
+    metrics: 'Classification'
+    include_batch_metrics: False
     Classification:
       class_names: [ 'false', 'shower', 'muon', 'hadronic' ]
+
+test:
+  state_dict: 'params/delaunay1/checkpoints/model_checkpoint_MultiHead_170320_e3b7113b80_hewesje.best.pth.tar'

@@ -72,7 +72,7 @@ class SubNet(Module):
         return self.net(x)
 
 class DenseMobileNet(Module):
-    def __init__(self, alpha, depth, classes, **kwargs):
+    def __init__(self, alpha, depth, classes, dropout, **kwargs):
         super(DenseMobileNet, self).__init__()
         
         self.input_x = SubNet(alpha)
@@ -87,10 +87,10 @@ class DenseMobileNet(Module):
             AvgPool2d(kernel_size=[6,5]))
         
         self.final = Seq(
-            Dropout(0.4),
+            Dropout(dropout),
             Linear(int(alpha*1280), 1024),
             ReLU(1024),
-            Dropout(0.4),
+            Dropout(dropout),
             Linear(1024, classes, bias=False),
             Softmax(dim=1))
         

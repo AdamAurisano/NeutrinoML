@@ -46,7 +46,7 @@ class_names = config['model']['metric_params']['Classification']['class_names']
 for name, weight in zip(class_names, weights):
     print(f'  {name}: {weight}')
 
-config['model']['loss_params']['weight'] = torch.tensor(weights)
+config['model']['loss_params']['weight'] = torch.tensor(weights).float().to(trainer.device)
 
 train_loader = DataLoader(train_dataset, batch_size=config['trainer']['batch_size'], shuffle=True, pin_memory=True)
 valid_loader = DataLoader(valid_dataset, batch_size=config['trainer']['batch_size'], shuffle=False)

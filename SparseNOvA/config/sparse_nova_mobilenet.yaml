@@ -9,6 +9,7 @@ model:
   alpha: 1
   depth: 1
   classes: 4
+  dropout: 0.3
   loss_params:
     func: 'CrossEntropyLoss'
   arrange_data: 'arrange_sparse_minkowski_2stack'
@@ -23,7 +24,7 @@ model:
   optimizer_params:
     optimizer: 'Fromage'
     AdamW:
-      lr: 1.e-5
+      lr:               2.e-3
       weight_decay:     0.01
     Fromage:
       lr:               0.01
@@ -38,7 +39,11 @@ model:
       use_gc:           True
       gc_conv_only:     False
     SGD:
-      lr: 2.e-3
+      lr:               0.02
+      momentum:         0.9
+    lr_policy:
+      step_size:        1
+      gamma:            0.5
 
   metrics: 'Classification'
   metric_params:

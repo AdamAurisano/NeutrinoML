@@ -1,6 +1,6 @@
 import torch
 from torch.nn import Sequential as Seq, Dropout, Linear, ReLU, Softmax
-from Core.activation import MinkowskiActivation
+from Core.activation import minkowski_wrapper
 import MinkowskiEngine as ME
 
 class Conv(ME.MinkowskiNetwork):
@@ -16,7 +16,7 @@ class Conv(ME.MinkowskiNetwork):
                 has_bias=False,
                 dimension=D),
             ME.MinkowskiBatchNorm(out_feat),
-            MinkowskiActivation(D, A))
+            minkowski_wrapper(D, A))
         
     def forward(self, x):
         return self.net(x)
@@ -36,7 +36,7 @@ class Bottleneck(ME.MinkowskiNetwork):
                 stride=stride,
                 dimension=D),
             ME.MinkowskiBatchNorm(expansion),
-            MinkowskiActivation(D, A),
+            minkowski_wrapper(D, A),
             ME.MinkowskiConvolution(
                 in_channels=expansion,
                 out_channels=out_feat,

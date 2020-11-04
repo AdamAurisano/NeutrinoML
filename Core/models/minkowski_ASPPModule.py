@@ -2,7 +2,7 @@
 from torch.nn import Sequential as Seq, ModuleList as ML
 import MinkowskiEngine as ME
 import MinkowskiEngine.MinkowskiFunctional as MF
-from Core.activation import MinkowskiActivation
+from Core.activation import minkowski_wrapper
 import torch.nn as nn
 
 class ASPPConvMinkowski(ME.MinkowskiNetwork):
@@ -17,7 +17,7 @@ class ASPPConvMinkowski(ME.MinkowskiNetwork):
         bias=False,
         dimension=n_dims),
         ME.MinkowskiBatchNorm(out_feats),
-        MinkowskiActivation(n_dims,nn.ReLU())
+        minkowski_wrapper(n_dims,nn.ReLU())
     )
 
   def forward(self,x):
@@ -40,7 +40,7 @@ class ASPPPoling(ME.MinkowskiNetwork):
         bias=False,
         dimension=n_dims),
         ME.MinkowskiBatchNorm(input_feats),
-        MinkowskiActivation(n_dims,nn.ReLU()),
+        minkowski_wrapper(n_dims,nn.ReLU()),
      ME.MinkowskiPoolingTranspose(
        kernel_size =1,
        stride=8,
@@ -69,7 +69,7 @@ class ASPP(ME.MinkowskiNetwork):
         bias=False,
         dimension=n_dims),
       ME.MinkowskiBatchNorm(input_feats),
-      MinkowskiActivation(n_dims,nn.ReLU())
+      minkowski_wrapper(n_dims,nn.ReLU())
     ))
     rates = tuple(atrous_rates)
     for rate in rates:
@@ -88,7 +88,7 @@ class ASPP(ME.MinkowskiNetwork):
         bias = False,
         dimension = n_dims),
       ME.MinkowskiBatchNorm(input_feats),
-      MinkowskiActivation(n_dims,nn.ReLU())
+      minkowski_wrapper(n_dims,nn.ReLU())
     )
   def forward(self,xlist):
     x = xlist.pop()

@@ -3,7 +3,7 @@ from torch.nn import Sequential as Seq, Softmax
 import torch.nn.functional as f
 import MinkowskiEngine as ME
 from .minkowski_unet import UNetUp, UNetDown
-from Core.activation import MinkowskiActivation
+from Core.activation import minkowski_wrapper
 from .minkowski_ASPPModule import ASPP
 
 class MinkowskiASPPSeg(ME.MinkowskiNetwork):
@@ -20,7 +20,7 @@ class MinkowskiASPPSeg(ME.MinkowskiNetwork):
         stride=1,
         dimension=n_dims),
       ME.MinkowskiBatchNorm(n_feats),
-      MinkowskiActivation(n_dims, activation))
+      minkowski_wrapper(n_dims, activation))
 
     # Downward layers
     self.down_net = UNetDown(

@@ -45,8 +45,9 @@ model:
       step_size:        1
       gamma:            0.5
 
-  metrics: 'Classification'
   metric_params:
+    metrics: 'Classification'
+    include_batch_metrics: True
     Classification:
       class_names: ['numu','nue','nc','cosmic']
 

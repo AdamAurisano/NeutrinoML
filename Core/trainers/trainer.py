@@ -30,8 +30,8 @@ class Trainer(base):
     self.writer = SummaryWriter(f'{summary_dir}/{train_name}')
 
   def build_model(self, activation_params, optimizer_params, name='NodeConv',
-      loss_params = {}, arrange_data = 'arrange_sparse_minkowski',
-      arrange_truth='arrange_sparse', metrics = 'SemanticSegmentation',
+      loss_params={}, arrange_data='arrange_sparse_minkowski',
+      arrange_truth='arrange_sparse', metrics='SemanticSegmentation',
       metric_params=[], step_size=1, gamma=0.5, **model_args):
     '''Instantiate our model'''
 
@@ -48,7 +48,10 @@ class Trainer(base):
     self.optimizer = get_optim(model_params=self.model.parameters(), **optimizer_params)
     self.lr_scheduler = StepLR(self.optimizer, step_size, gamma)
 
-    self.metrics = get_metrics(metrics)(**metric_params[metrics])
+    metrics=metric_params['metrics']
+    metric_args = metric_params[metrics]
+    self.metrics = get_metrics(metrics)(**metric_args)
+    self.batch_metrics = metric_params['include_batch_metrics']
 
     # Select function to arrange data
     self.arrange_data = get_arrange_data(arrange_data)
@@ -88,10 +91,11 @@ class Trainer(base):
       t.refresh() # to show immediately the update
 
       # add to tensorboard summary
-      metrics = self.metrics.train_batch_metrics(batch_output, batch_target)
-      if self.iteration%100 == 0:
-        self.writer.add_scalar('loss/batch', batch_loss.item(), self.iteration)
-        for key, val in metrics.items(): self.writer.add_scalar(key, val, self.iteration)
+      if self.batch_metrics:
+        metrics = self.metrics.train_batch_metrics(batch_output, batch_target)
+        if self.iteration%100 == 0:
+          self.writer.add_scalar('loss/batch', batch_loss.item(), self.iteration)
+          for key, val in metrics.items(): self.writer.add_scalar(key, val, self.iteration)
       self.iteration += 1
 
     summary['lr'] = self.optimizer.param_groups[0]['lr']

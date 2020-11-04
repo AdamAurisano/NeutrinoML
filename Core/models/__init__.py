@@ -21,7 +21,7 @@ def get_model(name, **model_args):
         return MobileNet(**model_args)
     elif name == 'MobileNetNoUnion':
         from .nova_mobilenet_nounion import MobileNetNoUnion
-        return MobileNet(**model_args)
+        return MobileNetNoUnion(**model_args)
     elif name == 'DenseMobileNet':
         from .nova_dense_mobilenet import DenseMobileNet
         return DenseMobileNet(**model_args)

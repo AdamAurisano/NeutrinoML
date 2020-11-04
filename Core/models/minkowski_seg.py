@@ -3,7 +3,7 @@ from torch.nn import Sequential as Seq, Softmax
 import torch.nn.functional as f
 import MinkowskiEngine as ME
 from .minkowski_unet import UNetUp, UNetDown
-from Core.activation import MinkowskiActivation
+from Core.activation import minkowski_wrapper
 
 class MinkowskiSeg(ME.MinkowskiNetwork):
 
@@ -18,7 +18,7 @@ class MinkowskiSeg(ME.MinkowskiNetwork):
         stride=1,
         dimension=n_dims),
       ME.MinkowskiBatchNorm(n_feats),
-      MinkowskiActivation(n_dims, A))
+      minkowski_wrapper(n_dims, A))
 
     # Downward layers
     self.down_net = UNetDown(

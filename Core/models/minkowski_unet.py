@@ -2,7 +2,7 @@
 from torch.nn import Sequential as Seq, ModuleList as ML
 import MinkowskiEngine as ME
 import MinkowskiEngine.MinkowskiFunctional as MF
-from Core.activation import MinkowskiActivation
+from Core.activation import minkowski_wrapper
 
 class UNetDown(ME.MinkowskiNetwork):
   def __init__(self, n_dims, unet_depth, n_feats, activation, **kwargs):
@@ -21,7 +21,7 @@ class UNetDown(ME.MinkowskiNetwork):
           dimension=n_dims),
         ME.MinkowskiBatchNorm(n_out)))
     
-    self.a = MinkowskiActivation(n_dims, activation)
+    self.a = minkowski_wrapper(n_dims, activation)
     
   def forward(self, x):
     
@@ -56,7 +56,7 @@ class UNetUp(ME.MinkowskiNetwork):
           stride=2,
           dimension=n_dims),
         ME.MinkowskiBatchNorm(n_out),
-        MinkowskiActivation(n_dims, activation)))
+        minkowski_wrapper(n_dims, activation)))
     
   def forward(self, x_skip):
     

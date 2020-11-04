@@ -1,6 +1,5 @@
 import torch
 from torch.nn import Sequential as Seq, Dropout, Linear, ReLU, Softmax
-from Core.activation import MinkowskiActivation
 import MinkowskiEngine as ME
 from .nova_mobilenet import Conv, InvertedResidual, SubNet    
 

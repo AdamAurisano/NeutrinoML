@@ -39,8 +39,17 @@ model:
       gc_conv_only:     False
     SGD:
       lr:               0.02
-      moomentum:        0.9
-      
+      momentum:         0.9
+
+  scheduler_params:
+    scheduler: 'ReduceLROnPlateau'
+    ReduceLROnPlateau:
+      factor: 0.5
+      patience: 5
+    StepLR:
+      step_size: 5
+      gamma: 0.8  
+
   metric_params:
     metrics: 'Classification'
     include_batch_metrics: True

@@ -22,8 +22,14 @@ model:
   arrange_data: 'arrange_graph'
   arrange_truth: 'arrange_graph'
 
-  step_size: 5
-  gamma: 0.8
+  scheduler_params:
+    scheduler: 'ReduceLROnPlateau'
+    ReduceLROnPlateau:
+      factor: 0.5
+      patience: 5
+    StepLR:
+      step_size: 5
+      gamma: 0.8
 
   activation_params:
     activation: 'mish'

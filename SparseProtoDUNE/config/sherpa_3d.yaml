@@ -45,10 +45,16 @@ model:
       weight_decay:     0
       use_gc:           True
       gc_conv_only:     False
-    lr_policy:
-      step_size: 1
-      gamma:     0.1
-  
+ 
+  scheduler_params:
+    scheduler: 'StepLR'
+    ReduceLROnPlateau:
+      factor: 0.5
+      patience: 5
+    StepLR:
+      step_size: 5
+      gamma: 0.8
+
   n_classes: 7
   
   metric_params:

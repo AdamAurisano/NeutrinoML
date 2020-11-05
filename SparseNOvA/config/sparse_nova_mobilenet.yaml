@@ -41,9 +41,15 @@ model:
     SGD:
       lr:               0.02
       momentum:         0.9
-    lr_policy:
-      step_size:        1
-      gamma:            0.5
+
+  scheduler_params:
+    scheduler: 'ReduceLROnPlateau'
+    ReduceLROnPlateau:
+      factor: 0.5
+      patience: 5
+    StepLR:
+      step_size: 5
+      gamma: 0.8
 
   metric_params:
     metrics: 'Classification'

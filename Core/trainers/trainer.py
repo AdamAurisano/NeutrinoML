@@ -10,7 +10,6 @@ import math
 import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
-from torch.optim.lr_scheduler import LambdaLR, StepLR
 import tqdm, numpy as np, psutil
 
 # Locals
@@ -19,6 +18,7 @@ from .base import base
 from Core.loss import get_loss
 from Core.activation import get_activation
 from Core.optim import get_optim
+from Core.scheduler import get_scheduler
 from Core.metrics import get_metrics
 from Core.utils import *
 
@@ -29,10 +29,10 @@ class Trainer(base):
     super(Trainer, self).__init__(train_name=train_name, **kwargs)
     self.writer = SummaryWriter(f'{summary_dir}/{train_name}')
 
-  def build_model(self, activation_params, optimizer_params, name='NodeConv',
-      loss_params={}, arrange_data='arrange_sparse_minkowski',
-      arrange_truth='arrange_sparse', metrics='SemanticSegmentation',
-      metric_params=[], step_size=1, gamma=0.5, **model_args):
+  def build_model(self, activation_params, optimizer_params, scheduler_params,
+      loss_params, metric_params, name='NodeConv',
+      arrange_data='arrange_sparse_minkowski', arrange_truth='arrange_sparse',
+      **model_args):
     '''Instantiate our model'''
 
     # Construct the model
@@ -46,7 +46,7 @@ class Trainer(base):
 
     # Construct the optimizer
     self.optimizer = get_optim(model_params=self.model.parameters(), **optimizer_params)
-    self.lr_scheduler = StepLR(self.optimizer, step_size, gamma)
+    self.scheduler = get_scheduler(self.optimizer, **scheduler_params)
 
     metrics=metric_params['metrics']
     metric_args = metric_params[metrics]
@@ -155,7 +155,7 @@ class Trainer(base):
           self.logger.debug('Checkpointing new best model with loss: %.3f', best_valid_loss)
           self.write_checkpoint(checkpoint_id=i,best=True)
 
-      if self.lr_scheduler is not None: self.lr_scheduler.step()
+      if self.scheduler is not None: self.scheduler.step()
 
       # Save summary, checkpoint
       self.save_summary(summary)

@@ -9,6 +9,7 @@ model:
   alpha: 1
   depth: 1
   classes: 4
+  droptout: 0.3
   loss_params:
     func: 'CrossEntropyLoss'
   arrange_data: 'arrange_dense_2stack'
@@ -42,12 +43,12 @@ model:
       momentum:         0.9
 
   scheduler_params:
-    scheduler: 'ReduceLROnPlateau'
+    scheduler: 'StepLR'
     ReduceLROnPlateau:
       factor: 0.5
       patience: 5
     StepLR:
-      step_size: 5
+      step_size: 100
       gamma: 0.8  
 
   metric_params:
@@ -62,11 +63,11 @@ data_loader:
 
 trainer:
   benchmark: False
-  device: 1 # Which GPU to use
+  device: 2 # Which GPU to use
   n_epochs: 30
   max_iters_train: None
   max_iters_eval:  None
-  train_name:  'SGD'
+  train_name:  'SGD2'
   summary_dir: '/scratch/SparseNOvA/summary/preselection/Micahparam/dense_mobile_net/cvnmap/batchsize128/'
   output_dir:  '/scratch/SparseNOvA/params'
 

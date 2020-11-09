@@ -9,7 +9,7 @@ model:
   alpha: 1
   depth: 1
   classes: 4
-  droptout: 0.3
+  dropout: 0.3
   loss_params:
     func: 'CrossEntropyLoss'
   arrange_data: 'arrange_dense_2stack'

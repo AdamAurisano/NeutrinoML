@@ -82,8 +82,7 @@ class Trainer(base):
       batch_loss.backward()
 
       # Calculate accuracy
-      metrics = self.metrics.train_batch_metrics(batch_output, batch_target) 
-      
+      metrics = self.metrics.train_batch_metrics(batch_output, batch_target)
       self.optimizer.step()
       
       sum_loss += batch_loss.item()
@@ -140,6 +139,7 @@ class Trainer(base):
     self.iteration = 0
     for i in range(n_epochs):
       self.logger.info('Epoch %i' % i)
+      self.writer.add_scalar('learning_rate', self.optimizer.param_groups[0]['lr'], i+1)
       summary = dict(epoch=i)
       # Train on this epoch
       sum_train = self.train_epoch(train_data_loader, **kwargs)
@@ -155,7 +155,8 @@ class Trainer(base):
           self.logger.debug('Checkpointing new best model with loss: %.3f', best_valid_loss)
           self.write_checkpoint(checkpoint_id=i,best=True)
 
-      if self.scheduler is not None: self.scheduler.step()
+      if self.scheduler is not None:
+        self.scheduler.step(sum_valid['valid_loss'])
 
       # Save summary, checkpoint
       self.save_summary(summary)

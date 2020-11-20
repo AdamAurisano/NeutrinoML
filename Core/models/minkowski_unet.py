@@ -9,9 +9,26 @@ class UNetDown(ME.MinkowskiNetwork):
     super(UNetDown, self).__init__(n_dims)
     
     self.down = ML()
+  #  for i in range(unet_depth):
+  #    n_in = (2**i) * n_feats
+  #    n_out = (2**(i+1)) * n_feats
+  #    self.down.append(Seq(
+  #      ME.MinkowskiConvolution(
+  #        in_channels=n_in,
+  #        out_channels=n_out,
+  #        kernel_size=3,
+  #        stride=2,
+  #        dimension=n_dims),
+  #      ME.MinkowskiBatchNorm(n_out)))
+
+
     for i in range(unet_depth):
-      n_in = (2**i) * n_feats
-      n_out = (2**(i+1)) * n_feats
+      if i < 3:
+        n_in = (2**i) * n_feats
+        n_out = (2**(i+1)) * n_feats
+      else:
+        n_in = n_out
+        n_out = n_out
       self.down.append(Seq(
         ME.MinkowskiConvolution(
           in_channels=n_in,
@@ -44,10 +61,24 @@ class UNetUp(ME.MinkowskiNetwork):
     # Upward layers
     self.up = ML()
     for i in range(unet_depth):
-      in_feats = 2**(unet_depth-i) * n_feats
-      skip_feats = 2**(unet_depth-(i)) * n_feats if i > 0 else 0
-      n_in = in_feats + skip_feats
-      n_out = 2**(unet_depth-(i+1)) * n_feats if i < unet_depth-1 else n_feats
+      #in_feats = 2**(unet_depth-i) * n_feats
+      #skip_feats = 2**(unet_depth-(i)) * n_feats if i > 0 else 0
+      #n_in = in_feats + skip_feats
+      #n_out = 2**(unet_depth-(i+1)) * n_feats if i < unet_depth-1 else n_feats
+      m = 3
+      if i < (unet_depth-m):
+        in_feats = 2**m * n_feats
+        skip_feats = 2**m * n_feats if i>0 else 0
+        n_out = in_feats
+      else:
+        skip_feats = 2**(unet_depth-(i)) * n_feats
+        in_feats = 2**(unet_depth-i) * n_feats
+        n_out = 2**(unet_depth-(i+1)) * n_feats if i < unet_depth-1 else n_feats
+
+      n_in  = in_feats + skip_feats
+
+
+
       self.up.append(Seq(
         ME.MinkowskiConvolutionTranspose(
           in_channels=n_in,

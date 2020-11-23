@@ -1,22 +1,25 @@
 data:
   name: 'simple'
-  path: '/data/hit2d/processed-flav-shower-delaunay'
+  path: '/data/hit2d/processed-flav-shower'
   t_v_split: 0.05
 
 trainer:
-  device: 6
-  batch_size: 32
-  n_epochs: 50
-  train_name: 'delaunay1'
+  device: 0
+  batch_size: 16
+  n_epochs: 10
+  empty_cache: 1 # How many iterations between calls to empty GPU memory cache
+  train_name: 'deep-classwise1'
   summary_dir: '/scratch/GraphDUNE/summary'
   output_dir: '/scratch/GraphDUNE/params'
 
 model:
-  name: 'MultiHead'
+  name: 'DeepMultiHead'
   input_dim: 9
   hidden_dim: 64
-  classes: 4
+  out_dim: 4
   n_iters: 4
+  stacks: True
+  how: 'classwise'
   loss_params:
     func: 'CrossEntropyLoss'
   arrange_data: 'arrange_graph'
@@ -35,7 +38,7 @@ model:
     activation: 'mish'
 
   optimizer_params:
-    optimizer: 'AdamW'
+    optimizer: 'Fromage'
     AdamW:
       lr: 1.e-4
       weight_decay: 0.01
@@ -44,7 +47,7 @@ model:
       
   metric_params:
     metrics: 'Classification'
-    include_batch_metrics: False
+    include_batch_metrics: True
     Classification:
       class_names: [ 'false', 'shower', 'muon', 'hadronic' ]
 

@@ -65,6 +65,7 @@ trainer:
   benchmark: False
   device: 2 # Which GPU to use
   n_epochs: 30
+  empty_cache: 1 # How many iterations between calls to empty GPU memory cache
   max_iters_train: None
   max_iters_eval:  None
   train_name:  'SGD2'

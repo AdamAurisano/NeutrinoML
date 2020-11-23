@@ -25,9 +25,11 @@ from Core.utils import *
 class Trainer(base):
   '''Trainer code for basic classification problems with categorical cross entropy.'''
 
-  def __init__(self, train_name='test1', summary_dir='summary', **kwargs):
+  def __init__(self, train_name='test1', summary_dir='summary',
+    empty_cache = None, **kwargs):
     super(Trainer, self).__init__(train_name=train_name, **kwargs)
     self.writer = SummaryWriter(f'{summary_dir}/{train_name}')
+    self.empty_cache = empty_cache
 
   def build_model(self, activation_params, optimizer_params, scheduler_params,
       loss_params, metric_params, name='NodeConv',
@@ -48,6 +50,7 @@ class Trainer(base):
     self.optimizer = get_optim(model_params=self.model.parameters(), **optimizer_params)
     self.scheduler = get_scheduler(self.optimizer, **scheduler_params)
 
+    # Configure metrics
     metrics=metric_params['metrics']
     metric_args = metric_params[metrics]
     self.metrics = get_metrics(metrics)(**metric_args)
@@ -96,6 +99,9 @@ class Trainer(base):
           self.writer.add_scalar('loss/batch', batch_loss.item(), self.iteration)
           for key, val in metrics.items(): self.writer.add_scalar(key, val, self.iteration)
       self.iteration += 1
+
+      if self.empty_cache is not None and self.iteration % self.empty_cache == 0:
+        torch.cuda.empty_cache()
 
     summary['lr'] = self.optimizer.param_groups[0]['lr']
     summary['train_time'] = time.time() - start_time

@@ -70,6 +70,7 @@ data_loader:
 trainer:
   device: 7 # Which GPU to use
   n_epochs: 1
+  empty_cache: 1 # How many iterations between calls to empty GPU memory cache
   max_iters_train: None 
   max_iters_eval:  None 
   summary_dir: 'summary/3d/test1'

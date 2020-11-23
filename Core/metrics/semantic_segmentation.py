@@ -3,7 +3,7 @@ Class for calculating training metrics for a semantic segmentation network
 '''
 
 from .base import MetricsBase
-import psutil
+import time, psutil, torch.cuda as tc
 
 class SemanticSegmentationMetrics(MetricsBase):
     '''Class for calculating training metrics for a semantic segmentation network'''
@@ -28,6 +28,8 @@ class SemanticSegmentationMetrics(MetricsBase):
         self.train_class_total   = [ 0 for i in range(self.n_classes) ]
         self.valid_class_correct = [ 0 for i in range(self.n_classes) ]
         self.valid_class_total   = [ 0 for i in range(self.n_classes) ]
+
+        self.epoch_start = time.time()
 
     def __accuracy_helper(self, y_pred, y_true):
         '''Utility function to help calculate accuracy for a batch'''
@@ -64,7 +66,8 @@ class SemanticSegmentationMetrics(MetricsBase):
             self.train_class_correct[i] += class_correct[i]
             self.train_class_total[i] += class_total[i]
 
-        metrics['memory'] = psutil.virtual_memory().used
+        metrics['memory/cpu'] = float(psutil.virtual_memory().used) / float(1073741824)
+        metrics['memory/gpu'] = float(tc.memory_reserved(y_pred.device)) / float(1073741824)
 
         return metrics
 
@@ -95,5 +98,6 @@ class SemanticSegmentationMetrics(MetricsBase):
                 'train': 100 * self.train_class_correct[i] / self.train_class_total[i] if self.train_class_total[i] > 0 else 0,
                 'valid': 100 * self.valid_class_correct[i] / self.valid_class_total[i] if self.valid_class_total[i] > 0 else 0
             }
+        metrics['time/epoch'] = time.time() - self.epoch_start
         return metrics
 

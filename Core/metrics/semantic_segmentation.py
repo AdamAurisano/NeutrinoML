@@ -69,6 +69,8 @@ class SemanticSegmentationMetrics(MetricsBase):
         metrics['memory/cpu'] = float(psutil.virtual_memory().used) / float(1073741824)
         metrics['memory/gpu'] = float(tc.memory_reserved(y_pred.device)) / float(1073741824)
 
+        self.train_end = time.time()
+
         return metrics
 
     def valid_batch_metrics(self, y_pred, y_true):
@@ -85,6 +87,8 @@ class SemanticSegmentationMetrics(MetricsBase):
             self.valid_class_correct[i] += class_correct[i]
             self.valid_class_total[i] += class_total[i]
 
+        self.valid_end = time.time()
+
     def epoch_metrics(self):
         '''Function to calculate metrics for each epoch'''
 
@@ -98,6 +102,9 @@ class SemanticSegmentationMetrics(MetricsBase):
                 'train': 100 * self.train_class_correct[i] / self.train_class_total[i] if self.train_class_total[i] > 0 else 0,
                 'valid': 100 * self.valid_class_correct[i] / self.valid_class_total[i] if self.valid_class_total[i] > 0 else 0
             }
-        metrics['time/epoch'] = time.time() - self.epoch_start
+        metrics['time/epoch'] = {
+            'train': self.train_end - self.epoch_start,
+            'valid': self.valid_end - self.train_end
+        }
         return metrics
 

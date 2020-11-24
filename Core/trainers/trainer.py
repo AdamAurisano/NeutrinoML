@@ -123,7 +123,6 @@ class Trainer(base):
     n_batches = int(math.ceil(len(data_loader.dataset)/batch_size))
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
     for i, data in t:
-      # Different input shapes for SparseConvNet vs MinkowskiEngine
       batch_input = self.arrange_data(data, self.device)
       batch_output = self.model(batch_input)
       batch_target = self.arrange_truth(data).to(batch_output.device)

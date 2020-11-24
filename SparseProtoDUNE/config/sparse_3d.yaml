@@ -58,7 +58,7 @@ model:
   n_classes: 8
 
   metric_params:
-    metrics: 'SparseSegmentation'
+    metrics: 'SemanticSegmentation'
     include_batch_metrics: True
     SemanticSegmentation:
       class_names: ['shower','delta','diffuse','kaons','michel','hip','mu','pi']

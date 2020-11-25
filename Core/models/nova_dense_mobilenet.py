@@ -1,4 +1,4 @@
-from torch.nn import Sequential as Seq, Dropout, Linear, ReLU, Softmax, Module, Conv2d, BatchNorm2d, AvgPool2d
+from torch.nn import Sequential as Seq, Dropout, Linear, ReLU, Module, Conv2d, BatchNorm2d, AvgPool2d
 import torch 
 
 class Conv(Module):
@@ -91,8 +91,7 @@ class DenseMobileNet(Module):
             Linear(int(alpha*1280), 1024),
             ReLU(1024),
             Dropout(dropout),
-            Linear(1024, classes, bias=False),
-            Softmax(dim=1))
+            Linear(1024, classes, bias=False))
         
     def forward(self, x):
         xview = x[0]

@@ -1,5 +1,5 @@
 import torch
-from torch.nn import Sequential as Seq, Dropout, Linear, ReLU, Softmax
+from torch.nn import Sequential as Seq, Dropout, Linear, ReLU
 from Core.activation import minkowski_wrapper
 import MinkowskiEngine as ME
 

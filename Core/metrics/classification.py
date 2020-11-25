@@ -4,6 +4,7 @@ Class for calculating training metrics for a classification network
 
 from .base import MetricsBase
 import time, psutil, torch.cuda as tc
+from torch.nn.functional import softmax
 
 class ClassificationMetrics(MetricsBase):
     '''Class for calculating training metrics for a classification network'''
@@ -34,7 +35,7 @@ class ClassificationMetrics(MetricsBase):
     def __accuracy_helper(self, y_pred, y_true):
         '''Utility function to help calculate accuracy for a batch'''
 
-        w_pred = y_pred.argmax(dim=1)
+        w_pred = softmax(y_pred, dim=1).argmax(dim=1)
         w_true = y_true
         correct = (w_pred==w_true)
 

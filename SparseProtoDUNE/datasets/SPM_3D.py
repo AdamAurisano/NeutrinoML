@@ -6,6 +6,7 @@ from glob import glob
 from functools import partial
 import os, os.path as osp, logging, uproot, torch, multiprocessing as mp, numpy as np
 from .SegTruth import SegTruth
+from .InstanceTruth import *
 from time import time
 
 class SparsePixelMap3D(Dataset):
@@ -38,16 +39,18 @@ class SparsePixelMap3D(Dataset):
 
   def __getitem__(self, idx):
     data = torch.load(self.data_files[idx])
-    c = torch.LongTensor(data['c'])
+    c = torch.LongTensor(data['c']) #Change to Int
     x = torch.FloatTensor(data['x'])
     y = torch.FloatTensor(data['y'])
+   # ct = torch.IntTensor(data['ct'])
     #Mix kaons and hip
    # y = np.array(data['y']) 
    # y = np.hstack((y[:,:2], (y[:,2:3] + y[:,4:5]) ,y[:,3:4], y[:,5:]) )
    # y = torch.FloatTensor(y)
     del data
-    return { 'x': x, 'c': c, 'y': y }
-
+    #return { 'x': x, 'c': c, 'y': y, 'ct':ct }
+    return { 'x': x, 'c': c, 'y': y}
+   
   def vet_files(self):
     for f in self.data_files:
       _, ext = osp.splitext(f)
@@ -74,21 +77,34 @@ class SparsePixelMap3D(Dataset):
         # Get per-spacepoint ground truth
         start = time()
         m, y, p  = SegTruth(pix_pdg[idx], pix_id[idx], pix_proc[idx], pix_e[idx])
+        print('m & y', len(m), len(y))
         logging.info(f'Ground truth calculating took {time()-start:.2f} seconds.')
-        # Voxelise inputs
+
+        # Get a unique trackId list 
+        trks, unique_tracks, counts = get_track_list(pix_pdg[idx], pix_id[idx], pix_e[idx],coords[idx])
+
+       # Voxelise inputs
        
         coordinates = dict()
         features = dict()
         truth = dict()
         process = dict()
+        instanceId = dict()
+        centroids = dict()
 
         # Transform spacepoint positions
         transform = np.array([800, -6.5, 0])
         pos = np.array(coords[idx])[m,:] + transform[None,:]
-
-
+        w = np.zeros([len(coords[idx]),1], dtype=np.float32) -1 #store trackID/voxel
+                                                                    #-1 is the label for background (bk: deltar ray,  diffuse, michel
+                                                                    # and showers for now) 
+        for jdx in range(len(unique_tracks)):
+          if counts[jdx]>45:
+            mask = (trks  == unique_tracks[jdx])
+            w[mask] = unique_tracks[jdx]
+        
         start = time()
-        for sp_pos, sp_proc, sp_feats, sp_truth in zip(pos, p[m,:], np.array(feats[idx])[m,:], y[m,:]):
+        for sp_pos, sp_proc, sp_feats, sp_truth, sp_tid in zip(pos, p[m,:], np.array(feats[idx])[m,:], y[m,:], w[m]):
           vox = tuple( np.floor(val/voxel_size) for val in sp_pos )
           if not vox in coordinates:
             coordinates[vox] = np.array(vox)
@@ -98,22 +114,27 @@ class SparsePixelMap3D(Dataset):
             features[vox][6] = 1
             truth[vox] = sp_truth
             process[vox] = sp_proc
+            instanceId[vox] = np.array(sp_tid) 
           else:
             features[vox][:3] += sp_feats
             features[vox][6] += 1
             truth[vox] += sp_truth
-#            process[vox] += sp_proc
+
         logging.info(f'Voxelising took {time()-start:.2f} seconds.')
-        
-        c = torch.IntTensor([np.array(coordinates[key]) for key in coordinates])
-        x = torch.FloatTensor([np.array(features[key]) for key in coordinates])
+
+        voxId = [instanceId[key].item() for key in coordinates if truth[key].sum()>0]
+        c = torch.IntTensor([np.array(coordinates[key]) for key in coordinates if truth[key].sum()>0])
+        x = torch.FloatTensor([np.array(features[key]) for key in coordinates if truth[key].sum()>0])
         norm = np.array(feat_norm)
         x = x * norm[None,:] # Normalise features
-        y = torch.FloatTensor([truth[key]/truth[key].sum() for key in coordinates])
-        p = [process[key] for key in coordinates]
+        y = torch.FloatTensor([truth[key]/truth[key].sum() for key in coordinates if truth[key].sum()>0])
+        p = [process[key] for key in coordinates if truth[key].sum()>0]
         if x.max() > 1: print('Feature greater than one at ', x.argmax())
-
-        data = { 'c': c, 'x': x, 'y': y, 'p':p}
+        
+        cm, offset,Sigmainv =  get_InstanceTruth(c,y,voxId)
+        
+        #data = {'c': c, 'x': x, 'y': y, 'p':p, 'voxId': voxId}
+        data = { 'c': c, 'x': x, 'y': y, 'p':p, 'voxId': voxId, 'cm':cm, 'offset': offset, 'sigmainv': Sigmainv}
         fname = f'pdune_{uuid}_{idx}.pt'
         logging.info(f'Saving file {fname} with {c.shape[0]} voxels.')
         torch.save(data, f'{self.processed_dir}/{fname}')

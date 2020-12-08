@@ -73,11 +73,12 @@ class SparsePixelMap3D(Dataset):
 
     # Loop over pixel maps in file
     for idx in range(len(feats)):
+        #if idx !=4: continue 
       #try:
         # Get per-spacepoint ground truth
         start = time()
         m, y, p  = SegTruth(pix_pdg[idx], pix_id[idx], pix_proc[idx], pix_e[idx])
-        print('m & y', len(m), len(y))
+        #print('m & y', len(m), len(y))
         logging.info(f'Ground truth calculating took {time()-start:.2f} seconds.')
 
         # Get a unique trackId list 
@@ -95,7 +96,7 @@ class SparsePixelMap3D(Dataset):
         # Transform spacepoint positions
         transform = np.array([800, -6.5, 0])
         pos = np.array(coords[idx])[m,:] + transform[None,:]
-        w = np.zeros([len(coords[idx]),1], dtype=np.float32) -1 #store trackID/voxel
+        w = np.zeros([len(coords[idx]),1], dtype=np.float32) -1 #trackID/voxel
                                                                     #-1 is the label for background (bk: deltar ray,  diffuse, michel
                                                                     # and showers for now) 
         for jdx in range(len(unique_tracks)):
@@ -131,10 +132,9 @@ class SparsePixelMap3D(Dataset):
         p = [process[key] for key in coordinates if truth[key].sum()>0]
         if x.max() > 1: print('Feature greater than one at ', x.argmax())
         
-        cm, offset,Sigmainv =  get_InstanceTruth(c,y,voxId)
+        cm, offset,CovM =  get_InstanceTruth(c,y,voxId)
         
-        #data = {'c': c, 'x': x, 'y': y, 'p':p, 'voxId': voxId}
-        data = { 'c': c, 'x': x, 'y': y, 'p':p, 'voxId': voxId, 'cm':cm, 'offset': offset, 'sigmainv': Sigmainv}
+        data = { 'c': c, 'x': x, 'y': y, 'p':p, 'voxId': voxId, 'cm':cm, 'offset': offset, 'CovM': CovM}
         fname = f'pdune_{uuid}_{idx}.pt'
         logging.info(f'Saving file {fname} with {c.shape[0]} voxels.')
         torch.save(data, f'{self.processed_dir}/{fname}')
@@ -146,7 +146,7 @@ class SparsePixelMap3D(Dataset):
     proc = partial(self.process_file, **kwargs)
     if max_files is not None:
       files = self.raw_file_names[:max_files]
-      print(type(files),'  ', len(files))
+     # print(type(files),'  ', len(files))
     else:
       files = self.raw_file_names
     if processes == 1:

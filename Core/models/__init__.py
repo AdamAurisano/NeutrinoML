@@ -28,5 +28,8 @@ def get_model(name, **model_args):
     elif name == 'MultiHead':
         from .message_passing_multihead import MultiHead
         return MultiHead(**model_args)
+    elif name == 'DeepMultiHead':
+        from .message_passing_multihead_deep import GNNDeepMultiHead
+        return GNNDeepMultiHead(**model_args)
     else:
         raise Exception(f'Model {name} unknown.')

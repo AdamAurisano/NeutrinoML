@@ -4,11 +4,11 @@ data:
   t_v_split: 0.05
 
 trainer:
-  device: 0
-  batch_size: 16
-  n_epochs: 10
-  empty_cache: 1 # How many iterations between calls to empty GPU memory cache
-  train_name: 'deep-classwise1'
+  device: 2
+  batch_size: 4
+  n_epochs: 50
+  #empty_cache: 1 # How many iterations between calls to empty GPU memory cache
+  train_name: 'deep-classwise-weightboost1p2'
   summary_dir: '/scratch/GraphDUNE/summary'
   output_dir: '/scratch/GraphDUNE/params'
 
@@ -29,7 +29,7 @@ model:
     scheduler: 'ReduceLROnPlateau'
     ReduceLROnPlateau:
       factor: 0.5
-      patience: 5
+      patience: 3
     StepLR:
       step_size: 5
       gamma: 0.8
@@ -38,18 +38,20 @@ model:
     activation: 'mish'
 
   optimizer_params:
-    optimizer: 'Fromage'
+    optimizer: 'AdamW'
     AdamW:
       lr: 1.e-4
       weight_decay: 0.01
     Fromage:
       lr: 0.01
+    SGD:
+      lr: 0.01
       
   metric_params:
     metrics: 'Classification'
-    include_batch_metrics: True
+    include_batch_metrics: False
     Classification:
       class_names: [ 'false', 'shower', 'muon', 'hadronic' ]
 
-test:
-  state_dict: 'params/delaunay1/checkpoints/model_checkpoint_MultiHead_170320_e3b7113b80_hewesje.best.pth.tar'
+inference:
+  state_dict: 'params/deep-classwise-adamw-2/checkpoints/model_checkpoint_GNNDeepMultiHead_113412_4956229998_hewesje.best.pth.tar'

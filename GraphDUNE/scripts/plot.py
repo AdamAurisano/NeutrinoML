@@ -35,7 +35,7 @@ valid_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=splits[1],s
 
 # Build model
 trainer.build_model(**config['model'])
-trainer.load_state_dict(config['test']['state_dict'])
+trainer.load_state_dict(**config['inference'])
 
 # Draw plots
 name = config['trainer']['train_name']

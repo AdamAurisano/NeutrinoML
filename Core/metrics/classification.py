@@ -39,13 +39,20 @@ class ClassificationMetrics(MetricsBase):
         w_true = y_true
         correct = (w_pred==w_true)
 
+        print(w_pred)
+        print(w_pred.shape, w_true.shape)
+        print(self.n_classes)
+
         # Calculate batch accuracy
         batch_correct = correct.sum().float().item()
         batch_total   = w_pred.shape[0]
 
         # Calculate accuracy for each class
+        print(correct)
+        print(w_pred[correct])
+
         class_correct = [ (w_pred[correct]==i).sum().float().item() for i in range(self.n_classes) ]
-        class_total = [ (w_true==i).sum().float().item() for i in range(self.n_classes) ]
+        class_total = [ (w_true==i).sum().float() for i in range(self.n_classes) ]
         return (batch_correct, batch_total, class_correct, class_total)
 
     def train_batch_metrics(self, y_pred, y_true):

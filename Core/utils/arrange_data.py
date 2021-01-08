@@ -5,8 +5,8 @@ def arrange_sparse(data, device):
     return batch_input
 
 def arrange_sparse_minkowski(data, device):
-    batch_input = data['sparse'].to(device)
-    return batch_input
+    import MinkowskiEngine as ME
+    return ME.SparseTensor(data['f'], data['c'], device=device)
 
 def arrange_sparse_minkowski_2stack(data, device):
     return [

@@ -11,7 +11,7 @@ def collate_sparse_minkowski(batch):
   coords = ME.utils.batched_coordinates([d['c'].int() for d in batch])
   feats = torch.cat([d['x'] for d in batch])
   y = torch.cat([d['y'] for d in batch])
-  ret = { 'sparse': ME.SparseTensor(feats, coords), 'y': y }
+  ret = { 'f': feats, 'c': coords, 'y': y }
   return ret
 
 def collate_sparse_minkowski_2stack(batch):

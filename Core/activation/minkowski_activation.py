@@ -11,5 +11,9 @@ class MinkowskiActivation(ME.MinkowskiNetwork):
     self.a = a
 
   def forward(self, x):
-    return ME.SparseTensor(self.a(x.F), coords_key=x.coords_key, coords_manager=x.coords_man)
+    return ME.SparseTensor(
+        self.a(x.F),
+        coordinate_map_key=x.coordinate_map_key,
+        coordinate_manager=x.coordinate_manager
+    )
 

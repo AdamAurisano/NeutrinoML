@@ -22,7 +22,7 @@ model:
       negative_slope: 0.01
       
   optimizer_params:
-    optimizer: 'Fromage'
+    optimizer: 'AdamW'
     AdamW:
       lr:               2.e-3
       weight_decay:     0.01
@@ -58,7 +58,7 @@ model:
       class_names: ['numu','nue','nc','cosmic']
 
 data_loader:
-  batch_size: 1000
+  batch_size: 256
   num_workers: 3
 
 trainer:

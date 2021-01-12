@@ -45,6 +45,7 @@ fi
 
 export JUPYTER_PORT=${PORTPREFIX}${exptport}${1}0
 export SHERPA_PORT=${PORTPREFIX}${exptport}${1}1
+export TENSORBOARD_PORT=${PORTPREFIX}${exptport}${1}2
 
-nvidia-docker run --name ${USER}-${2}-${1} --expose=${JUPYTER_PORT} -p ${JUPYTER_PORT}:${JUPYTER_PORT} --expose=${SHERPA_PORT} -p ${SHERPA_PORT}:${SHERPA_PORT} -e USER -e JUPYTER_PORT -e SHERPA_PORT -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v ${datadir}:/data $container
+nvidia-docker run --name ${USER}-${2}-${1} --expose=${JUPYTER_PORT} -p ${JUPYTER_PORT}:${JUPYTER_PORT} --expose=${SHERPA_PORT} -p ${SHERPA_PORT}:${SHERPA_PORT} --expose=${TENSORBOARD_PORT} -p ${TENSORBOARD_PORT}:${TENSORBOARD_PORT} -e USER -e JUPYTER_PORT -e SHERPA_PORT -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v ${datadir}:/data --workdir /scratch $container
 

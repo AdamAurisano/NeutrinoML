@@ -25,21 +25,18 @@ else
   echo "Username not recognised! Ask to be added as a user before running Docker."
 fi
 
+container=nvcr.io/univcinci/pytorch-neutrinoml:20.12-py3
 if [ "$2" == "protodune" ]; then
   datadir=/raid/hewesje/protodune_sparse
-  container=nvcr.io/univcinci/pytorch-sparseconv:19.12-py3
   exptport=0
 elif [ "$2" == "nova" ]; then
   datadir=/raid/nova
-  container=nvcr.io/univcinci/pytorch-neutrinoml:20.12-py3
   exptport=1
 elif [ "$2" == "dunegraph" ]; then
   datadir=/raid/dune
-  container=nvcr.io/univcinci/pytorch-gcn:20.03-py3
   exptport=2
 elif [ "$2" == "taurnn" ]; then
   datadir=/raid/taurnn
-  container=nvcr.io/univcinci/pytorch-neutrinoml:20.03-py3
   exptport=3
 else
   echo "Experiment \"${2}\" not recognised! Exiting."

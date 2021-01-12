@@ -8,7 +8,7 @@ trainer:
   batch_size: 4
   n_epochs: 50
   #empty_cache: 1 # How many iterations between calls to empty GPU memory cache
-  train_name: 'deep-classwise-weightboost1p2'
+  train_name: 'train1'
   summary_dir: '/scratch/GraphDUNE/summary'
   output_dir: '/scratch/GraphDUNE/params'
 
@@ -49,7 +49,7 @@ model:
       
   metric_params:
     metrics: 'Classification'
-    include_batch_metrics: False
+    include_batch_metrics: True
     Classification:
       class_names: [ 'false', 'shower', 'muon', 'hadronic' ]
 

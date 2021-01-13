@@ -44,18 +44,18 @@ AABCD
 ```
 
 where `AA` is a unique pair of digits associated with each user:
-10 - jhewes15
-11 - csarasty
-12 - haujunoh
-13 - naporana
-14 - rajaoama
-15 - byaeggy
+* 10 - jhewes15
+* 11 - csarasty
+* 12 - haujunoh
+* 13 - naporana
+* 14 - rajaoama
+* 15 - byaeggy
 
 `B` is an integer associated with each workflow:
-0 - protodune
-1 - nova
-2 - dunegraph
-3 - taurnn
+* 0 - protodune
+* 1 - nova
+* 2 - dunegraph
+* 3 - taurnn
 
 `C` is the integer you passed to `run_docker_pytorch.sh`, and the final integer `D` refers to a specific application within the docker container. All possible values of integer `D` are exposed and forwarded from Docker (ie. AABC0-AABC9), but only some are assigned a specific purpose. Inside your container, the environment variables `JUPYTER_PORT`, `SHERPA_PORT` and `TENSORBOARD_PORT` are automatically set, and your code will automatically use these ports. To query a specific port, you can do 
 

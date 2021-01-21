@@ -31,6 +31,10 @@ git clone https://github.com/AdamAurisano/NeutrinoML
 
 I'm assuming you already have access if you're reading this, but if you don't, you can ask Adam to give you access.
 
+## Running docker containers
+
+Information on how to create and tag new containers is provided [here](docker/README.md).
+
 ## Setting up ports
 
 In computer networking, a *port* is a communication endpoint on a machine. A procedure called *port forwarding* allows you to connect up ports on your local machine to ports on Heimdall. Port forwarding will allow you to run web pages on Heimdall, and then access them easily on your local machine. For instance, you can run the program *tensorboard*, which provides web pages used to monitor training, and then access and monitor that webpage on your local machine by forwarding ports.

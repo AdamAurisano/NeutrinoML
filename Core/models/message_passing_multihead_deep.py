@@ -60,20 +60,44 @@ class CustomLinear(nn.Module):
 class MultiClassEdgeNetwork(nn.Module):
   def __init__(self, input_dim=2, output_dim=8, nclasses=4,
                hidden_activation=nn.Tanh, how='standard',
-               stacks=True, **kwargs):
+               stacks=True, edgefeats=False, **kwargs):
     super(MultiClassEdgeNetwork, self).__init__()
+    self.nclasses=nclasses
+    self.edgefeats=edgefeats
     if not stacks: how = 'standard'
     output = 1 if stacks else nclasses
+    self.radlen = nn.Parameter(torch.ones(nclasses))
+    in_size = input_dim * 2
+    if edgefeats: in_size += 2
     self.net = nn.Sequential(
-            CustomLinear(input_dim * 2, output_dim, nclasses, how),
+            CustomLinear(in_size, output_dim, nclasses, how),
             hidden_activation(),
             CustomLinear(output_dim, output, nclasses, how),
             hidden_activation(),
             nn.Softmax(dim=1))
 
+  def calc_eloss(self, data, distance):
+    integral = data.x[data.edge_index, 7]
+    loss = integral.max(dim=0).values / integral.min(dim=0).values
+    decay = torch.exp(-distance.unsqueeze(-1).repeat(1,self.nclasses)/self.radlen)
+    return loss.unsqueeze(-1).repeat(1, self.nclasses) * decay
+
+  def calc_edge_feats(self, data):
+    row,col = data.edge_index
+    wire = 5 * (data.x[row,1] - data.x[col,1])
+    time = 0.8 * (data.x[row,2] - data.x[col,2])
+    distance = torch.sqrt(torch.square(wire) + torch.square(time))
+    dqdx = (data.x[row,7]+data.x[col,7])/(2*distance)
+    dqdx = dqdx.unsqueeze(-1).repeat(1, self.nclasses)
+    eloss = self.calc_eloss(data, distance)
+    return torch.stack([dqdx,eloss], dim=-1)
+
   def forward(self, data):
     row,col = data.edge_index
-    B = torch.cat([data.m[col],data.m[row]],dim=-1).detach()
+    edge_feats = [ data.m[col], data.m[row] ]
+    if (self.edgefeats):
+      edge_feats.append(self.calc_edge_feats(data))
+    B = torch.cat(edge_feats, dim=-1).detach()
     return self.net(B)
 
 class MultiClassNodeNetwork(nn.Module):
@@ -102,20 +126,33 @@ class MultiClassNodeNetwork(nn.Module):
 class GNNDeepMultiHead(nn.Module):
   def __init__(self, input_dim=2, output_dim=4, hidden_dim=8, n_iters=3,
                hidden_activation=nn.Tanh, how='standard',
-               stacks=True, **kwargs):
+               stacks=True, edgefeats=False, **kwargs):
     super(GNNDeepMultiHead, self).__init__()
     self.n_iters = n_iters
     self.nclasses = output_dim
     self.stacks = stacks
     self.input_network = nn.Sequential(
-        CustomLinear(input_dim, hidden_dim, output_dim, how),
-        hidden_activation())
+      CustomLinear(input_dim, hidden_dim, output_dim, how),
+      hidden_activation(),
+    )
     # Setup the edge network
-    self.edge_network = MultiClassEdgeNetwork(input_dim + hidden_dim, hidden_dim,
-                                              output_dim, hidden_activation, how)
+    self.edge_network = MultiClassEdgeNetwork(
+      input_dim + hidden_dim,
+      hidden_dim,
+      output_dim,
+      hidden_activation,
+      how,
+      stacks,
+      edgefeats,
+    )
     # Setup the node layers
-    self.node_network = MultiClassNodeNetwork(input_dim + hidden_dim, hidden_dim,
-                                              output_dim, hidden_activation, how)
+    self.node_network = MultiClassNodeNetwork(
+      input_dim + hidden_dim,
+      hidden_dim,
+      output_dim,
+      hidden_activation,
+      how,
+    )
 
   def forward(self, data):
     """Apply forward pass of the model"""

@@ -55,15 +55,6 @@ def init():
   for name, weight in zip(class_names, weights):
     print(f'  {name}: {weight}')
     
-  sum_before = np.sum(weights)
-  weights = np.power(weights, 1.2)
-  weights *= sum_before / np.sum(weights)
-
-  print('class weights after modification:')
-  class_names = config['model']['metric_params']['Classification']['class_names']
-  for name, weight in zip(class_names, weights):
-    print(f'  {name}: {weight}')
-
   config['model']['loss_params']['weight'] = torch.tensor(weights).float().to(trainer.device)
 
   train_loader = DataLoader(train_dataset, batch_size=config['trainer']['batch_size'], shuffle=True, pin_memory=True)

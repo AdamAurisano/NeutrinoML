@@ -4,10 +4,10 @@ data:
   t_v_split: 0.05
 
 trainer:
-  device: 2
-  batch_size: 4
-  n_epochs: 50
-  #empty_cache: 1 # How many iterations between calls to empty GPU memory cache
+  device: 0
+  batch_size: 8
+  n_epochs: 100
+  empty_cache: 1 # How many iterations between calls to empty GPU memory cache
   train_name: 'train1'
   summary_dir: '/scratch/GraphDUNE/summary'
   output_dir: '/scratch/GraphDUNE/params'
@@ -18,8 +18,9 @@ model:
   hidden_dim: 64
   out_dim: 4
   n_iters: 4
-  stacks: True
   how: 'classwise'
+  stacks: True
+  edgefeats: True
   loss_params:
     func: 'CrossEntropyLoss'
   arrange_data: 'arrange_graph'

@@ -1,7 +1,7 @@
 data:
   name: 'SparsePixelMap3D'
   root: '/data/3d'
-  trainfiles: 'processed_2'
+  trainfiles: 'processed'
   t_v_split: 0.05
 
 process:
@@ -16,8 +16,8 @@ model:
   n_dims: 3
   extent: 6000 # Maximum dimension of pixel map
   input_feats: 7
-  n_feats: 48 # Number of features
-  unet_depth: 5
+  n_feats: 16 # Number of features
+  unet_depth: 10
   res_blocks: True # Whether to use residual blocks in unet
 
   loss_params:
@@ -47,12 +47,12 @@ model:
       gc_conv_only:     False
 
   scheduler_params:
-    scheduler: 'StepLR'
+    scheduler: 'ReduceLROnPlateau'
     ReduceLROnPlateau:
-      factor: 0.5
-      patience: 5
+      factor: 0.9
+      patience: 3
     StepLR:
-      step_size: 5
+      step_size: 5 
       gamma: 0.8
 
   n_classes: 8
@@ -69,16 +69,15 @@ data_loader:
 
 trainer:
   device: 7 # Which GPU to use
-  n_epochs: 1
-  empty_cache: 1 # How many iterations between calls to empty GPU memory cache
+  n_epochs: 30
   max_iters_train: None 
   max_iters_eval:  None 
-  summary_dir: 'summary/3d/test1'
+  summary_dir: 'summary/3d/test' #'summary/3d/test_config1_LRPlateau_patience5_factor09'
   output_dir: 'params'
 
 inference:
-  max_images: 100 # Maximum number of images to process
+  max_images: 30000 # Maximum number of images to process
   event_display: False # Whether to draw event displays
   confusion: False # Whether to draw a confusion matrix
-  state_dict: None # Replace this with a string path to a trained .pth.tar file after training! They're written to params/checkpoints
+  state_dict: None  # Replace this with a string path to a trained .pth.tar file after training! They're written to params/checkpoints
  

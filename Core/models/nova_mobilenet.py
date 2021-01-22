@@ -31,11 +31,11 @@ class Bottleneck(ME.MinkowskiNetwork):
         self.r = r
         self.net = Seq(
             Conv(D, A, in_feat, expansion, 1, 1),
-            # ME.MinkowskiChannelwiseConvolution(
-            #     in_channels=expansion,
-            #     kernel_size=kernel_size,
-            #     stride=stride,
-            #     dimension=D),
+            ME.MinkowskiChannelwiseConvolution(
+                in_channels=expansion,
+                kernel_size=kernel_size,
+                stride=stride,
+                dimension=D),
             ME.MinkowskiBatchNorm(expansion),
             minkowski_wrapper(D, A),
             ME.MinkowskiConvolution(

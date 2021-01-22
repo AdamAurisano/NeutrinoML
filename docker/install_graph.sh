@@ -1,5 +1,4 @@
 #!/bin/bash
 
-conda install -c conda-forge pytorch_geometric
-pip install parameter-sherpa PyYAML
+pip install PyYAML parameter-sherpa torch-scatter torch-sparse torch-geometric
 

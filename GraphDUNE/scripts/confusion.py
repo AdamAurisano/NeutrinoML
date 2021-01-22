@@ -10,7 +10,7 @@ from torch_geometric.data import DataLoader
 
 import pandas as pd
 import matplotlib as mpl
-import torch, torchvision
+import torch
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import yaml, argparse, logging, math, numpy as np, tqdm

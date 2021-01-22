@@ -9,7 +9,7 @@ if '/scratch' not in sys.path: sys.path.append('/scratch')
 from SparseProtoDUNE import datasets
 from Core import utils
 from Core.trainers import Trainer
-import torch, torchvision
+import torch
 from torch.utils.data import DataLoader
 import MinkowskiEngine as ME
 

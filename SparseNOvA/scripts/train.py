@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # First we need to correctly set the python environment. This is done by adding the top directory of the repository to the Python path. Once that's done, we can import various packages from inside the repository.
-import sys, os.path as osp, yaml, argparse, logging, math, numpy as np, torch, torchvision, sherpa, logging
+import sys, os.path as osp, yaml, argparse, logging, math, numpy as np, torch, sherpa, logging
 sys.path.append('/scratch') # This line is equivalent to doing source scripts/source_me.sh in a bash terminal
 from torch.utils.data import DataLoader
 import MinkowskiEngine as ME

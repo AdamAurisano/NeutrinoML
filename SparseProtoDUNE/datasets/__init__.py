@@ -4,8 +4,6 @@ Python module containing datasets
 
 def get_dataset(**kwargs):
   '''Function to return specified dataset'''
-  # if kwargs['input_transform'] is not None:
-  #  transform = getattr(torchvision.transforms, kwargs['input_transform'])
   if kwargs['name'] == 'SparsePixelMap2D':
     from .SPM import SparsePixelMap
     data = SparsePixelMap(**kwargs)

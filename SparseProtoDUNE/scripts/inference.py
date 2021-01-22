@@ -6,7 +6,7 @@ Script for sparse convolutional network inference
 
 import yaml, argparse, logging, math, numpy as np, tqdm
 import models, datasets
-import torch, torchvision
+import torch
 from torch.utils.data import DataLoader
 import matplotlib as mpl
 import matplotlib.pyplot as plt

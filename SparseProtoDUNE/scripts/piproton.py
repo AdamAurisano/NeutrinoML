@@ -9,7 +9,7 @@ from Core.trainers import SparseTrainer
 from SparseProtoDUNE import datasets
 from torch.utils.data import DataLoader
 
-import torch, torchvision
+import torch
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches

@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 import plotly
 import pandas as pd
 import matplotlib as mpl
-import torch, torchvision
+import torch
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import plotly.graph_objects as go, plotly.express as px

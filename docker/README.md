@@ -4,7 +4,7 @@ Our docker image is based in PyTorch, and uses a variety of custom packages - Mi
 
 ## Image production
 
-Running `bash new_image.sh` will spin up a new container based on an image containing CUDA 11.1. From there, the user can install some important packages and then install Anaconda inside the image by running `bash setup_conda.sh`. This process will refresh the bash shell after Anaconda is installed. Once this is done, the user can proceed to install PyTorch and other custom packages by running `bash install_packages.sh`. Once complete, the user can then detach from the image and commit it by running
+Running `bash new_image.sh` will spin up a new container based on an image containing CUDA 11.1. From there, you can install some important packages and then install Anaconda inside the image by running `bash setup_conda.sh`, answering "yes" when prompted. The new conda environment will not be enabled by default, so you should then run `bash exec` to refresh the terminal. You can proceed to install PyTorch and other custom packages by running `bash install_packages.sh`. Once complete, you can then detach from the image and commit it by running
 
 ```
 docker commit <image id> nvcr.io/univcinci/pytorch-neutrinoml:<tag>

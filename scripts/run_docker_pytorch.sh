@@ -46,11 +46,13 @@ else
   exit
 fi 
 
+export OMP_NUM_THREADS=16
+
 export PORT=${PORTPREFIX}${exptport}${1}
 export PORT_RANGE=${PORT}0-${PORT}9
 export JUPYTER_PORT=${PORT}0
 export SHERPA_PORT=${PORT}1
 export TENSORBOARD_PORT=${PORT}2
 
-nvidia-docker run --name ${USER}-${2}-${1} --expose=${PORT_RANGE} -p ${PORT_RANGE}:${PORT_RANGE} -e USER -e JUPYTER_PORT -e SHERPA_PORT -e TENSORBOARD_PORT -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v ${datadir}:/data --workdir /scratch $container
+nvidia-docker run --name ${USER}-${2}-${1} --expose=${PORT_RANGE} -p ${PORT_RANGE}:${PORT_RANGE} -e OMP_NUM_THREADS -e JUPYTER_PORT -e SHERPA_PORT -e TENSORBOARD_PORT -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v ${datadir}:/data --workdir /scratch $container
 

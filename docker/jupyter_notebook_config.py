@@ -121,7 +121,7 @@
 
 ## Whether to allow the user to run the notebook as root.
 #  Default: False
-# c.NotebookApp.allow_root = False
+c.NotebookApp.allow_root = True
 
 ## Answer yes to any prompts.
 #  See also: JupyterApp.answer_yes
@@ -283,7 +283,7 @@
 
 ## The IP address the notebook server will listen on.
 #  Default: 'localhost'
-# c.NotebookApp.ip = 'localhost'
+c.NotebookApp.ip = '0.0.0.0'
 
 ## Supply extra arguments that will be passed to Jinja environment.
 #  Default: {}
@@ -578,7 +578,7 @@ c.NotebookApp.token = ''
 
 ## Whether to allow the user to run the notebook as root.
 #  See also: NotebookApp.allow_root
-# c.LabApp.allow_root = False
+c.LabApp.allow_root = True
 
 ## Answer yes to any prompts.
 #  See also: JupyterApp.answer_yes
@@ -720,7 +720,7 @@ c.NotebookApp.token = ''
 
 ## The IP address the notebook server will listen on.
 #  See also: NotebookApp.ip
-# c.LabApp.ip = 'localhost'
+c.LabApp.ip = '0.0.0.0'
 
 ## Supply extra arguments that will be passed to Jinja environment.
 #  See also: NotebookApp.jinja_environment_options

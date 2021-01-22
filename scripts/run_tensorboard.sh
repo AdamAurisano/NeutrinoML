@@ -5,5 +5,5 @@ if [ "$1" == "" ]; then
   exit
 fi
 
-nohup tensorboard --logdir $1 --port $TENSORBOARD_PORT > /dev/null 2>&1 &
+nohup tensorboard --logdir $1 --host 0.0.0.0 --port $TENSORBOARD_PORT > logs/tb.log 2>&1 &
 

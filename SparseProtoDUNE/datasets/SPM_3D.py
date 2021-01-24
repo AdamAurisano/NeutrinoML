@@ -73,7 +73,7 @@ class SparsePixelMap3D(Dataset):
 
     # Loop over pixel maps in file
     for idx in range(len(feats)):
-        #if idx !=4: continue 
+        if idx !=4: continue 
       #try:
         # Get per-spacepoint ground truth
         start = time()
@@ -132,9 +132,9 @@ class SparsePixelMap3D(Dataset):
         p = [process[key] for key in coordinates if truth[key].sum()>0]
         if x.max() > 1: print('Feature greater than one at ', x.argmax())
         
-        cm, offset,CovM =  get_InstanceTruth(c,y,voxId)
+        cm, offset, invCovM, c_cm, prob =  get_InstanceTruth(c,y,voxId)
         
-        data = { 'c': c, 'x': x, 'y': y, 'p':p, 'voxId': voxId, 'cm':cm, 'offset': offset, 'CovM': CovM}
+        data = { 'c': c, 'x': x, 'y': y, 'p':p, 'voxId': voxId, 'cm':cm, 'offset': offset, 'invCovM': invCovM, 'c_cm':c_cm, 'prob':prob}
         fname = f'pdune_{uuid}_{idx}.pt'
         logging.info(f'Saving file {fname} with {c.shape[0]} voxels.')
         torch.save(data, f'{self.processed_dir}/{fname}')

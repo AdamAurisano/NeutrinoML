@@ -9,6 +9,9 @@ def get_metrics(metrics):
     elif metrics == 'Classification':
         from .classification import ClassificationMetrics
         return ClassificationMetrics
+    elif metrics == 'Graph':
+        from .graph import GraphMetrics
+        return GraphMetrics
     else:
         raise Exception(f'Metric class "{metrics}" not recognised!')
 

@@ -5,7 +5,7 @@ data:
 
 trainer:
   device: 0
-  batch_size: 8
+  batch_size: 4
   n_epochs: 100
   empty_cache: 1 # How many iterations between calls to empty GPU memory cache
   train_name: 'train1'
@@ -49,9 +49,9 @@ model:
       lr: 0.01
       
   metric_params:
-    metrics: 'Classification'
+    metrics: 'Graph'
     include_batch_metrics: True
-    Classification:
+    Graph:
       class_names: [ 'false', 'shower', 'muon', 'hadronic' ]
 
 inference:

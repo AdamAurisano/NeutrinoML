@@ -51,7 +51,7 @@ def init():
     weights = torch.load(weights_file)
 
   print('class weights:')
-  class_names = config['model']['metric_params']['Classification']['class_names']
+  class_names = config['model']['metric_params']['Graph']['class_names']
   for name, weight in zip(class_names, weights):
     print(f'  {name}: {weight}')
     

@@ -4,7 +4,7 @@ PyTorch data structure for sparse pixel maps
 from torch.utils.data import Dataset
 from glob import glob
 from functools import partial
-import os, os.path as osp, logging, uproot, torch, multiprocessing as mp, numpy as np
+import os, os.path as osp, logging, uproot3, torch, multiprocessing as mp, numpy as np
 from .SegTruth import SegTruth
 from .InstanceTruth import *
 from time import time
@@ -39,17 +39,18 @@ class SparsePixelMap3D(Dataset):
 
   def __getitem__(self, idx):
     data = torch.load(self.data_files[idx])
-    c = torch.LongTensor(data['c']) #Change to Int
+    c = torch.IntTensor(data['c']) #Change to Int
     x = torch.FloatTensor(data['x'])
     y = torch.FloatTensor(data['y'])
+    htm = torch.FloatTensor(data['prob'])
    # ct = torch.IntTensor(data['ct'])
     #Mix kaons and hip
    # y = np.array(data['y']) 
    # y = np.hstack((y[:,:2], (y[:,2:3] + y[:,4:5]) ,y[:,3:4], y[:,5:]) )
    # y = torch.FloatTensor(y)
     del data
-    #return { 'x': x, 'c': c, 'y': y, 'ct':ct }
-    return { 'x': x, 'c': c, 'y': y}
+   # return { 'x': x, 'c': c, 'y': y, 'ct':ct }
+    return { 'x': x, 'c': c, 'y': y, 'htm': htm}
    
   def vet_files(self):
     for f in self.data_files:
@@ -65,7 +66,7 @@ class SparsePixelMap3D(Dataset):
 
   def process_file(self, filename, feat_norm, voxel_size=0.3, **kwargs):
     '''Process a single raw input file'''
-    f = uproot.open(filename)
+    f = uproot3.open(filename)
     t = f['CVNSparse']
     coords, feats, pix_pdg, pix_id, pix_e, pix_proc = t.arrays(
       ['Coordinates', 'Features', 'PixelPDG', 'PixelTrackID', 'PixelEnergy', 'Process'], outputtype=tuple)
@@ -96,13 +97,15 @@ class SparsePixelMap3D(Dataset):
         # Transform spacepoint positions
         transform = np.array([800, -6.5, 0])
         pos = np.array(coords[idx])[m,:] + transform[None,:]
-        w = np.zeros([len(coords[idx]),1], dtype=np.float32) -1 #trackID/voxel
-                                                                    #-1 is the label for background (bk: deltar ray,  diffuse, michel
+        w = np.zeros([len(coords[idx]),1], dtype=np.float32)  #trackID/voxel
+                                                                    #0 is the label for background (bk: deltar ray,  diffuse, michel
                                                                     # and showers for now) 
+        InstanceId = 0
         for jdx in range(len(unique_tracks)):
           if counts[jdx]>45:
             mask = (trks  == unique_tracks[jdx])
-            w[mask] = unique_tracks[jdx]
+            w[mask] = InstanceId
+            InstanceId +=1
         
         start = time()
         for sp_pos, sp_proc, sp_feats, sp_truth, sp_tid in zip(pos, p[m,:], np.array(feats[idx])[m,:], y[m,:], w[m]):
@@ -132,9 +135,9 @@ class SparsePixelMap3D(Dataset):
         p = [process[key] for key in coordinates if truth[key].sum()>0]
         if x.max() > 1: print('Feature greater than one at ', x.argmax())
         
-        cm, offset, invCovM, c_cm, prob =  get_InstanceTruth(c,y,voxId)
+        medoids, chtm, offset =  get_InstanceTruth(c,voxId)
         
-        data = { 'c': c, 'x': x, 'y': y, 'p':p, 'voxId': voxId, 'cm':cm, 'offset': offset, 'invCovM': invCovM, 'c_cm':c_cm, 'prob':prob}
+        data = { 'c': c, 'x': x.float(), 'y': y, 'p':p, 'voxId': voxId, 'medoids':medoids, 'offset': offset, 'cthm':chtm}
         fname = f'pdune_{uuid}_{idx}.pt'
         logging.info(f'Saving file {fname} with {c.shape[0]} voxels.')
         torch.save(data, f'{self.processed_dir}/{fname}')

@@ -6,19 +6,20 @@ from __future__ import division
 import torch
 import math
 from .fish_block import *
-
+from Core.activation import minkowski_wrapper
+import MinkowskiEngine as ME
 
 __all__ = ['fish']
 
 
-class Fish(nn.Module):
+class Fish(ME.MinkowskiNetwork):
     def __init__(self, block, num_cls=1000, num_down_sample=5, num_up_sample=3, trans_map=(2, 1, 0, 6, 5, 4),
                  network_planes=None, num_res_blks=None, num_trans_blks=None):
         super(Fish, self).__init__()
         self.block = block
         self.trans_map = trans_map
-        self.upsample = nn.Upsample(scale_factor=2)
-        self.down_sample = nn.MaxPool2d(2, stride=2)
+        self.upsample = ME.MinkowskiConvolutionTranspose(kernel=2, stride=2)
+        self.down_sample = ME.MinkowskiMaxPooling(2, stride=2)
         self.num_cls = num_cls
         self.num_down = num_down_sample
         self.num_up = num_up_sample
@@ -28,29 +29,29 @@ class Fish(nn.Module):
         self.num_res_blks = num_res_blks
         self.fish = self._make_fish(network_planes[0])
 
-    def _make_score(self, in_ch, out_ch=1000, has_pool=False):
-        bn = nn.BatchNorm2d(in_ch)
-        relu = nn.ReLU(inplace=True)
-        conv_trans = nn.Conv2d(in_ch, in_ch // 2, kernel_size=1, bias=False)
-        bn_out = nn.BatchNorm2d(in_ch // 2)
+    def _make_score(self, D, A, in_ch, out_ch=1000, has_pool=False):
+        bn = ME.MinkowskiBatchNorm(in_ch)
+        relu = minkowski_wrapper(D, A)
+        conv_trans = ME.MinkowskiConvolution(in_ch, in_ch // 2, kernel_size=1, bias=False)
+        bn_out = ME.MinkowskiBatchNorm(in_ch // 2)
         conv = nn.Sequential(bn, relu, conv_trans, bn_out, relu)
         if has_pool:
             fc = nn.Sequential(
-                nn.AdaptiveAvgPool2d(1),
-                nn.Conv2d(in_ch // 2, out_ch, kernel_size=1, bias=True))
+                ME.MinkowskiGlobalPooling(1),
+                ME.MinkowskiConvolution(in_ch // 2, out_ch, kernel_size=1, bias=True))
         else:
-            fc = nn.Conv2d(in_ch // 2, out_ch, kernel_size=1, bias=True)
+            fc = ME.MinkowskiConvolution(in_ch // 2, out_ch, kernel_size=1, bias=True)
         return [conv, fc]
 
-    def _make_se_block(self, in_ch, out_ch):
-        bn = nn.BatchNorm2d(in_ch)
-        sq_conv = nn.Conv2d(in_ch, out_ch // 16, kernel_size=1)
-        ex_conv = nn.Conv2d(out_ch // 16, out_ch, kernel_size=1)
+    def _make_se_block(self, D, A, in_ch, out_ch):
+        bn = ME.MinkowskiBatchNorm(in_ch)
+        sq_conv = ME.MinkowskiConvolution(in_ch, out_ch // 16, kernel_size=1)
+        ex_conv = ME.MinkowskiConvolution(out_ch // 16, out_ch, kernel_size=1)
         return nn.Sequential(bn,
-                             nn.ReLU(inplace=True),
-                             nn.AdaptiveAvgPool2d(1),
+                             minkowski_wrapper(D, A),
+                             ME.MinkowskiGlobalPooling(1),
                              sq_conv,
-                             nn.ReLU(inplace=True),
+                             minkowski_wrapper(D, A),
                              ex_conv,
                              nn.Sigmoid())
 
@@ -180,7 +181,7 @@ class Fish(nn.Module):
         return self._fish_forward(all_feat)
 
 
-class FishNet(nn.Module):
+class FishNet(ME.MinkowskiNetwork):
     def __init__(self, block, **kwargs):
         super(FishNet, self).__init__()
 
@@ -189,22 +190,22 @@ class FishNet(nn.Module):
         self.conv1 = self._conv_bn_relu(3, inplanes // 2, stride=2)
         self.conv2 = self._conv_bn_relu(inplanes // 2, inplanes // 2)
         self.conv3 = self._conv_bn_relu(inplanes // 2, inplanes)
-        self.pool1 = nn.MaxPool2d(3, padding=1, stride=2)
+        self.pool1 = ME.MinkowskiMaxPooling(3, stride=2)
         # construct fish, resolution 56x56
         self.fish = Fish(block, **kwargs)
         self._init_weights()
 
     def _conv_bn_relu(self, in_ch, out_ch, stride=1):
-        return nn.Sequential(nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1, stride=stride, bias=False),
-                             nn.BatchNorm2d(out_ch),
-                             nn.ReLU(inplace=True))
+        return nn.Sequential(ME.MinkowskiConvolution(in_ch, out_ch, kernel_size=3, padding=1, stride=stride, bias=False),
+                             ME.MinkowskiBatchNorm(out_ch),
+                             minkowski_wrapper(D, A))
 
     def _init_weights(self):
         for m in self.modules():
-            if isinstance(m, nn.Conv2d):
+            if isinstance(m, ME.MinkowskiConvolution):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
                 m.weight.data.normal_(0, math.sqrt(2. / n))
-            elif isinstance(m, nn.BatchNorm2d):
+            elif isinstance(m, ME.MinkowskiBatchNorm):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
 

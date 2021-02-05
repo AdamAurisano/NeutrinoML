@@ -3,7 +3,7 @@ from Core.activation import minkowski_wrapper
 import MinkowskiEngine as ME
 
 
-class Bottleneck(nn.Module):
+class Bottleneck(ME.MinkowskiNetwork):
     def __init__(self, D, A, inplanes, planes, stride=1, mode='NORM', k=1, dilation=1):
         """
         Pre-act residual block, the middle transformations are bottle-necked

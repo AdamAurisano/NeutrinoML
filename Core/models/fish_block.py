@@ -1,8 +1,10 @@
 import torch.nn as nn
+from Core.activation import minkowski_wrapper
+import MinkowskiEngine as ME
 
 
 class Bottleneck(nn.Module):
-    def __init__(self, inplanes, planes, stride=1, mode='NORM', k=1, dilation=1):
+    def __init__(self, D, A, inplanes, planes, stride=1, mode='NORM', k=1, dilation=1):
         """
         Pre-act residual block, the middle transformations are bottle-necked
         :param inplanes:
@@ -15,27 +17,28 @@ class Bottleneck(nn.Module):
 
         super(Bottleneck, self).__init__()
         self.mode = mode
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = minkowski_wrapper(D, A)
         self.k = k
 
         btnk_ch = planes // 4
-        self.bn1 = nn.BatchNorm2d(inplanes)
-        self.conv1 = nn.Conv2d(inplanes, btnk_ch, kernel_size=1, bias=False)
 
-        self.bn2 = nn.BatchNorm2d(btnk_ch)
-        self.conv2 = nn.Conv2d(btnk_ch, btnk_ch, kernel_size=3, stride=stride, padding=dilation,
+        self.bn1 = ME.MinkowskiBatchNorm(inplanes)
+        self.conv1 = ME.MinkowskiConvolution(inplanes, btnk_ch, kernel_size=1, bias=False)
+
+        self.bn2 = ME.MinkowskiBatchNorm(btnk_ch)
+        self.conv2 = ME.MinkowskiConvolution(btnk_ch, btnk_ch, kernel_size=3, stride=stride, padding=dilation,
                                dilation=dilation, bias=False)
 
-        self.bn3 = nn.BatchNorm2d(btnk_ch)
-        self.conv3 = nn.Conv2d(btnk_ch, planes, kernel_size=1, bias=False)
+        self.bn3 = ME.MinkowskiBatchNorm(btnk_ch)
+        self.conv3 = ME.MinkowskiConvolution(btnk_ch, planes, kernel_size=1, bias=False)
 
         if mode == 'UP':
             self.shortcut = None
         elif inplanes != planes or stride > 1:
             self.shortcut = nn.Sequential(
-                nn.BatchNorm2d(inplanes),
+                ME.MinkowskiBatchNorm(inplanes),
                 self.relu,
-                nn.Conv2d(inplanes, planes, kernel_size=1, stride=stride, bias=False)
+                ME.MinkowskiConvolution(inplanes, planes, kernel_size=1, stride=stride, bias=False)
             )
         else:
             self.shortcut = None

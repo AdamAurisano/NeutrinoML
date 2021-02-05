@@ -1,8 +1,12 @@
 import torch
 
-def arrange_sparse(data):
-    '''Arrange ground truth for a batch of sparse pixel maps'''
+def sparse_semantic_truth(data):
+    '''Arrange  ground truth for a batch of sparse pixel maps'''
     return data['y']
+
+def sparse_instance_truth(data):
+    '''Arrange  ground truth for a batch of sparse pixel maps'''
+    return data['chtm']
 
 def arrange_dense(data):
     '''Arrange ground truth for a batch of sparse pixel maps'''

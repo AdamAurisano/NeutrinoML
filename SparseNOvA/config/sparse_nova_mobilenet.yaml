@@ -1,6 +1,6 @@
 data:
   name: 'SparsePixelMapNOvA'
-  filedir: '/data/mp5/preselection_v2'
+  filedir: '/data/mp5/preselection_cvnmap'
   t_v_split: 0.05
 
 model:
@@ -13,7 +13,7 @@ model:
   loss_params:
     func: 'CrossEntropyLoss'
   arrange_data: 'arrange_sparse_minkowski_2stack'
-  arrange_truth: 'arrange_sparse'
+  arrange_truth: 'sparse_semantic_truth'
   collate: 'collate_sparse_minkowski_2stack'
   
   activation_params:
@@ -22,7 +22,7 @@ model:
       negative_slope: 0.01
       
   optimizer_params:
-    optimizer: 'AdamW'
+    optimizer: 'SGD'
     AdamW:
       lr:               2.e-3
       weight_decay:     0.01
@@ -46,7 +46,7 @@ model:
     scheduler: 'ReduceLROnPlateau'
     ReduceLROnPlateau:
       factor: 0.5
-      patience: 5
+      patience: 3
     StepLR:
       step_size: 5
       gamma: 0.8
@@ -58,13 +58,13 @@ model:
       class_names: ['numu','nue','nc','cosmic']
 
 data_loader:
-  batch_size: 256
+  batch_size: 128
   num_workers: 3
 
 trainer:
   benchmark: False
   device: 0 # Which GPU to use
-  n_epochs: 30
+  n_epochs: 50
   empty_cache: 1 # How many iterations between calls to empty GPU memory cache
   max_iters_train: None
   max_iters_eval:  None

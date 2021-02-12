@@ -191,7 +191,7 @@ class Trainer(base):
               trial=sherpa_trial,
               iteration=i,
               objective=metrics["acc/epoch"]["valid"])
-      for key, val in metrics.items(): self.writer.add_scalar(key, val, i+1)
+      for key, val in metrics.items(): self.writer.add_scalars(key, val, i+1)
 
     return self.summaries
 

@@ -193,10 +193,12 @@ class FishNet(ME.MinkowskiNetwork):
         self.pool1 = ME.MinkowskiMaxPooling(3, stride=2)
         # construct fish, resolution 56x56
         self.fish = Fish(block, **kwargs)
+        self.union = ME.MinkowskiUnion()
         self._init_weights()
 
     def _conv_bn_relu(self, in_ch, out_ch, stride=1):
-        return nn.Sequential(ME.MinkowskiConvolution(in_ch, out_ch, kernel_size=3, padding=1, stride=stride, bias=False),
+        return nn.Sequential(ME.MinkowskiConvolution(in_ch, out_ch, kernel_size=3, padding=1, stride=stride,
+                             bias=False),
                              ME.MinkowskiBatchNorm(out_ch),
                              minkowski_wrapper(D, A))
 
@@ -210,10 +212,17 @@ class FishNet(ME.MinkowskiNetwork):
                 m.bias.data.zero_()
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        x = self.pool1(x)
+        xview = self.conv1(xview)
+        xview = self.conv2(xview)
+        xview = self.conv3(xview)
+        xview = self.pool1(xview)
+        
+        yview = self.conv1(yview)
+        yview = self.conv2(yview)
+        yview = self.conv3(yview)
+        yview = self.pool1(yview)
+        
+        x = self.union(xview, yview)
         score = self.fish(x)
         # 1*1 output
         out = score.view(x.size(0), -1)

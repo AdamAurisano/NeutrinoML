@@ -1,0 +1,80 @@
+data:
+  name: 'SparsePixelMapNOvA'
+  filedir: '/data/mp5/preselection_cvnmap'
+  t_v_split: 0.05
+
+model:
+  name: 'FishNet'
+  D: 2
+  alpha: 1
+  depth: 1
+  classes: 4
+  dropout: 0.3
+  loss_params:
+    func: 'CrossEntropyLoss'
+  arrange_data: 'arrange_sparse_minkowski_2stack'
+  arrange_truth: 'sparse_semantic_truth'
+  collate: 'collate_sparse_minkowski_2stack'
+  
+  activation_params:
+    activation: 'mish'
+    LeakyReLU:
+      negative_slope: 0.01
+      
+  optimizer_params:
+    optimizer: 'SGD'
+    AdamW:
+      lr:               2.e-3
+      weight_decay:     0.01
+    Fromage:
+      lr:               0.01
+    Ranger:
+      lr:               1.e-3
+      alpha:            0.5
+      k:                6
+      N_sma_threshhold: 5
+      betas:            [ 0.95, 0.999 ]
+      eps:              1.e-5
+      weight_decay:     0
+      use_gc:           True
+      gc_conv_only:     False
+    SGD:
+      lr:               0.02
+      momentum:         0.9
+
+  scheduler_params:
+    scheduler: 'ReduceLROnPlateau'
+    ReduceLROnPlateau:
+      factor: 0.5
+      patience: 3
+    StepLR:
+      step_size: 5
+      gamma: 0.8
+
+  metric_params:
+    metrics: 'Classification'
+    include_batch_metrics: True
+    Classification:
+      class_names: ['numu','nue','nc','cosmic']
+
+data_loader:
+  batch_size: 128
+  num_workers: 3
+
+trainer:
+  benchmark: False
+  device: 1 # Which GPU to use
+  n_epochs: 50
+  empty_cache: 1 # How many iterations between calls to empty GPU memory cache
+  max_iters_train: None
+  max_iters_eval:  None
+  train_name:  'Patience_3'
+  summary_dir: '/scratch/SparseNOvA/summary/preselection/bestparam/mobile_net/Minkowski_union/cvnmap/batchsize128/SGD/Mish/ReducedLROnPlateau/'
+  output_dir:  '/scratch/SparseNOvA/params'
+  resume: True
+
+inference:
+  max_images: 100 # Maximum number of images to process
+  event_display: True # Whether to draw event displays
+  confusion: False # Whether to draw a confusion matrix
+  state_dict: None # Replace this with a string path to a trained .pth.tar file after training! They're written to params/checkpoints

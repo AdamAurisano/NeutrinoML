@@ -8,8 +8,11 @@ def get_model(name, **model_args):
         from .minkowski_seg import MinkowskiSeg
         return MinkowskiSeg(**model_args)
     elif name == 'MinkowskiASPPSeg':
-        from .minkowski_ASPPSeg  import MinkowskiASPPSeg
+        from .minkowski_ASPPSeg import MinkowskiASPPSeg
         return MinkowskASPPSeg(**model_args)
+    elif name == 'PanopticSeg':
+        from .minkowski_panoptic_seg import PanopticSeg
+        return PanopticSeg(**model_args)
     elif name == 'MinkowskiClass':
         from .minkowski_class import MinkowskiClass
         return MinkowskiClass(**model_args)

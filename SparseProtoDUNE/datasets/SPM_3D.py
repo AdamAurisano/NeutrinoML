@@ -38,7 +38,7 @@ class SparsePixelMap3D(Dataset):
     return len(self.data_files)
 
   def __getitem__(self, idx):
-    enable_panoptic_seg = True
+    enable_panoptic_seg = False
     data = torch.load(self.data_files[idx])
     x = torch.FloatTensor(data['x'])
     y = torch.FloatTensor(data['y'])

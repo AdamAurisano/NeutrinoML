@@ -38,17 +38,23 @@ class SparsePixelMap3D(Dataset):
     return len(self.data_files)
 
   def __getitem__(self, idx):
+    enable_panoptic_seg = False
     data = torch.load(self.data_files[idx])
-    c = torch.IntTensor(data['c']) 
     x = torch.FloatTensor(data['x'])
     y = torch.FloatTensor(data['y'])
-    chtm = torch.FloatTensor(data['chtm'])
+    if enable_panoptic_seg == False:
+      del data
+      c = torch.LongTensor(data['c']) 
+      return { 'x': x, 'c': c, 'y': y}# 'chtm': chtm}
+    else:
+      c = torch.IntTensor(data['c']) 
+      chtm = torch.FloatTensor(data['chtm'])
+      offset = torch.FloatTensor(data['offset'])
+      del data
+      return { 'x': x, 'c': c, 'y': y, 'chtm': chtm, 'offset':offset}
     #Mix kaons and hip
    # y = np.array(data['y']) 
    # y = np.hstack((y[:,:2], (y[:,2:3] + y[:,4:5]) ,y[:,3:4], y[:,5:]) )
-   # y = torch.FloatTensor(y)
-    del data
-    return { 'x': x, 'c': c, 'y': y, 'chtm': chtm}
    
   def vet_files(self):
     for f in self.data_files:
@@ -83,7 +89,7 @@ class SparsePixelMap3D(Dataset):
         logging.info(f'Ground truth calculating took {time()-start:.2f} seconds.')
 
         # Get a unique trackId list 
-        trks, unique_tracks, counts = get_track_list(pix_pdg[idx], pix_id[idx], pix_e[idx],coords[idx])
+        trks, unique_tracks, counts = get_track_list(pix_pdg[idx], pix_id[idx], pix_e[idx])
 
        # Voxelise inputs
        
@@ -102,7 +108,7 @@ class SparsePixelMap3D(Dataset):
                                                                     # and showers for now) 
         InstanceId = 0
         for jdx in range(len(unique_tracks)):
-          if counts[jdx]>45:
+          if counts[jdx]>40:
             mask = (trks  == unique_tracks[jdx])
             w[mask] = InstanceId
             InstanceId +=1

@@ -15,7 +15,7 @@ class Bottleneck(ME.MinkowskiNetwork):
         :param k: times of additive
         """
 
-        super(Bottleneck, self).__init__()
+        super(Bottleneck, self).__init__(D)
         self.mode = mode
         self.relu = minkowski_wrapper(D, A)
         self.k = k
@@ -23,14 +23,14 @@ class Bottleneck(ME.MinkowskiNetwork):
         btnk_ch = planes // 4
 
         self.bn1 = ME.MinkowskiBatchNorm(inplanes)
-        self.conv1 = ME.MinkowskiConvolution(inplanes, btnk_ch, kernel_size=1, bias=False)
+        self.conv1 = ME.MinkowskiConvolution(inplanes, btnk_ch, kernel_size=1, bias=False, dimension=D)
 
         self.bn2 = ME.MinkowskiBatchNorm(btnk_ch)
-        self.conv2 = ME.MinkowskiConvolution(btnk_ch, btnk_ch, kernel_size=3, stride=stride, padding=dilation,
-                               dilation=dilation, bias=False)
+        self.conv2 = ME.MinkowskiConvolution(btnk_ch, btnk_ch, kernel_size=3, stride=stride,
+                               dilation=dilation, bias=False, dimension=D)
 
         self.bn3 = ME.MinkowskiBatchNorm(btnk_ch)
-        self.conv3 = ME.MinkowskiConvolution(btnk_ch, planes, kernel_size=1, bias=False)
+        self.conv3 = ME.MinkowskiConvolution(btnk_ch, planes, kernel_size=1, bias=False, dimension=D)
 
         if mode == 'UP':
             self.shortcut = None
@@ -38,7 +38,7 @@ class Bottleneck(ME.MinkowskiNetwork):
             self.shortcut = nn.Sequential(
                 ME.MinkowskiBatchNorm(inplanes),
                 self.relu,
-                ME.MinkowskiConvolution(inplanes, planes, kernel_size=1, stride=stride, bias=False)
+                ME.MinkowskiConvolution(inplanes, planes, kernel_size=1, stride=stride, bias=False, dimension=D)
             )
         else:
             self.shortcut = None

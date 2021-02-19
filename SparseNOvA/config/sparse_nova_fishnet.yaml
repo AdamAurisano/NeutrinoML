@@ -6,15 +6,18 @@ data:
 model:
   name: 'FishNet'
   D: 2
-  alpha: 1
-  depth: 1
-  classes: 4
-  dropout: 0.3
   loss_params:
     func: 'CrossEntropyLoss'
   arrange_data: 'arrange_sparse_minkowski_2stack'
   arrange_truth: 'sparse_semantic_truth'
   collate: 'collate_sparse_minkowski_2stack'
+
+  network_planes: [64, 128, 256, 512, 512, 512, 384, 256, 320, 832, 1600]
+  num_res_blks: [2, 4, 8, 4, 2, 2, 2, 2, 2, 4]
+  num_trans_blks: [2, 2, 2, 2, 2, 4]
+  num_cls: 4
+  num_down_sample: 3
+  num_up_sample: 3
   
   activation_params:
     activation: 'mish'

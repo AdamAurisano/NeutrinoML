@@ -32,7 +32,7 @@ def get_model(name, **model_args):
         from .message_passing_multihead_deep import GNNDeepMultiHead
         return GNNDeepMultiHead(**model_args)
     elif name == 'FishNet':
-        from .fishnet import FishNet
-        return FishNet(**model_args)
+        from .fishnet import fish
+        return fish(**model_args)
     else:
         raise Exception(f'Model {name} unknown.')

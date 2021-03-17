@@ -7,9 +7,9 @@ def get_model(name, **model_args):
     if name == 'MinkowskiSeg':
         from .minkowski_seg import MinkowskiSeg
         return MinkowskiSeg(**model_args)
-    elif name == 'MinkowskiASPPSeg':
-        from .minkowski_ASPPSeg import MinkowskiASPPSeg
-        return MinkowskASPPSeg(**model_args)
+    elif name == 'ASPP_Panoptic':
+        from .minkowski_ASPP_Panoptic import ASPP_Panoptic
+        return ASPP_Panoptic(**model_args)
     elif name == 'PanopticSeg':
         from .minkowski_panoptic_seg import PanopticSeg
         return PanopticSeg(**model_args)

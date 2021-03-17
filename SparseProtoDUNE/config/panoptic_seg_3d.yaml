@@ -1,7 +1,7 @@
 data:
   name: 'SparsePixelMap3D'
   root: '/data/3d'
-  trainfiles: 'InsSegSample'
+  trainfiles: 'InsSegSample1'
   t_v_split: 0.05
 
 process:
@@ -12,22 +12,25 @@ process:
   feat_norm: [1.e-5, 1.e-5, 1.e-5, 6.25e-4, 1.667e-3, 1.429e-3, 5.e-2]
 
 model:
-  name:  'PanopticSeg'
+  name: 'ASPP_Panoptic'
+  #'PanopticSeg'  #
   n_dims: 3
+  rate: [6,12,18]
   extent: 6000 # Maximum dimension of pixel map
   input_feats: 7
-  n_feats: 16 # Number of features
-  unet_depth: 10
+  n_feats: 14 # Number of features
+  unet_depth: 10 
   res_blocks: True # Whether to use residual blocks in unet
 
   instance_segmentation: 'True'
-  LOSS:
+  loss_params:
     SEMANTIC: 
-      NAME: 'categorical_cross_entropy'
+      func: 'categorical_cross_entropy'
     CENTER:
-      NAME: 'MSELoss'
+      func: 'cross_entropy'
+      #'MSELoss' #'cross_entropy' #
     OFFSET:
-      NAME: 'L1Loss' 
+      func: 'L1Loss' 
   
   arrange_data: 'arrange_sparse_minkowski'
   arrange_truth: 'sparse_panoptic_truth'
@@ -66,27 +69,28 @@ model:
 
   metric_params:
     metrics: 'SemanticSegmentation'
-    include_batch_metrics: False
+    include_batch_metrics: True
     SemanticSegmentation:
       class_names: ['shower','delta','diffuse','kaons','michel','hip','mu','pi']
 
 data_loader:
-  batch_size: 20 
+  batch_size: 10 
   num_workers: 0 
 
 trainer:
   device: 7 # Which GPU to use
-  n_epochs: 10
+  n_epochs: 20
+  empty_cache: 1
   max_iters_train: None 
   max_iters_eval:  None 
-  summary_dir: 'summary/3d/test'
-  output_dir: 'params'
+  summary_dir: 'summary/3d/center_pred_10_std1_newloss'
+  output_dir: '/data/3d/params/center_pred_10_std1_newloss'
 
 inference:
   max_images: 30000 # Maximum number of images to process
   event_display: False # Whether to draw event displays
   confusion: False # Whether to draw a confusion matrix
-  state_dict: None 
+  state_dict: None # '/scratch/SparseProtoDUNE/params/test1/checkpoints/model_checkpoint_PanopticSeg_9733712_12fac6a727_csarasty.best.pth.tar'
   
   # Replace this with a string path to a trained .pth.tar file after training! They're written to params/checkpoints
  

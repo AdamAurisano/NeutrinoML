@@ -1,35 +1,31 @@
 #pragma once
 
-//#include "OscLib/func/OscCalculatorSterile.h"
-
-#include "CAFAna/Experiment/IChiSqExperiment.h"
+#include "CAFAna/Experiment/IExperiment.h"
 #include "CAFAna/Prediction/IPrediction.h"
 #include "CAFAna/Core/Spectrum.h"
 #include "CAFAna/Prediction/CovarianceMatrix.h"
 
-#include "TMatrixD.h"
-
-#include "TDecompSVD.h"
+#include <Eigen/Core>
 
 namespace ana
 {
   /// Compare a single data spectrum to the MC + cosmics expectation
-  class LikelihoodCovMxExperiment: public IChiSqExperiment
+  class LikelihoodCovMxExperiment: public IExperiment
   {
   public:
     /// \param samples Source of concatenated oscillated MC beam predictions
-    /// \param covgen Source of predicted covariance matrix
+    /// \param covmx Covariance matrix
     /// \epsilon epsilon value to add onto the diagonal to aid matrix inversion
-    // Default contructor
-    // LikelihoodCovMxExperiment();
     LikelihoodCovMxExperiment(std::vector<covmx::Sample> samples,
-          covmx::CovarianceMatrix* covmx, double epsilon=0.1,
-          double lambdazero=0.1, double nu=1.5);
+          covmx::CovarianceMatrix* covmx, double epsilon=1e-5,
+          double lambdazero=0, double nu=10);
     
-    virtual ~LikelihoodCovMxExperiment();
+    virtual ~LikelihoodCovMxExperiment() {};
 
-    virtual double ChiSq(osc::IOscCalculatorAdjustable* osc,
-      const SystShifts& syst = SystShifts::Nominal()) const;
+    double ChiSq(osc::IOscCalcAdjustable* osc,
+      const SystShifts& syst = SystShifts::Nominal()) const override;
+
+    void Reset() const override;
 
     double GetStatChiSq() { return fStatChiSq; };
     double GetSystChiSq() { return fSystChiSq; };
@@ -47,74 +43,60 @@ namespace ana
 
     // Configurable options
     void SetVerbose(bool opt)          { fVerbose = opt; };
-    void LLUseROOT(bool val=true)      { fLLUseROOT = val; };
-    void LLUseSVD(bool val=true)       { fLLUseSVD = val; };
-    void SetShapeOnly(bool val = true) { fShapeOnly = val; };
-
-    TH1I* InversionTimeHist();
-    /// \param timeit      Whether or not to save inversion time in a histogram  
-    /// \param tmax        Upper boundary on time hist in milliseconds
-    /// \param tmin        Lower boundary on time hist in milliseconds
-    void SetInversionTimeHist(bool timeit = true, int tmax = 1000, int tmin = 0); // milliseconds
+    void SetResetShifts(bool val = false) { fResetShifts = val; };
 
   protected:
 
-    // double Par2Beta(double par) const;
-    // double Beta2Par(double beta) const;
-
-    /// \param mu           Vector of expected events
-    /// \param beta         Vector of shifted beta values
-    std::vector<double> GetExpectedSpectrum() const;
+    Eigen::ArrayXd GetExpectedSpectrum() const;
+    double GetChiSq(Eigen::ArrayXd e) const;
 
     void InitialiseBetas() const;
     bool MaskBetas() const;
     void GetGradAndHess() const;
     void GetReducedGradAndHess() const;
-    void Solve(int N, double* hess, double* grad) const;
     double LikelihoodCovMxNewton() const;
+    void EnableLMA() const;
+    void ResetLambda() const;
+    void DecreaseLambda() const;
+    void IncreaseLambda() const;
     
     std::vector<covmx::Sample> fSamples;
     covmx::CovarianceMatrix* fCovMx;
-    mutable std::vector<double> fMu;
-    mutable std::vector<double> fBeta;
+    mutable Eigen::ArrayXd fMu;
+    mutable Eigen::ArrayXd fBeta;
     mutable std::vector<bool> fBetaMask;
-    std::vector<double> fData;
-    std::vector<double> fCosmic;
+    Eigen::ArrayXd fData;
+    Eigen::ArrayXd fCosmic;
 
-    mutable double* fGrad;
-    mutable double* fHess;
-    mutable double* fGradReduced;
-    mutable double* fHessReduced;
+    mutable Eigen::VectorXd fGrad;
+    mutable Eigen::MatrixXd fHess;
+    mutable Eigen::VectorXd fGradReduced;
+    mutable Eigen::MatrixXd fHessReduced;
 
     unsigned int fNBins;
     unsigned int fNBinsFull;
     std::vector<unsigned int> fNBinsPerSample;
     std::vector<std::vector<covmx::Component>> fComps;
 
+    mutable bool fUseLMA;   /// Whether to use LMA
     double fLambdaZero;     /// Levenberg-Marquardt starting lambda
     double fNu;             /// Levenberg-Marquardt nu
     mutable double fLambda; /// Levenberg-Marquardt lambda
 
-    bool fLLUseROOT;
-    bool fLLUseSVD;
     TH1D* fBetaHist;
     TH1D* fMuHist;
     TH1D* fBetaMuHist;
     TH1D* fPredShiftedHist;
     TH1D* fPredUnshiftedHist;
     TH1D* fDataHist;
-    // Eigen::MatrixXd fMxInv;
-    TMatrixD* fMxInv;
-    bool fShapeOnly;
-    // std::vector<TH1D*> fUnoscillated;
+    Eigen::MatrixXd fMxInv;
+    bool fResetShifts;
     bool fVerbose;
 
     mutable double fStatChiSq;
     mutable double fSystChiSq;
     mutable double fResidual;
     mutable int    fIteration;
-
-    TH1I* fInversionTimeHist;
 
   };
 }

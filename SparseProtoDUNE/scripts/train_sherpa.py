@@ -59,7 +59,7 @@ def main():
 
   study = sherpa.Study(parameters=parameters,
                        algorithm=alg,
-                       lower_is_better=True,
+                       lower_is_better=False,
                        dashboard_port=os.environ['SHERPA_PORT'])
 
   for trial in study:

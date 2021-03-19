@@ -37,18 +37,29 @@ valid_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=splits[1],s
 trainer.build_model(**config['model'])
 trainer.load_state_dict(**config['inference'])
 
+gp = graphplot.GraphPlot()
+
 # Draw plots
 name = config['trainer']['train_name']
 if not os.path.exists(f'plots/{name}'): os.makedirs(f'plots/{name}')
-for i in tqdm.tqdm(range(100)):
+for i in tqdm.tqdm(range(26)):
+  if i != 6 and i != 25: continue
   graph = valid_dataset[i]
-  graphplot.plot_edge_truth(graph)
+  gp.plot_edge_truth(graph)
+  if i == 6:
+    plt.xlim([7200,7700])
+    plt.ylim([7200,8400])
+    plt.tight_layout()
   plt.savefig(f'plots/{name}/graph_{i:04d}_truth.pdf')
   plt.close()
-  graphplot.plot_edge_score(trainer, graph)
+  gp.plot_edge_score(trainer, graph)
+  if i == 6:
+    plt.xlim([7200,7700])
+    plt.ylim([7200,8400])
+    plt.tight_layout()
   plt.savefig(f'plots/{name}/graph_{i:04d}_score.pdf')
   plt.close()
-  graphplot.plot_edge_diff(trainer, graph)
+  gp.plot_edge_diff(trainer, graph)
   plt.savefig(f'plots/{name}/graph_{i:04d}_diff.pdf')
   plt.close()
 

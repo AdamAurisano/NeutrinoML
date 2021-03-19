@@ -3,9 +3,22 @@ This module implements the PyTorch modules that define the
 message-passing graph neural networks for hit or segment classification.
 """
 
-import torch
+import torch, torch.cuda as tc
 import torch.nn as nn
 from torch_scatter import scatter_add
+
+def mem(name):
+  global dev
+  print(
+    "Memory consumption",
+    name,
+    "is",
+    float(tc.memory_allocated(dev)) / float(1073741824),
+    "GB",
+  )
+
+def tsize(t):
+  return t.element_size() * t.nelement()
 
 class FlattenedLinear(nn.Module):
   '''Module that flattens the last two dimensions of a tensor into a single
@@ -37,10 +50,10 @@ class ClasswiseLinear(nn.Module):
       raise Exception(f'This module only works for 3D tensors, but this tensor has {x.ndim} dimensions.')
     if x.shape[1] != len(self.net):
       raise Exception(f'Tensor size in penultimate dimension ({x.shape[1]}) does not match number of classes ({len(self.net)}).')
-    ret = x.new_zeros([x.shape[0], self.nclasses, self.out_feats])
-    for i in range(len(self.net)):
-      ret[:,i,:] = self.net[i](torch.index_select(x, 1, torch.tensor([i]).to(x.device))).squeeze(dim=1)
-    return ret
+    return torch.cat(
+      [ net(i) for net, i in zip(self.net, torch.tensor_split(x, [*range(1,self.nclasses)], dim=1))],
+      dim=1,
+    )
 
 class CustomLinear(nn.Module):
   '''Switch out different ways of doing linear convolutions!'''
@@ -58,23 +71,33 @@ class CustomLinear(nn.Module):
     return self.net(x)
 
 class MultiClassEdgeNetwork(nn.Module):
-  def __init__(self, input_dim=2, output_dim=8, nclasses=4,
-               hidden_activation=nn.Tanh, how='standard',
-               stacks=True, edgefeats=False, **kwargs):
+  def __init__(
+    self,
+    input_dim=2,
+    output_dim=8,
+    nclasses=4,
+    hidden_activation=nn.Tanh,
+    how='standard',
+    stacks=True,
+    edgefeats=False,
+    **kwargs,
+  ):
+
     super(MultiClassEdgeNetwork, self).__init__()
     self.nclasses=nclasses
     self.edgefeats=edgefeats
     if not stacks: how = 'standard'
     output = 1 if stacks else nclasses
-    self.radlen = nn.Parameter(torch.ones(nclasses))
+    if edgefeats: self.radlen = nn.Parameter(torch.ones(nclasses))
     in_size = input_dim * 2
     if edgefeats: in_size += 2
     self.net = nn.Sequential(
-            CustomLinear(in_size, output_dim, nclasses, how),
-            hidden_activation(),
-            CustomLinear(output_dim, output, nclasses, how),
-            hidden_activation(),
-            nn.Softmax(dim=1))
+      CustomLinear(in_size, output_dim, nclasses, how),
+      hidden_activation(),
+      CustomLinear(output_dim, output, nclasses, how),
+      hidden_activation(),
+      nn.Softmax(dim=1),
+    )
 
   def calc_eloss(self, data, distance):
     integral = data.x[data.edge_index, 7]
@@ -98,7 +121,8 @@ class MultiClassEdgeNetwork(nn.Module):
     if (self.edgefeats):
       edge_feats.append(self.calc_edge_feats(data))
     B = torch.cat(edge_feats, dim=-1).detach()
-    return self.net(B)
+    ret = self.net(B)
+    return ret
 
 class MultiClassNodeNetwork(nn.Module):
   def __init__(self, input_dim=2, output_dim=8, nclasses=4,
@@ -131,6 +155,7 @@ class GNNDeepMultiHead(nn.Module):
     self.n_iters = n_iters
     self.nclasses = output_dim
     self.stacks = stacks
+    if not stacks: how = 'standard'
     self.input_network = nn.Sequential(
       CustomLinear(input_dim, hidden_dim, output_dim, how),
       hidden_activation(),
@@ -156,19 +181,28 @@ class GNNDeepMultiHead(nn.Module):
 
   def forward(self, data):
     """Apply forward pass of the model"""
+    global dev
+    dev = data.x.device
+    # mem("at model start")
     X = data.x.unsqueeze(1).repeat(1, self.nclasses, 1) if self.stacks else data.x.clone()
     # Apply input network to get hidden representation
     H = self.input_network(X)
     # Shortcut connect the inputs onto the hidden representation
     data.m = torch.cat([H, X], dim=-1)
     # Loop over iterations of edge and node networks
+    # mem("before iterating")
+
     for i in range(self.n_iters):
       # Apply edge network, update edge_attrs
       data.edge_attr = self.edge_network(data)
+      # mem("after edge network")
       # Apply node network
       H = self.node_network(data)
+      # mem("after node network")
       # Shortcut connect the inputs onto the hidden representation
       data.m = torch.cat([H, X], dim=-1)
-      # Apply final edge network
+      # mem(f"after iteration {i}")
+
+    # Apply final edge network
     return self.edge_network(data).squeeze()
 

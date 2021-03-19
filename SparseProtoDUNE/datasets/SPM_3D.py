@@ -43,8 +43,8 @@ class SparsePixelMap3D(Dataset):
     x = torch.FloatTensor(data['x'])
     y = torch.FloatTensor(data['y'])
     if enable_panoptic_seg == False:
+      c = torch.LongTensor(data['c'])
       del data
-      c = torch.LongTensor(data['c']) 
       return { 'x': x, 'c': c, 'y': y}# 'chtm': chtm}
     else:
       c = torch.IntTensor(data['c']) 

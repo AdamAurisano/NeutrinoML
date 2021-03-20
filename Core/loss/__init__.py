@@ -6,6 +6,9 @@ def get_loss(func, **params):
   if func == 'categorical_cross_entropy':
     from .loss import categorical_cross_entropy
     return categorical_cross_entropy
+  if func == 'cross_entropy':
+    from .loss import cross_entropy
+    return cross_entropy
   if func == 'generalized_dice':
     from .loss import generalized_dice
     return generalized_dice

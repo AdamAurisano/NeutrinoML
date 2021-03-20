@@ -186,12 +186,13 @@ class Trainer(base):
           'train': summary['train_loss'],
           'valid': summary['valid_loss'] }, i+1)
       metrics = self.metrics.epoch_metrics()
+      for key, val in metrics.items(): self.writer.add_scalars(key, val, i+1)
       if sherpa_study is not None and sherpa_trial is not None:
           sherpa_study.add_observation(
               trial=sherpa_trial,
               iteration=i,
               objective=metrics["acc/epoch"]["valid"])
-      for key, val in metrics.items(): self.writer.add_scalars(key, val, i+1)
+          if sherpa_study.should_trial_stop(sherpa_trial): break
 
     return self.summaries
 

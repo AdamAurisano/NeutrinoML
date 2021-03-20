@@ -8,21 +8,22 @@ trainer:
   batch_size: 4
   n_epochs: 100
   empty_cache: 1 # How many iterations between calls to empty GPU memory cache
-  train_name: "with-8-noedge"
+  train_name: "with-6-twoloss"
   summary_dir: "/scratch/GraphDUNE/summary/edgefeats"
   output_dir: "/scratch/GraphDUNE/params/edgefeats"
 
 model:
-  name: "DeepMultiHead"
+  name: "TwoLoss"
   input_dim: 9
   hidden_dim: 64
-  out_dim: 4
+  output_dim: 3
   n_iters: 4
   how: "classwise"
   stacks: True
-  edgefeats: False
+  edgefeats: True
   loss_params:
-    func: "CrossEntropyLoss"
+    func: "twoloss"
+
   arrange_data: "arrange_graph"
   arrange_truth: "arrange_graph"
 

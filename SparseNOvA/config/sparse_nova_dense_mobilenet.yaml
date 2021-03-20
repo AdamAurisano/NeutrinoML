@@ -1,28 +1,28 @@
 data:
-  name: 'DensePixelMapNOvA'
-  filedir: '/data/mp5/preselection_cvnmap'
+  name: "DensePixelMapNOvA"
+  filedir: "/data/mp5/preselection_cvnmap"
   t_v_split: 0.05
 
 model:
-  name: 'DenseMobileNet'
+  name: "DenseMobileNet"
   D: 2
   alpha: 1
   depth: 1
   classes: 4
   dropout: 0.3
   loss_params:
-    func: 'CrossEntropyLoss'
-  arrange_data: 'arrange_dense_2stack'
-  arrange_truth: 'arrange_dense'
-  collate: 'collate_dense_2stack'
+    func: "CrossEntropyLoss"
+  arrange_data: "arrange_dense_2stack"
+  arrange_truth: "arrange_dense"
+  collate: "collate_dense_2stack"
   
   activation_params:
-    activation: 'ReLU'
+    activation: "mish"
     LeakyReLU:
       negative_slope: 0.01
       
   optimizer_params:
-    optimizer: 'SGD'
+    optimizer: "SGD"
     AdamW:
       lr:               2.e-3
       weight_decay:     0.01
@@ -43,19 +43,19 @@ model:
       momentum:         0.9
 
   scheduler_params:
-    scheduler: 'StepLR'
+    scheduler: "ReduceLROnPlateau"
     ReduceLROnPlateau:
       factor: 0.5
       patience: 5
     StepLR:
-      step_size: 100
+      step_size: 5
       gamma: 0.8  
 
   metric_params:
-    metrics: 'Classification'
+    metrics: "Classification"
     include_batch_metrics: True
     Classification:
-      class_names: ['numu','nue','nc','cosmic']
+      class_names: ["numu","nue","nc","cosmic"]
 
 data_loader:
   batch_size: 128
@@ -63,17 +63,17 @@ data_loader:
 
 trainer:
   benchmark: False
-  device: 2 # Which GPU to use
+  device: 5 # Which GPU to use
   n_epochs: 30
   empty_cache: 1 # How many iterations between calls to empty GPU memory cache
   max_iters_train: None
   max_iters_eval:  None
-  train_name:  'SGD2'
-  summary_dir: '/scratch/SparseNOvA/summary/preselection/Micahparam/dense_mobile_net/cvnmap/batchsize128/'
-  output_dir:  '/scratch/SparseNOvA/params'
+  train_name:  "train-dense-1"
+  summary_dir: "/scratch/SparseNOvA/summary"
+  output_dir:  "/scratch/SparseNOvA/params"
 
 inference:
   max_images: 100 # Maximum number of images to process
   event_display: True # Whether to draw event displays
   confusion: False # Whether to draw a confusion matrix
-  state_dict: None # Replace this with a string path to a trained .pth.tar file after training! They're written to params/checkpoints
+  state_dict: None # Replace this with a string path to a trained .pth.tar file after training! They"re written to params/checkpoints

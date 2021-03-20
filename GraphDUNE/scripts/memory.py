@@ -55,8 +55,6 @@ def init():
   for name, weight in zip(class_names, weights):
     print(f'  {name}: {weight}')
     
-  #config['model']['loss_params']['b_weight'] = torch.tensor(1).float().to(trainer.device)
-  #config['model']['loss_params']['c_weight'] = torch.tensor(weights[1:]).float().to(trainer.device)
   config['model']['loss_params']['weight'] = torch.tensor(weights).float().to(trainer.device)
 
   train_loader = DataLoader(train_dataset, batch_size=config['trainer']['batch_size'], shuffle=True, pin_memory=True)
@@ -65,16 +63,38 @@ def init():
   return config, trainer, train_loader, valid_loader
 
 def train():
-  import torch
-  torch.autograd.set_detect_anomaly(True)
+
+  import torch.cuda as tc
+
   config, trainer, train_loader, valid_loader = init()
+
+  print(
+    "Memory consumption before building model is",
+    float(tc.memory_reserved(trainer.device)) / float(1073741824),
+    "GB",
+  )
 
   # Build model
   trainer.build_model(**config['model'])
 
-  # Train!
-  train_summary = trainer.train(train_loader, config['trainer']['n_epochs'], valid_data_loader=valid_loader)
-  print(train_summary)
+  print(
+    "Memory consumption after building model is",
+    float(tc.memory_reserved(trainer.device)) / float(1073741824),
+    "GB",
+  )
+
+  # Check graph size
+  for i, d in enumerate(train_loader):
+    print(d)
+    x = d.x.to(trainer.device)
+    y = d.y.to(trainer.device)
+    e = d.edge_index.to(trainer.device)
+    print(
+      "Memory consumption with batch is",
+      float(tc.memory_reserved(trainer.device)) / float(1073741824),
+      "GB",
+    )
+    if i > 99: break
 
 if __name__ == "__main__":
   train()

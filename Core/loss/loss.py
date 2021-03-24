@@ -15,10 +15,14 @@ def cross_entropy(y_true,y_pred):
     y_pred = torch.clamp(y_pred, 1e-9, 1 - 1e-9)
     loss = -((y_true * torch.log(y_pred)) + ((1-y_true) * torch.log(1-y_pred)))
     weights = torch.zeros(y_true.shape[0]).to(y_true.device)
-    n = y_true[(torch.nonzero(y_true >= 0.0028)[:,0])].shape[0] # number of medoids 
+    _max = y_true.max().item()
     N = y_true.shape[0] #total numbers of entries 
-    weights[torch.nonzero(y_true >= 0.0028)[:,0]] = N/2*n
-    return loss.mean()  #(weights*loss).mean()
+    med_location = torch.nonzero(y_true>=_max)[:,0] # medoid location 
+    other_voxels = N-med_location.shape[0] # other voxels
+    weights +=  N/(2*other_voxels)
+    weights[med_location] = N/(2*med_location.shape[0])
+    weighted_loss = weights*loss
+    return  weighted_loss.mean() 
 
 
 def generalized_dice(y_pred, y_true):

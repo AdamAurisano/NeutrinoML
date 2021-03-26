@@ -105,9 +105,9 @@ class ClassificationMetrics(MetricsBase):
           'train': 100 * self.train_class_correct[i] / self.train_class_total[i] if self.train_class_total[i] > 0 else 0,
           'valid': 100 * self.valid_class_correct[i] / self.valid_class_total[i] if self.valid_class_total[i] > 0 else 0
         }
-       metrics['time/epoch'] = {
-        'train': self.train_end - self.epoch_start,
-        'valid': self.valid_end - self.train_end
-      }
-      return metrics
+        metrics['time/epoch'] = {
+         'train': self.train_end - self.epoch_start,
+         'valid': self.valid_end - self.train_end
+        }
+    return metrics
 

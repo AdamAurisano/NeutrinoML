@@ -109,36 +109,35 @@ class Fish(ME.MinkowskiNetwork):
             return self.num_res_blks[index]
 
         cated_planes, fish = [in_planes] * self.depth, []
-        for i in range(self.depth):
-            if i < 7:
-                # even num for down-sample, odd for up-sample
-                is_down, has_trans, no_sampling = i not in range(self.num_down, self.num_down+self.num_up+1),\
-                    i > self.num_down, i == self.num_down
-                cur_planes, trans_planes, cur_blocks, num_trans =\
-                    get_cur_planes(i), get_trans_planes(i), get_blk_num(i), get_trans_blk(i)
+        for i in range(self.num_down + self.num_up + 1):
+            # even num for down-sample, odd for up-sample
+            is_down, has_trans, no_sampling = i not in range(self.num_down, self.num_down+self.num_up+1),\
+                i > self.num_down, i == self.num_down
+            cur_planes, trans_planes, cur_blocks, num_trans =\
+                get_cur_planes(i), get_trans_planes(i), get_blk_num(i), get_trans_blk(i)
 
-                stg_args = [is_down, cated_planes[i - 1], cur_planes, cur_blocks]
+            stg_args = [is_down, cated_planes[i - 1], cur_planes, cur_blocks]
 
-                if is_down or no_sampling:
-                    k, dilation = 1, 1
-                else:
-                    k, dilation = cated_planes[i - 1] // cur_planes, 2 ** (i-self.num_down-1)
+            if is_down or no_sampling:
+                k, dilation = 1, 1
+            else:
+                k, dilation = cated_planes[i - 1] // cur_planes, 2 ** (i-self.num_down-1)
 
-                sample_block = self._make_stage(D, A, *stg_args, has_trans=has_trans, trans_planes=trans_planes,
-                                            has_score=(i==self.num_down), num_trans=num_trans, k=k, dilation=dilation,
-                                            no_sampling=no_sampling)
-                if i == self.depth - 1:
-                    sample_block.extend(self._make_score(D, A, cur_planes + trans_planes, out_ch=self.num_cls, has_pool=True))
-                elif i == self.num_down:
-                    sample_block.append(nn.Sequential(self._make_se_block(D, A, cur_planes*2, cur_planes)))
+            sample_block = self._make_stage(D, A, *stg_args, has_trans=has_trans, trans_planes=trans_planes,
+                                        has_score=(i==self.num_down), num_trans=num_trans, k=k, dilation=dilation,
+                                        no_sampling=no_sampling)
+            if i == self.depth - 1:
+                sample_block.extend(self._make_score(D, A, cur_planes + trans_planes, out_ch=self.num_cls, has_pool=True))
+            elif i == self.num_down:
+                sample_block.append(nn.Sequential(self._make_se_block(D, A, cur_planes*2, cur_planes)))
 
-                if i == self.num_down-1:
-                    cated_planes[i] = cur_planes * 2
-                elif has_trans:
-                    cated_planes[i] = cur_planes + trans_planes
-                else:
-                    cated_planes[i] = cur_planes
-                fish.append(sample_block)
+            if i == self.num_down-1:
+                cated_planes[i] = cur_planes * 2
+            elif has_trans:
+                cated_planes[i] = cur_planes + trans_planes
+            else:
+                cated_planes[i] = cur_planes
+            fish.append(sample_block)
         return nn.ModuleList(fish)
     
     def _make_head(self, D, A, in_planes):
@@ -157,36 +156,35 @@ class Fish(ME.MinkowskiNetwork):
             return self.num_res_blks[index]
 
         cated_planes, fish = [in_planes] * self.depth, []
-        for i in range(self.depth):
-            if i is > 6:
-                # even num for down-sample, odd for up-sample
-                is_down, has_trans, no_sampling = i not in range(self.num_down, self.num_down+self.num_up+1),\
-                    i > self.num_down, i == self.num_down
-                cur_planes, trans_planes, cur_blocks, num_trans =\
-                    get_cur_planes(i), get_trans_planes(i), get_blk_num(i), get_trans_blk(i)
+        for i in range(self.num_down + self.num_up + 1, self.depth):
+            # even num for down-sample, odd for up-sample
+            is_down, has_trans, no_sampling = i not in range(self.num_down, self.num_down+self.num_up+1),\
+                i > self.num_down, i == self.num_down
+            cur_planes, trans_planes, cur_blocks, num_trans =\
+                get_cur_planes(i), get_trans_planes(i), get_blk_num(i), get_trans_blk(i)
 
-                stg_args = [is_down, cated_planes[i - 1], cur_planes, cur_blocks]
+            stg_args = [is_down, cated_planes[i - 1], cur_planes, cur_blocks]
 
-                if is_down or no_sampling:
-                    k, dilation = 1, 1
-                else:
-                    k, dilation = cated_planes[i - 1] // cur_planes, 2 ** (i-self.num_down-1)
+            if is_down or no_sampling:
+                k, dilation = 1, 1
+            else:
+                k, dilation = cated_planes[i - 1] // cur_planes, 2 ** (i-self.num_down-1)
 
-                sample_block = self._make_stage(D, A, *stg_args, has_trans=has_trans, trans_planes=trans_planes,
-                                                has_score=(i==self.num_down), num_trans=num_trans, k=k, dilation=dilation,
-                                                no_sampling=no_sampling)
-                if i == self.depth - 1:
-                    sample_block.extend(self._make_score(D, A, cur_planes + trans_planes, out_ch=self.num_cls, has_pool=True))
-                elif i == self.num_down:
-                    sample_block.append(nn.Sequential(self._make_se_block(D, A, cur_planes*2, cur_planes)))
+            sample_block = self._make_stage(D, A, *stg_args, has_trans=has_trans, trans_planes=trans_planes,
+                                            has_score=(i==self.num_down), num_trans=num_trans, k=k, dilation=dilation,
+                                            no_sampling=no_sampling)
+            if i == self.depth - 1:
+                sample_block.extend(self._make_score(D, A, cur_planes + trans_planes, out_ch=self.num_cls, has_pool=True))
+            elif i == self.num_down:
+                sample_block.append(nn.Sequential(self._make_se_block(D, A, cur_planes*2, cur_planes)))
 
-                if i == self.num_down-1:
-                    cated_planes[i] = cur_planes * 2
-                elif has_trans:
-                    cated_planes[i] = cur_planes + trans_planes
-                else:
-                    cated_planes[i] = cur_planes
-                fish.append(sample_block)
+            if i == self.num_down-1:
+                cated_planes[i] = cur_planes * 2
+            elif has_trans:
+                cated_planes[i] = cur_planes + trans_planes
+            else:
+                cated_planes[i] = cur_planes
+            fish.append(sample_block)
         return nn.ModuleList(fish)
     
     def _fish_forward(self, all_feat_x, all_feat_y):

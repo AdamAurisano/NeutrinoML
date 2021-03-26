@@ -210,23 +210,24 @@ class Fish(ME.MinkowskiNetwork):
         stg_id = 0
         # tail:
         while stg_id < self.depth:
-            stg_blk_body_x = stage_factory(*self.body_x[stg_id])
-            stg_blk_body_y = stage_factory(*self.body_y[stg_id])
-            if stg_id <= self.num_down:
-                in_feat_x = [all_feat_x[stg_id]]
-                in_feat_y = [all_feat_y[stg_id]]
-            else:
-                trans_id = self.trans_map[stg_id-self.num_down-1]
-                in_feat_x = [all_feat_x[stg_id], all_feat_x[trans_id]]
-                in_feat_y = [all_feat_y[stg_id], all_feat_y[trans_id]]
+            while stg_id < (self.num_down + self.num_up):
+                stg_blk_body_x = stage_factory(*self.body_x[stg_id])
+                stg_blk_body_y = stage_factory(*self.body_y[stg_id])
+                if stg_id <= self.num_down:
+                    in_feat_x = [all_feat_x[stg_id]]
+                    in_feat_y = [all_feat_y[stg_id]]
+                else:
+                    trans_id = self.trans_map[stg_id-self.num_down-1]
+                    in_feat_x = [all_feat_x[stg_id], all_feat_x[trans_id]]
+                    in_feat_y = [all_feat_y[stg_id], all_feat_y[trans_id]]
 
-            all_feat_x[stg_id + 1] = stg_blk_body_x(*in_feat_x)
-            all_feat_y[stg_id + 1] = stg_blk_body_y(*in_feat_y)
-            stg_id += 1
-            # loop exit
-            if stg_id == self.depth:
-                # ME union here x feat and y feat
+                all_feat_x[stg_id + 1] = stg_blk_body_x(*in_feat_x)
+                all_feat_y[stg_id + 1] = stg_blk_body_y(*in_feat_y)
+                stg_id += 1
+
+            if stg_id < 7:
                 all_feat = self.union(all_feat_x, all_feat_y)
+            elif stg_id == self.depth:
                 score_feat = self.head[self.depth-1][-2](all_feat[-1])
                 score = self.head[self.depth-1][-1](score_feat)
                 return score
@@ -251,9 +252,6 @@ class FishNet(ME.MinkowskiNetwork):
         self.pool1 = ME.MinkowskiMaxPooling(3, stride=2, dimension=D)
         # construct fish, resolution 56x56
         self.fish = Fish(block, D, A, **kwargs)
-        # self.body_x = Fish._make_body(block, D, A, **kwargs)
-        # self.body_y = Fish._make_body(block, D, A, **kwargs)
-        # self.head = Fish._make_head(block, D, A, **kwargs)
         self._init_weights()
 
     def _conv_bn_relu(self, D, A, in_ch, out_ch, stride=1):
@@ -289,9 +287,6 @@ class FishNet(ME.MinkowskiNetwork):
         yview = self.conv2(yview)
         yview = self.conv3(yview)
         yview = self.pool1(yview)
-        
-        #score_body_x = self.body_x(xview)
-        #score_body_y = self.body_y(yview)
         
         score = self.fish(xview, yview)
         # 1*1 output

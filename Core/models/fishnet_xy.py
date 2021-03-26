@@ -231,7 +231,7 @@ class Fish(ME.MinkowskiNetwork):
                 score = self.head[self.depth-1][-1](score_feat)
                 return score
 
-    def forward(self, x):
+    def forward(self, x, y):
         all_feat_x = [None] * (self.depth + 1)
         all_feat_y = [None] * (self.depth + 1)
         all_feat_x[0] = x
@@ -290,10 +290,10 @@ class FishNet(ME.MinkowskiNetwork):
         yview = self.conv3(yview)
         yview = self.pool1(yview)
         
-        score_body_x = self.body_x(xview)
-        score_body_y = self.body_y(yview)
+        #score_body_x = self.body_x(xview)
+        #score_body_y = self.body_y(yview)
         
-        score = self.fish(x)
+        score = self.fish(xview, yview)
         # 1*1 output
         out = score.view(x.size(0), -1)
 

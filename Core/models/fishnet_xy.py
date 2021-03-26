@@ -56,7 +56,7 @@ class Fish(ME.MinkowskiNetwork):
                              sq_conv,
                              minkowski_wrapper(D, A),
                              ex_conv,
-                             nn.Sigmoid())
+                             ME.MinkowskiSigmoid())
 
     def _make_residual_block(self, D, A, inplanes, outplanes, nstage, is_up=False, k=1, dilation=1):
         layers = []

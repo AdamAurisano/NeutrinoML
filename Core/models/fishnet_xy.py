@@ -15,7 +15,7 @@ __all__ = ['fish']
 class Fish(ME.MinkowskiNetwork):
     def __init__(self, block, D, A, num_cls=1000, num_down_sample=5, num_up_sample=3, trans_map=(2, 1, 0, 6, 5, 4),
                  network_planes=None, num_res_blks=None, num_trans_blks=None, **kwargs):
-        super(FishBody, self).__init__(D)
+        super(Fish, self).__init__(D)
         self.block = block
         self.trans_map = trans_map
         self.upsample = ME.MinkowskiConvolutionTranspose

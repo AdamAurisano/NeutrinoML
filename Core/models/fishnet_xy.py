@@ -250,10 +250,10 @@ class FishNet(ME.MinkowskiNetwork):
         self.conv3 = self._conv_bn_relu(D, A, inplanes // 2, inplanes)
         self.pool1 = ME.MinkowskiMaxPooling(3, stride=2, dimension=D)
         # construct fish, resolution 56x56
-#         self.fish = Fish(block, D, A, **kwargs)
-        self.body_x = Fish._make_body(block, D, A, **kwargs)
-        self.body_y = Fish._make_body(block, D, A, **kwargs)
-        self.head = Fish._make_head(block, D, A, **kwargs)
+        self.fish = Fish(block, D, A, **kwargs)
+        # self.body_x = Fish._make_body(block, D, A, **kwargs)
+        # self.body_y = Fish._make_body(block, D, A, **kwargs)
+        # self.head = Fish._make_head(block, D, A, **kwargs)
         self._init_weights()
 
     def _conv_bn_relu(self, D, A, in_ch, out_ch, stride=1):

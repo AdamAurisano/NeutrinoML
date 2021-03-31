@@ -16,17 +16,18 @@ model:
   n_dims: 3
   extent: 6000 # Maximum dimension of pixel map
   input_feats: 7
-  n_feats: 16 # Number of features
+  n_feats: 14 # Number of features
   unet_depth: 10
   res_blocks: True # Whether to use residual blocks in unet
 
+  instance_segmentation: False
   loss_params:
     func: 'categorical_cross_entropy'
   arrange_data: 'arrange_sparse_minkowski'
   arrange_truth: 'arrange_sparse'
 
   activation_params:
-    activation: 'ReLU'
+    activation: 'mish' 
     LeakyReLU:
       negative_slope: 0.01
 
@@ -68,16 +69,17 @@ data_loader:
   num_workers: 0
 
 trainer:
-  device: 7 # Which GPU to use
-  n_epochs: 30
+  device: 6 # Which GPU to use
+  n_epochs: 20
   max_iters_train: None 
   max_iters_eval:  None 
-  summary_dir: 'summary/3d/test' #'summary/3d/test_config1_LRPlateau_patience5_factor09'
-  output_dir: 'params'
+  summary_dir: 'summary/3d/test/'
+  output_dir: '/data/3d/params/'
 
 inference:
-  max_images: 30000 # Maximum number of images to process
+  max_images: 100 # Maximum number of images to process
   event_display: False # Whether to draw event displays
-  confusion: False # Whether to draw a confusion matrix
-  state_dict: None  # Replace this with a string path to a trained .pth.tar file after training! They're written to params/checkpoints
+  confusion: True # Whether to draw a confusion matrix
+  state_dict: None 
+  # Replace this with a string path to a trained .pth.tar file after training! They're written to params/checkpoints
  

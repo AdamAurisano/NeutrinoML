@@ -15,7 +15,7 @@ __all__ = ['fish']
 class Fish(ME.MinkowskiNetwork):
     def __init__(self, block, D, A, num_cls=1000, num_down_sample=5, num_up_sample=3, trans_map=(2, 1, 0, 6, 5, 4),
                  network_planes=None, num_res_blks=None, num_trans_blks=None, **kwargs):
-        super(FishBody, self).__init__(D)
+        super(Fish, self).__init__(D)
         self.block = block
         self.trans_map = trans_map
         self.upsample = ME.MinkowskiConvolutionTranspose
@@ -56,7 +56,7 @@ class Fish(ME.MinkowskiNetwork):
                              sq_conv,
                              minkowski_wrapper(D, A),
                              ex_conv,
-                             nn.Sigmoid())
+                             ME.MinkowskiSigmoid())
 
     def _make_residual_block(self, D, A, inplanes, outplanes, nstage, is_up=False, k=1, dilation=1):
         layers = []
@@ -109,36 +109,35 @@ class Fish(ME.MinkowskiNetwork):
             return self.num_res_blks[index]
 
         cated_planes, fish = [in_planes] * self.depth, []
-        for i in range(self.depth):
-            if i < 7:
-                # even num for down-sample, odd for up-sample
-                is_down, has_trans, no_sampling = i not in range(self.num_down, self.num_down+self.num_up+1),\
-                    i > self.num_down, i == self.num_down
-                cur_planes, trans_planes, cur_blocks, num_trans =\
-                    get_cur_planes(i), get_trans_planes(i), get_blk_num(i), get_trans_blk(i)
+        for i in range(self.num_down + self.num_up + 1):
+            # even num for down-sample, odd for up-sample
+            is_down, has_trans, no_sampling = i not in range(self.num_down, self.num_down+self.num_up+1),\
+                i > self.num_down, i == self.num_down
+            cur_planes, trans_planes, cur_blocks, num_trans =\
+                get_cur_planes(i), get_trans_planes(i), get_blk_num(i), get_trans_blk(i)
 
-                stg_args = [is_down, cated_planes[i - 1], cur_planes, cur_blocks]
+            stg_args = [is_down, cated_planes[i - 1], cur_planes, cur_blocks]
 
-                if is_down or no_sampling:
-                    k, dilation = 1, 1
-                else:
-                    k, dilation = cated_planes[i - 1] // cur_planes, 2 ** (i-self.num_down-1)
+            if is_down or no_sampling:
+                k, dilation = 1, 1
+            else:
+                k, dilation = cated_planes[i - 1] // cur_planes, 2 ** (i-self.num_down-1)
 
-                sample_block = self._make_stage(D, A, *stg_args, has_trans=has_trans, trans_planes=trans_planes,
-                                            has_score=(i==self.num_down), num_trans=num_trans, k=k, dilation=dilation,
-                                            no_sampling=no_sampling)
-                if i == self.depth - 1:
-                    sample_block.extend(self._make_score(D, A, cur_planes + trans_planes, out_ch=self.num_cls, has_pool=True))
-                elif i == self.num_down:
-                    sample_block.append(nn.Sequential(self._make_se_block(D, A, cur_planes*2, cur_planes)))
+            sample_block = self._make_stage(D, A, *stg_args, has_trans=has_trans, trans_planes=trans_planes,
+                                        has_score=(i==self.num_down), num_trans=num_trans, k=k, dilation=dilation,
+                                        no_sampling=no_sampling)
+            if i == self.depth - 1:
+                sample_block.extend(self._make_score(D, A, cur_planes + trans_planes, out_ch=self.num_cls, has_pool=True))
+            elif i == self.num_down:
+                sample_block.append(nn.Sequential(self._make_se_block(D, A, cur_planes*2, cur_planes)))
 
-                if i == self.num_down-1:
-                    cated_planes[i] = cur_planes * 2
-                elif has_trans:
-                    cated_planes[i] = cur_planes + trans_planes
-                else:
-                    cated_planes[i] = cur_planes
-                fish.append(sample_block)
+            if i == self.num_down-1:
+                cated_planes[i] = cur_planes * 2
+            elif has_trans:
+                cated_planes[i] = cur_planes + trans_planes
+            else:
+                cated_planes[i] = cur_planes
+            fish.append(sample_block)
         return nn.ModuleList(fish)
     
     def _make_head(self, D, A, in_planes):
@@ -157,36 +156,35 @@ class Fish(ME.MinkowskiNetwork):
             return self.num_res_blks[index]
 
         cated_planes, fish = [in_planes] * self.depth, []
-        for i in range(self.depth):
-            if i is > 6:
-                # even num for down-sample, odd for up-sample
-                is_down, has_trans, no_sampling = i not in range(self.num_down, self.num_down+self.num_up+1),\
-                    i > self.num_down, i == self.num_down
-                cur_planes, trans_planes, cur_blocks, num_trans =\
-                    get_cur_planes(i), get_trans_planes(i), get_blk_num(i), get_trans_blk(i)
+        for i in range(self.num_down + self.num_up + 1, self.depth):
+            # even num for down-sample, odd for up-sample
+            is_down, has_trans, no_sampling = i not in range(self.num_down, self.num_down+self.num_up+1),\
+                i > self.num_down, i == self.num_down
+            cur_planes, trans_planes, cur_blocks, num_trans =\
+                get_cur_planes(i), get_trans_planes(i), get_blk_num(i), get_trans_blk(i)
 
-                stg_args = [is_down, cated_planes[i - 1], cur_planes, cur_blocks]
+            stg_args = [is_down, cated_planes[i - 1], cur_planes, cur_blocks]
 
-                if is_down or no_sampling:
-                    k, dilation = 1, 1
-                else:
-                    k, dilation = cated_planes[i - 1] // cur_planes, 2 ** (i-self.num_down-1)
+            if is_down or no_sampling:
+                k, dilation = 1, 1
+            else:
+                k, dilation = cated_planes[i - 1] // cur_planes, 2 ** (i-self.num_down-1)
 
-                sample_block = self._make_stage(D, A, *stg_args, has_trans=has_trans, trans_planes=trans_planes,
-                                                has_score=(i==self.num_down), num_trans=num_trans, k=k, dilation=dilation,
-                                                no_sampling=no_sampling)
-                if i == self.depth - 1:
-                    sample_block.extend(self._make_score(D, A, cur_planes + trans_planes, out_ch=self.num_cls, has_pool=True))
-                elif i == self.num_down:
-                    sample_block.append(nn.Sequential(self._make_se_block(D, A, cur_planes*2, cur_planes)))
+            sample_block = self._make_stage(D, A, *stg_args, has_trans=has_trans, trans_planes=trans_planes,
+                                            has_score=(i==self.num_down), num_trans=num_trans, k=k, dilation=dilation,
+                                            no_sampling=no_sampling)
+            if i == self.depth - 1:
+                sample_block.extend(self._make_score(D, A, cur_planes + trans_planes, out_ch=self.num_cls, has_pool=True))
+            elif i == self.num_down:
+                sample_block.append(nn.Sequential(self._make_se_block(D, A, cur_planes*2, cur_planes)))
 
-                if i == self.num_down-1:
-                    cated_planes[i] = cur_planes * 2
-                elif has_trans:
-                    cated_planes[i] = cur_planes + trans_planes
-                else:
-                    cated_planes[i] = cur_planes
-                fish.append(sample_block)
+            if i == self.num_down-1:
+                cated_planes[i] = cur_planes * 2
+            elif has_trans:
+                cated_planes[i] = cur_planes + trans_planes
+            else:
+                cated_planes[i] = cur_planes
+            fish.append(sample_block)
         return nn.ModuleList(fish)
     
     def _fish_forward(self, all_feat_x, all_feat_y):
@@ -212,28 +210,29 @@ class Fish(ME.MinkowskiNetwork):
         stg_id = 0
         # tail:
         while stg_id < self.depth:
-            stg_blk_body_x = stage_factory(*self.body_x[stg_id])
-            stg_blk_body_y = stage_factory(*self.body_y[stg_id])
-            if stg_id <= self.num_down:
-                in_feat_x = [all_feat_x[stg_id]]
-                in_feat_y = [all_feat_y[stg_id]]
-            else:
-                trans_id = self.trans_map[stg_id-self.num_down-1]
-                in_feat_x = [all_feat_x[stg_id], all_feat_x[trans_id]]
-                in_feat_y = [all_feat_y[stg_id], all_feat_y[trans_id]]
+            while stg_id < (self.num_down + self.num_up):
+                stg_blk_body_x = stage_factory(*self.body_x[stg_id])
+                stg_blk_body_y = stage_factory(*self.body_y[stg_id])
+                if stg_id <= self.num_down:
+                    in_feat_x = [all_feat_x[stg_id]]
+                    in_feat_y = [all_feat_y[stg_id]]
+                else:
+                    trans_id = self.trans_map[stg_id-self.num_down-1]
+                    in_feat_x = [all_feat_x[stg_id], all_feat_x[trans_id]]
+                    in_feat_y = [all_feat_y[stg_id], all_feat_y[trans_id]]
 
-            all_feat_x[stg_id + 1] = stg_blk_body_x(*in_feat_x)
-            all_feat_y[stg_id + 1] = stg_blk_body_y(*in_feat_y)
-            stg_id += 1
-            # loop exit
-            if stg_id == self.depth:
-                # ME union here x feat and y feat
+                all_feat_x[stg_id + 1] = stg_blk_body_x(*in_feat_x)
+                all_feat_y[stg_id + 1] = stg_blk_body_y(*in_feat_y)
+                stg_id += 1
+
+            if stg_id < 7:
                 all_feat = self.union(all_feat_x, all_feat_y)
+            elif stg_id == self.depth:
                 score_feat = self.head[self.depth-1][-2](all_feat[-1])
                 score = self.head[self.depth-1][-1](score_feat)
                 return score
 
-    def forward(self, x):
+    def forward(self, x, y):
         all_feat_x = [None] * (self.depth + 1)
         all_feat_y = [None] * (self.depth + 1)
         all_feat_x[0] = x
@@ -252,10 +251,7 @@ class FishNet(ME.MinkowskiNetwork):
         self.conv3 = self._conv_bn_relu(D, A, inplanes // 2, inplanes)
         self.pool1 = ME.MinkowskiMaxPooling(3, stride=2, dimension=D)
         # construct fish, resolution 56x56
-#         self.fish = Fish(block, D, A, **kwargs)
-        self.body_x = Fish._make_body(block, D, A, **kwargs)
-        self.body_y = Fish._make_body(block, D, A, **kwargs)
-        self.head = Fish._make_head(block, D, A, **kwargs)
+        self.fish = Fish(block, D, A, **kwargs)
         self._init_weights()
 
     def _conv_bn_relu(self, D, A, in_ch, out_ch, stride=1):
@@ -292,10 +288,7 @@ class FishNet(ME.MinkowskiNetwork):
         yview = self.conv3(yview)
         yview = self.pool1(yview)
         
-        score_body_x = self.body_x(xview)
-        score_body_y = self.body_y(yview)
-        
-        score = self.fish(x)
+        score = self.fish(xview, yview)
         # 1*1 output
         out = score.view(x.size(0), -1)
 

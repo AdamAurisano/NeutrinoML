@@ -189,8 +189,8 @@ class Fish(ME.MinkowskiNetwork):
     
     def _fish_forward(self, all_feat_x, all_feat_y):
         def _concat(a, b):
-            return torch.cat([a, b], dim=1)
-
+            return ME.SparseTensor(torch.cat([a.F, b.F], dim=1), a.C, coordinate_manager=a.coordinate_manager)
+        
         def stage_factory(*blks):
             def stage_forward(*inputs):
                 if stg_id < self.num_down:  # tail
@@ -202,32 +202,37 @@ class Fish(ME.MinkowskiNetwork):
                     att_feat = blks[3](score_feat)
                     return blks[2](score_feat) * att_feat + att_feat
                 else:  # refine
+                    print("inputs[0]", inputs[0].size())
+                    print("inputs[1]", inputs[1].size())
                     feat_trunk = blks[2](blks[0](inputs[0]))
                     feat_branch = blks[1](inputs[1])
+                    print("This is feat trunk size ", feat_trunk.size())
+                    print("This is feat branch size ", feat_branch.size())
                 return _concat(feat_trunk, feat_branch)
             return stage_forward
 
         stg_id = 0
+        all_feat = [None] * (self.depth + 1)
         # tail:
         while stg_id < self.depth:
-            while stg_id < (self.num_down + self.num_up):
-                stg_blk_body_x = stage_factory(*self.body_x[stg_id])
-                stg_blk_body_y = stage_factory(*self.body_y[stg_id])
-                if stg_id <= self.num_down:
-                    in_feat_x = [all_feat_x[stg_id]]
-                    in_feat_y = [all_feat_y[stg_id]]
-                else:
-                    trans_id = self.trans_map[stg_id-self.num_down-1]
-                    in_feat_x = [all_feat_x[stg_id], all_feat_x[trans_id]]
-                    in_feat_y = [all_feat_y[stg_id], all_feat_y[trans_id]]
+            stg_blk_body_x = stage_factory(*self.body_x[stg_id])
+            stg_blk_body_y = stage_factory(*self.body_y[stg_id])
 
-                all_feat_x[stg_id + 1] = stg_blk_body_x(*in_feat_x)
-                all_feat_y[stg_id + 1] = stg_blk_body_y(*in_feat_y)
-                stg_id += 1
+            if stg_id <= self.num_down:
+                in_feat_x = [all_feat_x[stg_id]]
+                in_feat_y = [all_feat_y[stg_id]]
 
-            if stg_id < 7:
-                all_feat = self.union(all_feat_x, all_feat_y)
-            elif stg_id == self.depth:
+            else:
+                trans_id = self.trans_map[stg_id-self.num_down-1]
+                in_feat_x = [all_feat_x[stg_id], all_feat_x[trans_id]]
+                in_feat_y = [all_feat_y[stg_id], all_feat_y[trans_id]]            
+            
+            all_feat_x[stg_id + 1] = stg_blk_body_x(*in_feat_x)
+            all_feat_y[stg_id + 1] = stg_blk_body_y(*in_feat_y)
+            all_feat[stg_id + 1] = self.union(all_feat_x[stg_id + 1], all_feat_y[stg_id + 1])
+            stg_id += 1
+
+            if stg_id == self.depth:
                 score_feat = self.head[self.depth-1][-2](all_feat[-1])
                 score = self.head[self.depth-1][-1](score_feat)
                 return score

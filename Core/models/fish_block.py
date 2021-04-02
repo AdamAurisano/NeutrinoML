@@ -63,13 +63,13 @@ class Bottleneck(ME.MinkowskiNetwork):
         elif self.shortcut is not None:
             residual = self.shortcut(residual)
 
-        out += residual
+#         out += residual
 
         return out
 
     def squeeze_idt(self, idt):
-        n, c, h, w = idt.size()
-        return idt.view(n, c // self.k, self.k, h, w).sum(2)
+        n, c = idt.F.shape
+        return idt.F.view(n, c // self.k, self.k).sum(2)
 
     def forward(self, x):
         out = self._pre_act_forward(x)

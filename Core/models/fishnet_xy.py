@@ -31,6 +31,10 @@ class Fish(ME.MinkowskiNetwork):
         self.body_y = self._make_body(D, A, network_planes[0])
         self.head = self._make_head(D, A, network_planes[0])
         self.union = ME.MinkowskiUnion()
+        
+    def _union(self, a, b):
+        b = ME.SparseTensor(features=b.F, coordinate_map_key=b.coordinate_map_key, coordinate_manager=a.coordinate_manager)
+        return self.union(a, b)
 
     def _make_score(self, D, A, in_ch, out_ch=1000, has_pool=False):
         bn = ME.MinkowskiBatchNorm(in_ch)
@@ -196,19 +200,17 @@ class Fish(ME.MinkowskiNetwork):
             fish.append(sample_block)
         return nn.ModuleList(fish)
     
-    def _fish_forward(self, all_feat_x, all_feat_y):
-        def _concat(a, b):
-            return ME.SparseTensor(torch.cat([a.F, b.F], dim=1), b.C, coordinate_manager=a.coordinate_manager)
-        
+    def _fish_forward(self, all_feat):
         def stage_factory(*blks):
             def stage_forward(*inputs):             
                 if stg_id < self.num_down:  # tail 
                     tail_blk = nn.Sequential(*blks[:2])
                     return tail_blk(*inputs)
+                
                 elif stg_id == self.num_down: #last downward step of model
                     score_blks = nn.Sequential(*blks[:2])
                     score_feat = score_blks(inputs[0])
-                    print("score_feat strude tensor size before =", score_feat.coordinate_map_key.get_tensor_stride())
+                    print("score_feat stride tensor size before =", score_feat.coordinate_map_key.get_tensor_stride())
                     att_feat = blks[3](score_feat)
                     score_feat = blks[2](score_feat)
                     print("score feat stride tensor size after =", score_feat.coordinate_map_key.get_tensor_stride())
@@ -223,76 +225,84 @@ class Fish(ME.MinkowskiNetwork):
                     tmp = torch.cat( [t * att_feat.F[i,:] + att_feat.F[i,:] for i, t in enumerate(score_feat.decomposed_features)], dim=0)
 
                     # ret has the feature component with the coordinate tensor from the original
-                    ret = ME.SparseTensor(features=tmp, coordinates=score_feat.C, coordinate_map_key=score_feat.coordinate_map_key)
+                    ret = ME.SparseTensor(features=tmp, coordinate_map_key=score_feat.coordinate_map_key, coordinate_manager=score_feat.coordinate_manager)
                     print("shape of ret =", ret.size())
                     print("stride tensor of ret =", ret.coordinate_map_key.get_tensor_stride())
                     print("\n")
                     return ret
                 
-                else:  # refine
+                elif stg_id <= self.num_down + self.num_up: 
                     print("upward step in second block")
-#                     for i in blks:
-#                         print(i)
                     feat_trunk = blks[2](blks[0](inputs[0]))
                     feat_branch = blks[1](inputs[1])
                     print("This is feat trunk size ", feat_trunk.size())
+                    print("This is feat trunk stride tensor =", feat_trunk.coordinate_map_key.get_tensor_stride())
                     print("This is feat branch size ", feat_branch.size())
-                return _concat(feat_trunk, feat_branch)
+                    print("This is feat branch stride tensor =", feat_branch.coordinate_map_key.get_tensor_stride())
+                    print("\n")
+                    ret = ME.cat(feat_trunk, feat_branch)
+                    print("size of ret = ", ret.size())
+                    print("stride tensor of ret =", ret.coordinate_map_key.get_tensor_stride())    
+                    return ret
+                
+                else:  # refine
+                    print("upward step in second block")
+                    feat_trunk = blks[2](blks[0](inputs[0]))
+                    return feat_trunk
+#                     return _concat(feat_trunk, feat_branch)
             return stage_forward
 
         stg_id = 0
         # tail:
         while stg_id < self.depth:
-            stg_blk_body_x = stage_factory(*self.body_x[stg_id])
-            stg_blk_body_y = stage_factory(*self.body_y[stg_id])
-            print("stg_id =", stg_id)
-            print("self.depth =", self.depth)
-
-            if stg_id <= self.num_down:
-                in_feat_x = [all_feat_x[stg_id]]
-                in_feat_y = [all_feat_y[stg_id]]
-                print("first block")
-                print("in feat x = ", in_feat_x[0].size())
-                print("in feat y = ", in_feat_y[0].size())
-                print("in feat x stride size = ", in_feat_x[0].coordinate_map_key.get_tensor_stride())
-                print("in feat y stride size = ", in_feat_y[0].coordinate_map_key.get_tensor_stride())
-                print("\n")
-
-            else:
-                trans_id = self.trans_map[stg_id-self.num_down-1]
-                # this is what defines inputs[0] and inputs[1]
-                in_feat_x = [all_feat_x[stg_id], all_feat_x[trans_id]]
-                in_feat_y = [all_feat_y[stg_id], all_feat_y[trans_id]]            
-                print("second block")
-                print("trans id", trans_id, " stg_id", stg_id)
-                print("in feat x [0] =", in_feat_x[0].size())
-                print("in feat x [1] =", in_feat_x[1].size())
-                print("in feat y [0] =", in_feat_y[0].size())
-                print("in feat y [1] =", in_feat_y[1].size())
-                print("in feat x [0] stride size =", in_feat_x[0].coordinate_map_key.get_tensor_stride())
-                print("in feat x [1] stride size =",in_feat_x[1].coordinate_map_key.get_tensor_stride())
-                print("in feat y [0] stride size =",in_feat_y[0].coordinate_map_key.get_tensor_stride())
-                print("in feat y [1] stride size =",in_feat_y[1].coordinate_map_key.get_tensor_stride())
-                print("\n")
+            if stg_id <= self.num_down + self.num_up:
+                stg_blk_body_x = stage_factory(*self.body_x[stg_id])
+                stg_blk_body_y = stage_factory(*self.body_y[stg_id])
+                print("stg_id =", stg_id)
+                print("self.depth =", self.depth)
+                
+                if stg_id <= self.num_down:
+                    # in feat is 2 x 2 
+                    in_feat = [[all_feat[stg_id][0]], [all_feat[stg_id][1]]]
+                    
+                else:
+                    trans_id = self.trans_map[stg_id-self.num_down-1]
+                    # this is what defines inputs[0] and inputs[1]
+                    in_feat = [ [ all_feat[stg_id][0], all_feat[trans_id][0] ], [all_feat[stg_id][1], all_feat[trans_id][1] ] ]
+                    
+                all_feat[stg_id+1] = [ stg_blk_body_x(*in_feat[0]), stg_blk_body_y(*in_feat[1]) ]
             
-            # here stg_blk_body_x is an instance of stage_factory.
-            # We are passing the inputs into stage_forward.
-            all_feat_x[stg_id + 1] = stg_blk_body_x(*in_feat_x)
-            all_feat_y[stg_id + 1] = stg_blk_body_y(*in_feat_y)
-#             all_feat[stg_id + 1] = self.union(all_feat_x[stg_id + 1], all_feat_y[stg_id + 1])
+            else:
+                stg_blk_head = stage_factory(*self.head[stg_id - (self.num_down + self.num_up)])
+                trans_id = self.trans_map[stg_id-self.num_down-1]
+
+                if stg_id == self.num_down + self.num_up + 1:
+#                     in_feat = [ self._union(*all_feat[stg_id]), self._union(*all_feat[trans_id]) ]
+                    in_feat = [ self._union(*all_feat[stg_id])]
+                    
+                else:
+                    # this is what defines inputs[0] and inputs[1]
+                    # second element is still doing a union for skip connections 
+                    # but no union the input of the first layer
+#                     in_feat = [ all_feat[stg_id], self._union(*all_feat[trans_id]) ]
+                    in_feat = [all_feat[stg_id]]
+                    
+                # adding skip connections
+                all_feat[stg_id + 1] = stg_blk_head(*in_feat)
+                
             stg_id += 1
 
             if stg_id == self.depth:
                 score_feat = self.head[self.depth-1][-2](all_feat[-1])
                 score = self.head[self.depth-1][-1](score_feat)
                 return score
+            
+            # all feat is a 2 element list where first is x and y
 
     def forward(self, x, y):
-        all_feat_x = [None] * (self.depth + 1)
-        all_feat_y = [None] * (self.depth + 1)
-        all_feat_x[0] = x
-        all_feat_y[0] = y
-        return self._fish_forward(all_feat_x, all_feat_y)
+        all_feat = [None] * (self.depth + 1)
+        all_feat[0] = [x, y]
+        return self._fish_forward(all_feat)
 
     
 class FishNet(ME.MinkowskiNetwork):

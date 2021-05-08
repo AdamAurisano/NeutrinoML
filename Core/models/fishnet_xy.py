@@ -31,6 +31,10 @@ class Fish(ME.MinkowskiNetwork):
         self.body_y = self._make_body(D, A, network_planes[0])
         self.head = self._make_head(D, A, network_planes[0])
         self.union = ME.MinkowskiUnion()
+        
+    def _union(self, a, b):
+        b = ME.SparseTensor(features=b.F, coordinate_map_key=b.coordinate_map_key, coordinate_manager=a.coordinate_manager)
+        return self.union(a, b)
 
     def _make_score(self, D, A, in_ch, out_ch=1000, has_pool=False):
         bn = ME.MinkowskiBatchNorm(in_ch)
@@ -57,6 +61,13 @@ class Fish(ME.MinkowskiNetwork):
                              minkowski_wrapper(D, A),
                              ex_conv,
                              ME.MinkowskiSigmoid())
+#         return nn.ModuleList([bn,
+#                              minkowski_wrapper(D, A),
+#                              ME.MinkowskiGlobalPooling(),
+#                              sq_conv,
+#                              minkowski_wrapper(D, A),
+#                              ex_conv,
+#                              ME.MinkowskiSigmoid()])
 
     def _make_residual_block(self, D, A, inplanes, outplanes, nstage, is_up=False, k=1, dilation=1):
         layers = []
@@ -89,7 +100,7 @@ class Fish(ME.MinkowskiNetwork):
         if not no_sampling and is_down_sample:
             sample_block.append(self.down_sample)
         elif not no_sampling:  # Up-Sample
-            sample_block.append(self.upsample(in_channels=outplanes, out_channels=outplanes, kernel_size=2, stride=2, dimension=D))
+            sample_block.append(nn.Sequential(self.upsample(in_channels=outplanes, out_channels=outplanes, kernel_size=2, stride=2, dimension=D)))
 
         return nn.ModuleList(sample_block)
 
@@ -130,6 +141,7 @@ class Fish(ME.MinkowskiNetwork):
                 sample_block.extend(self._make_score(D, A, cur_planes + trans_planes, out_ch=self.num_cls, has_pool=True))
             elif i == self.num_down:
                 sample_block.append(nn.Sequential(self._make_se_block(D, A, cur_planes*2, cur_planes)))
+#                 sample_block.append(self._make_se_block(D, A, cur_planes*2, cur_planes))
 
             if i == self.num_down-1:
                 cated_planes[i] = cur_planes * 2
@@ -177,6 +189,7 @@ class Fish(ME.MinkowskiNetwork):
                 sample_block.extend(self._make_score(D, A, cur_planes + trans_planes, out_ch=self.num_cls, has_pool=True))
             elif i == self.num_down:
                 sample_block.append(nn.Sequential(self._make_se_block(D, A, cur_planes*2, cur_planes)))
+#                 sample_block.append(self._make_se_block(D, A, cur_planes*2, cur_planes))
 
             if i == self.num_down-1:
                 cated_planes[i] = cur_planes * 2
@@ -187,57 +200,109 @@ class Fish(ME.MinkowskiNetwork):
             fish.append(sample_block)
         return nn.ModuleList(fish)
     
-    def _fish_forward(self, all_feat_x, all_feat_y):
-        def _concat(a, b):
-            return torch.cat([a, b], dim=1)
-
+    def _fish_forward(self, all_feat):
         def stage_factory(*blks):
-            def stage_forward(*inputs):
-                if stg_id < self.num_down:  # tail
+            def stage_forward(*inputs):             
+                if stg_id < self.num_down:  # tail 
                     tail_blk = nn.Sequential(*blks[:2])
                     return tail_blk(*inputs)
-                elif stg_id == self.num_down:
+                
+                elif stg_id == self.num_down: #last downward step of model
                     score_blks = nn.Sequential(*blks[:2])
                     score_feat = score_blks(inputs[0])
+                    print("score_feat stride tensor size before =", score_feat.coordinate_map_key.get_tensor_stride())
                     att_feat = blks[3](score_feat)
-                    return blks[2](score_feat) * att_feat + att_feat
-                else:  # refine
+                    score_feat = blks[2](score_feat)
+                    print("score feat stride tensor size after =", score_feat.coordinate_map_key.get_tensor_stride())
+                    print("att feat stride tensor size =", att_feat.coordinate_map_key.get_tensor_stride())
+                    
+                    # should be numebr of images times numnber of channels
+                    # we want att_feat to be the dense tensor which is an attention weight of each channels
+                    print("last downward step of model")
+                    print("att feat size = ", att_feat.size())
+                    
+                    # tmp is a dense tensor, just the feature componenet
+                    tmp = torch.cat( [t * att_feat.F[i,:] + att_feat.F[i,:] for i, t in enumerate(score_feat.decomposed_features)], dim=0)
+
+                    # ret has the feature component with the coordinate tensor from the original
+                    ret = ME.SparseTensor(features=tmp, coordinate_map_key=score_feat.coordinate_map_key, coordinate_manager=score_feat.coordinate_manager)
+                    print("shape of ret =", ret.size())
+                    print("stride tensor of ret =", ret.coordinate_map_key.get_tensor_stride())
+                    print("\n")
+                    return ret
+                
+                elif stg_id <= self.num_down + self.num_up: 
+                    print("upward step in second block")
                     feat_trunk = blks[2](blks[0](inputs[0]))
                     feat_branch = blks[1](inputs[1])
-                return _concat(feat_trunk, feat_branch)
+                    print("This is feat trunk size ", feat_trunk.size())
+                    print("This is feat trunk stride tensor =", feat_trunk.coordinate_map_key.get_tensor_stride())
+                    print("This is feat branch size ", feat_branch.size())
+                    print("This is feat branch stride tensor =", feat_branch.coordinate_map_key.get_tensor_stride())
+                    print("\n")
+                    ret = ME.cat(feat_trunk, feat_branch)
+                    print("size of ret = ", ret.size())
+                    print("stride tensor of ret =", ret.coordinate_map_key.get_tensor_stride())    
+                    return ret
+                
+                else:  # refine
+                    print("upward step in second block")
+                    feat_trunk = blks[2](blks[0](inputs[0]))
+                    return feat_trunk
+#                     return _concat(feat_trunk, feat_branch)
             return stage_forward
 
         stg_id = 0
         # tail:
         while stg_id < self.depth:
-            while stg_id < (self.num_down + self.num_up):
+            if stg_id <= self.num_down + self.num_up:
                 stg_blk_body_x = stage_factory(*self.body_x[stg_id])
                 stg_blk_body_y = stage_factory(*self.body_y[stg_id])
+                print("stg_id =", stg_id)
+                print("self.depth =", self.depth)
+                
                 if stg_id <= self.num_down:
-                    in_feat_x = [all_feat_x[stg_id]]
-                    in_feat_y = [all_feat_y[stg_id]]
+                    # in feat is 2 x 2 
+                    in_feat = [[all_feat[stg_id][0]], [all_feat[stg_id][1]]]
+                    
                 else:
                     trans_id = self.trans_map[stg_id-self.num_down-1]
-                    in_feat_x = [all_feat_x[stg_id], all_feat_x[trans_id]]
-                    in_feat_y = [all_feat_y[stg_id], all_feat_y[trans_id]]
+                    # this is what defines inputs[0] and inputs[1]
+                    in_feat = [ [ all_feat[stg_id][0], all_feat[trans_id][0] ], [all_feat[stg_id][1], all_feat[trans_id][1] ] ]
+                    
+                all_feat[stg_id+1] = [ stg_blk_body_x(*in_feat[0]), stg_blk_body_y(*in_feat[1]) ]
+            
+            else:
+                stg_blk_head = stage_factory(*self.head[stg_id - (self.num_down + self.num_up)])
+                trans_id = self.trans_map[stg_id-self.num_down-1]
 
-                all_feat_x[stg_id + 1] = stg_blk_body_x(*in_feat_x)
-                all_feat_y[stg_id + 1] = stg_blk_body_y(*in_feat_y)
-                stg_id += 1
+                if stg_id == self.num_down + self.num_up + 1:
+#                     in_feat = [ self._union(*all_feat[stg_id]), self._union(*all_feat[trans_id]) ]
+                    in_feat = [ self._union(*all_feat[stg_id])]
+                    
+                else:
+                    # this is what defines inputs[0] and inputs[1]
+                    # second element is still doing a union for skip connections 
+                    # but no union the input of the first layer
+#                     in_feat = [ all_feat[stg_id], self._union(*all_feat[trans_id]) ]
+                    in_feat = [all_feat[stg_id]]
+                    
+                # adding skip connections
+                all_feat[stg_id + 1] = stg_blk_head(*in_feat)
+                
+            stg_id += 1
 
-            if stg_id < 7:
-                all_feat = self.union(all_feat_x, all_feat_y)
-            elif stg_id == self.depth:
+            if stg_id == self.depth:
                 score_feat = self.head[self.depth-1][-2](all_feat[-1])
                 score = self.head[self.depth-1][-1](score_feat)
                 return score
+            
+            # all feat is a 2 element list where first is x and y
 
     def forward(self, x, y):
-        all_feat_x = [None] * (self.depth + 1)
-        all_feat_y = [None] * (self.depth + 1)
-        all_feat_x[0] = x
-        all_feat_y[0] = y
-        return self._fish_forward(all_feat_x, all_feat_y)
+        all_feat = [None] * (self.depth + 1)
+        all_feat[0] = [x, y]
+        return self._fish_forward(all_feat)
 
     
 class FishNet(ME.MinkowskiNetwork):
@@ -272,7 +337,8 @@ class FishNet(ME.MinkowskiNetwork):
 
     def forward(self, x, device="cuda"):
         xview = ME.SparseTensor(x[0], x[1], device=device)
-        yview = ME.SparseTensor(x[2], x[3], device=device, coordinate_manager=xview.coordinate_manager)
+        yview = ME.SparseTensor(x[2], x[3], device=device)
+#         yview = ME.SparseTensor(x[2], x[3], device=device, coordinate_manager=xview.coordinate_manager)
 #         print(xview.size())
 #         print(xview.C.shape)
 #         print(yview.size())

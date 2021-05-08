@@ -17,29 +17,14 @@ parser.add_argument('config', nargs='?', default='/scratch/SparseNOvA/config/spa
 with open(parser.parse_args().config) as f:
   config = yaml.load(f, Loader=yaml.FullLoader)
 
-# Here we load the dataset and the trainer, which is responsible for building the model and overseeing training. There's a block of code which is responsible for slicing the full dataset up into a training dataset and a validation dataset where jitter is applied to training dataset only.
-all_nus = sorted(glob(f'{config["data"]["filedir"]}/nu/*.pt'))
-all_cosmics = sorted(glob(f'{config["data"]["filedir"]}/cosmic/*.pt'))
+full_dataset = datasets.get_dataset(**config['data'])
 
-if len(all_cosmics) > int(0.1 * len(all_nus)):
-    all_cosmics = all_cosmics[0:int(0.1*len(all_nus))]
+fulllen = len(full_dataset)
+tv_num = math.ceil(fulllen*config['data']['t_v_split'])
+splits = np.cumsum([fulllen-tv_num,0,tv_num])
 
-fulllen_nu = len(all_nus)
-fulllen_cosmic = len(all_cosmics)
-
-tv_num_nu = math.ceil(fulllen_nu*config['data']['t_v_split'])
-tv_num_cosmic = math.ceil(fulllen_cosmic*config['data']['t_v_split'])
-
-splits_nu = np.cumsum([fulllen_nu - tv_num_nu, 0, tv_num_nu])
-splits_cos = np.cumsum([fulllen_cosmic - tv_num_cosmic, 0, tv_num_cosmic])
-
-train_files = all_nus[0:splits_nu[1]] + all_cosmics[0:splits_cos[1]]
-train_files.sort(key = lambda x: osp.basename(x))  
-train_dataset = datasets.get_dataset(filelist=train_files, apply_jitter=True, **config['data'])
-
-valid_files = all_nus[splits_nu[1]:splits_nu[2]] + all_cosmics[splits_cos[1]:splits_cos[2]]
-valid_files.sort(key = lambda x: osp.basename(x))
-valid_dataset = datasets.get_dataset(filelist=valid_files, apply_jitter=False, **config['data'])
+train_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=0,stop=splits[0]))
+valid_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=splits[1],stop=splits[2]))
 
 # parameters = [sherpa.Continuous('learning_rate', [1e-5, 1e-1]), sherpa.Continuous('weight_decay', [0.01, 0.1]), sherpa.Discrete('unet_depth', [2, 6])]
 
@@ -48,10 +33,11 @@ trainer = Trainer(**config['trainer'])
 # alg = sherpa.algorithms.GPyOpt(max_num_trials=50)
 # study = sherpa.Study(parameters=parameters, algorithm=alg, lower_is_better=True, dashboard_port=8000)
 
-collate = getattr(utils, config['model']['collate'])
+collate_train = getattr(utils, config['model']['collate_train'])
+collate_valid = getattr(utils, config['model']['collate_valid'])
 
-train_loader = DataLoader(train_dataset, collate_fn=collate, **config['data_loader'], shuffle=True)
-valid_loader = DataLoader(valid_dataset, collate_fn=collate, **config['data_loader'], shuffle=False)
+train_loader = DataLoader(train_dataset, collate_fn=collate_train, **config['data_loader'], shuffle=True)
+valid_loader = DataLoader(valid_dataset, collate_fn=collate_valid, **config['data_loader'], shuffle=False)
 
 trainer.build_model(**config['model'])
 

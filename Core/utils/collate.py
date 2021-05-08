@@ -25,16 +25,23 @@ def collate_sparse_minkowski_panoptic(batch):
   ret = { 'f': feats, 'c': coords, 'y': y, 'chtm':chtm, 'offset':offset, 'medoids':medoids}
   return ret 
 
-def collate_sparse_minkowski_2stack(batch):
+def collate_minkowski_2stack(batch):
   import MinkowskiEngine as ME
   x_coords = ME.utils.batched_coordinates([d['xcoords'] for d in batch])
   x_feats  = torch.cat([d['xfeats'] for d in batch])
   y_coords = ME.utils.batched_coordinates([d['ycoords'] for d in batch])
   y_feats  = torch.cat([d['yfeats'] for d in batch])
-  y        = torch.stack([d['truth'] for d in batch])
+  y        = torch.cat([d['truth'] for d in batch])
   ret = { 'sparse': [x_feats, x_coords, y_feats, y_coords], 'y': y }
   return ret
 
+def collate_minkowski_2stack_jitter(batch):
+  import random
+  for d in batch:
+    scale = random.gauss(1, 0.1)
+    d['xfeats'] *= scale
+    d['yfeats'] *= scale
+  return collate_minkowski_2stack(batch)
 
 def collate_dense_2stack(batch):
   xview = torch.stack([ x[0] for x in batch ])

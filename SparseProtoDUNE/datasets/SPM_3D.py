@@ -6,6 +6,7 @@ from glob import glob
 from functools import partial
 import os, os.path as osp, logging, uproot, torch, multiprocessing as mp, numpy as np
 from .SegTruth import SegTruth
+from .SegTruth_atmo import SegTruth_atmo
 from .InstanceTruth import *
 from time import time
 
@@ -38,24 +39,26 @@ class SparsePixelMap3D(Dataset):
     return len(self.data_files)
 
   def __getitem__(self, idx):
-    enable_panoptic_seg = False
+    enable_panoptic_seg = True
     data = torch.load(self.data_files[idx])
     x = torch.FloatTensor(data['x'])
     y = torch.FloatTensor(data['y'])
     if enable_panoptic_seg == False:
       c = torch.LongTensor(data['c'])
       del data
-      return { 'x': x, 'c': c, 'y': y}# 'chtm': chtm}
+      return { 'x': x, 'c': c, 'y': y}
     else:
       c = torch.IntTensor(data['c']) 
       chtm = torch.FloatTensor(data['chtm'])
       offset = torch.FloatTensor(data['offset'])
+      medoids = torch.IntTensor(data['medoids'])
+      voxId = torch.IntTensor(data['voxId'])
       del data
-      return { 'x': x, 'c': c, 'y': y, 'chtm': chtm, 'offset':offset}
+      return { 'x': x, 'c': c, 'y': y, 'chtm': chtm,  'medoids':medoids, 'offset':offset, 'voxId':voxId} 
     #Mix kaons and hip
    # y = np.array(data['y']) 
    # y = np.hstack((y[:,:2], (y[:,2:3] + y[:,4:5]) ,y[:,3:4], y[:,5:]) )
-   
+  
   def vet_files(self):
     for f in self.data_files:
       _, ext = osp.splitext(f)
@@ -78,6 +81,9 @@ class SparsePixelMap3D(Dataset):
 
     # Loop over pixel maps in file
     for idx in range(len(feats)):
+        fname = f'pdune_{uuid}_{idx}.pt'
+        if fname in self.processed_dir: continue
+        
         coords[idx] = np.array(coords[idx])
         feats[idx] = np.array(feats[idx])
        # if idx !=4: continue 
@@ -141,12 +147,14 @@ class SparsePixelMap3D(Dataset):
         p = [process[key] for key in coordinates if truth[key].sum()>0]
         if x.max() > 1: print('Feature greater than one at ', x.argmax())
         
-        medoids, chtm, offset =  get_InstanceTruth(c,voxId)
-        
+        medoids, chtm, offset =  get_InstanceTruth(c,voxId,3)
+      
+        # skip events with no medoids
         data = { 'c': c, 'x': x.float(), 'y': y, 'p':p, 'voxId': voxId, 'medoids':medoids, 'offset': offset, 'chtm':chtm}
-        fname = f'pdune_{uuid}_{idx}.pt'
-        logging.info(f'Saving file {fname} with {c.shape[0]} voxels.')
-        torch.save(data, f'{self.processed_dir}/{fname}')
+        if medoids.shape[0] ==0: continue 
+        if fname not in self.processed_dir:
+          logging.info(f'Saving file {fname} with {c.shape[0]} voxels.')
+          torch.save(data, f'{self.processed_dir}/{fname}')
 
       #except:
       #  logging.info(f'Exception occurred during processing of event {idx} in file {filename}! Skipping.')

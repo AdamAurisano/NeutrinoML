@@ -22,7 +22,8 @@ def collate_sparse_minkowski_panoptic(batch):
   chtm = torch.cat([d['chtm'] for d in batch])
   offset =torch.cat([d['offset'] for d in batch])
   medoids =torch.cat([d['medoids'] for d in batch])
-  ret = { 'f': feats, 'c': coords, 'y': y, 'chtm':chtm, 'offset':offset, 'medoids':medoids}
+  voxId =torch.cat([d['voxId'] for d in batch])
+  ret = { 'f': feats, 'c': coords, 'y': y, 'chtm':chtm, 'offset':offset, 'medoids':medoids, 'voxId':voxId}
   return ret 
 
 def collate_minkowski_2stack(batch):

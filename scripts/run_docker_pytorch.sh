@@ -30,7 +30,7 @@ if [ "$2" == "protodune" ]; then
   datadir=/raid/hewesje/protodune_sparse
   exptport=0
 elif [ "$2" == "nova" ]; then
-  container=nvcr.io/univcinci/pytorch-neutrinoml:1.7-sparse
+  container=nvcr.io/univcinci/pytorch-neutrinoml:1.7-sparse-test
   datadir=/raid/nova
   exptport=1
 elif [ "$2" == "dunegraph" ]; then

@@ -149,8 +149,11 @@ class Trainer(base):
         if len(state_files) > 1:
           raise Exception(f"More than one state file found for epoch {self.first_epoch}!")
         elif len(state_files) == 0:
-          self.logger.info(f"Resuming training from epoch {self.first_epoch}.")
-          self.load_state_dict(state_dict)
+          if state_dict is not None:
+            self.logger.info(f"Resuming training from epoch {self.first_epoch}.")
+            self.load_state_dict(state_dict)
+          else:
+            self.logger.info("No state dicts found to resume training - starting from scratch.")
           break
         state_dict = state_files[0]
         self.first_epoch += 1

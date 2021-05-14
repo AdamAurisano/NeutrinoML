@@ -69,6 +69,7 @@ class ClassificationMetrics(MetricsBase):
 
     metrics["memory/cpu"] = float(psutil.virtual_memory().used) / float(1073741824)
     metrics["memory/gpu"] = float(tc.memory_reserved(y_pred.device)) / float(1073741824)
+    metrics["memory/gpu_max"] = float(tc.max_memory_allocated(y_pred.device)) / float(1073741824)
 
     self.train_end = time.time()
 

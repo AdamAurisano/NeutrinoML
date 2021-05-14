@@ -10,7 +10,6 @@ class GraphMetrics(MetricsBase):
   """Class for calculating training metrics for a graph network"""
   def __init__(self, class_names):
     self.class_names = class_names
-    self.gpu_max = 0
     self.new_epoch()
 
   @property
@@ -77,9 +76,7 @@ class GraphMetrics(MetricsBase):
 
       metrics["memory/cpu"] = float(psutil.virtual_memory().used) / float(1073741824)
       metrics["memory/gpu"] = float(tc.memory_reserved(y_pred.device)) / float(1073741824)
-      if metrics["memory/gpu"] > self.gpu_max:
-        self.gpu_max = metrics["memory/gpu"]
-      metrics["memory/gpu_max"] = self.gpu_max
+      metrics["memory/gpu_max"] = float(tc.max_memory_allocated(y_pred.device)) / float(1073741824)
 
       self.train_end = time.time()
 

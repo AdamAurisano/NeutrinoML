@@ -27,7 +27,7 @@ class Trainer(base):
   def __init__(self, train_name="test1", summary_dir="summary",
     empty_cache = None, **kwargs):
     super(Trainer, self).__init__(train_name=train_name, **kwargs)
-    self.writer = SummaryWriter(f"{summary_dir}/{train_name}")
+    self.summary_dir = f"{summary_dir}/{train_name}"
     self.empty_cache = empty_cache
 
   def build_model(self, activation_params, optimizer_params, scheduler_params,
@@ -159,6 +159,7 @@ class Trainer(base):
         self.first_epoch += 1
     n_batches = int(math.ceil(len(train_data_loader.dataset)/train_data_loader.batch_size))
     self.iteration = self.first_epoch * n_batches
+    self.writer = SummaryWriter(self.summary_dir, purge_step=self.iteration)
     for i in range(self.first_epoch, n_epochs):
       self.logger.info("Epoch %i" % i)
       self.writer.add_scalar("learning_rate", self.optimizer.param_groups[0]["lr"], i+1)

@@ -162,7 +162,6 @@ class Trainer(base):
     self.writer = SummaryWriter(self.summary_dir, purge_step=self.iteration)
     for i in range(self.first_epoch, n_epochs):
       self.logger.info("Epoch %i" % i)
-      self.writer.add_scalar("learning_rate", self.optimizer.param_groups[0]["lr"], i+1)
       summary = dict(epoch=i)
       # Train on this epoch
       sum_train = self.train_epoch(train_data_loader, **kwargs)
@@ -186,6 +185,7 @@ class Trainer(base):
       if self.output_dir is not None:
         self.write_checkpoint(checkpoint_id=i)
 
+      self.writer.add_scalar("learning_rate", self.optimizer.param_groups[0]["lr"], i+1)
       self.writer.add_scalars('loss/epoch', {
           'train': summary['train_loss'],
           'valid': summary['valid_loss'] }, i+1)

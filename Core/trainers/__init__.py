@@ -1,2 +1,2 @@
 from .trainer import Trainer
-from .trainerInsSeg import TrainerInsSeg
+from .trainer_panoptic_seg import TrainerPanopticSeg

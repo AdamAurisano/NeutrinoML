@@ -95,7 +95,7 @@ class SemanticSegmentationMetrics(MetricsBase):
         metrics = {}
         metrics['acc/epoch'] = {
             'train': 100 * self.train_correct / self.train_total,
-            'valid': 100 * self.valid_correct / self.valid_total
+            'valid': 100 * self.valid_correct / self.valid_total if self.valid_total >0 else 0
         }
         for i, name in enumerate(self.class_names):
             metrics[f'acc_class/epoch/{name}'] = {
@@ -104,7 +104,6 @@ class SemanticSegmentationMetrics(MetricsBase):
             }
         metrics['time/epoch'] = {
             'train': self.train_end - self.epoch_start,
-            'valid': self.valid_end - self.train_end
+            'valid': 0 #self.valid_end - self.train_end
         }
         return metrics
-

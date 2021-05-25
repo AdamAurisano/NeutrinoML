@@ -91,12 +91,11 @@ class SparsePixelMap3D(Dataset):
         # Get per-spacepoint ground truth
         start = time()
         m, y, p  = SegTruth(pix_pdg[idx], pix_id[idx], pix_proc[idx], pix_e[idx])
-        #print('m & y', len(m), len(y))
+       # print('m & y', len(m), len(y))
         logging.info(f'Ground truth calculating took {time()-start:.2f} seconds.')
 
         # Get a unique trackId list 
         trks, unique_tracks, counts = get_track_list(pix_pdg[idx], pix_id[idx], pix_e[idx])
-
        # Voxelise inputs
        
         coordinates = dict()
@@ -135,7 +134,6 @@ class SparsePixelMap3D(Dataset):
             features[vox][:3] += sp_feats
             features[vox][6] += 1
             truth[vox] += sp_truth
-
         logging.info(f'Voxelising took {time()-start:.2f} seconds.')
 
         voxId = [instanceId[key].item() for key in coordinates if truth[key].sum()>0]
@@ -146,12 +144,12 @@ class SparsePixelMap3D(Dataset):
         y = torch.FloatTensor([truth[key]/truth[key].sum() for key in coordinates if truth[key].sum()>0])
         p = [process[key] for key in coordinates if truth[key].sum()>0]
         if x.max() > 1: print('Feature greater than one at ', x.argmax())
-        
-        medoids, chtm, offset =  get_InstanceTruth(c,voxId,3)
-      
+        medoids, chtm, offset =  get_InstanceTruth(c,voxId,8)
+       
+        if len(medoids) ==0:  continue
         # skip events with no medoids
         data = { 'c': c, 'x': x.float(), 'y': y, 'p':p, 'voxId': voxId, 'medoids':medoids, 'offset': offset, 'chtm':chtm}
-        if medoids.shape[0] ==0: continue 
+        
         if fname not in self.processed_dir:
           logging.info(f'Saving file {fname} with {c.shape[0]} voxels.')
           torch.save(data, f'{self.processed_dir}/{fname}')

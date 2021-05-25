@@ -6,7 +6,7 @@ def GetShowers(pdg, trackId):
   em_particles = [ abs(it1_id) for it2_pdg, it2_id in zip(pdg, trackId) for it1_pdg, it1_id in zip(it2_pdg, it2_id) if abs(it1_pdg) == 11 or it1_pdg == 22 ]
   unique = set(em_particles)
   count = { u: em_particles.count(u) for u in unique }
-  return tuple(key for key, val in count.items() if val > 50)
+  return tuple(key for key, val in count.items() if val > 45)
 
 def SegTruth(pdg, trackId, process, energy):
 
@@ -26,13 +26,13 @@ def SegTruth(pdg, trackId, process, energy):
           y_true[idx,1] += energy[idx][jdx]
           proc[idx,1] =  str(process[idx][jdx])
         # Showers
-        if abs(pdg[idx][jdx]) == 11:  
+        elif abs(pdg[idx][jdx]) == 11:  
           if abs(trackId[idx][jdx]) in showers:
-            if process[idx][jdx]==b'phot' or process[idx][jdx]==b'eIoni' or process[idx][jdx]==b'conv' or process[idx][jdx]==b'compt':
+            if process[idx][jdx]=='phot' or process[idx][jdx]=='eIoni' or process[idx][jdx]=='conv' or process[idx][jdx]=='compt':
               y_true[idx,0] += energy[idx][jdx]
               proc[idx,0] = str(process[idx][jdx])
         # Delta rays
-            elif process[idx][jdx]==b'muIoni':
+            elif process[idx][jdx]=='muIoni':
               y_true[idx,1] += energy[idx][jdx]
               proc[idx,1] =  str(process[idx][jdx])
         # Diffuse energy depositions
@@ -48,7 +48,7 @@ def SegTruth(pdg, trackId, process, energy):
           y_true[idx,4] += energy[idx][jdx]
           proc[idx,4] = str(process[idx][jdx])
         # Highly ionising particles
-        elif abs(pdg[idx][jdx] == 321) or PDGID(pdg[idx][jdx]).is_nucleus == True or 'Sigma' in Particle.from_pdgid(pdg[idx][jdx]).name:
+        elif PDGID(pdg[idx][jdx]).is_nucleus == True or 'Sigma' in Particle.from_pdgid(pdg[idx][jdx]).name:
           y_true[idx,5] += energy[idx][jdx]
           proc[idx,5] = str(process[idx][jdx])
         # Muons

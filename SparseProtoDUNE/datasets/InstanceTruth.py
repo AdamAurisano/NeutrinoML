@@ -3,8 +3,7 @@ import logging, numpy as np
 from particle import PDGID, Particle
 import math
 
-def get_track_list(pdg, trackId, ener, coo): 
-  coo = np.array(coo)
+def get_track_list(pdg, trackId, ener): 
   points = []
   tracks = np.ones([len(pdg)], dtype=np.float32)*(-1)
   energy   = np.zeros([len(pdg)], dtype=np.float32)
@@ -32,8 +31,8 @@ def gauss_pdf(c,sigmainv,mu,dim=3):
     prob.append(f)
   return prob
 
-def get_InstanceTruth(c,voxid):
-  sigma = np.identity(3)*8
+def get_InstanceTruth(c,voxid,width):
+  sigma = np.identity(3)*width
   sigmainv = np.linalg.inv(sigma)
   medoids = []
   offset = np.ones((c.shape[0],c.shape[1]))*(-1)
@@ -42,11 +41,15 @@ def get_InstanceTruth(c,voxid):
   for p in np.unique(u[1:]): # start from 1 to avoid background voxels 
     mask = voxid ==p 
     ci = c[mask]
+    a = np.zeros(ci.shape[0])
     l = tuple(np.linalg.norm((k -ci),axis=1).sum() for k in ci)
     ind = l.index((min(l)))
     medoids.append(np.array(ci[ind]))
     Off = tuple(np.array(k-ci[ind]) for k in ci)
     chtm[mask]= gauss_pdf(ci,sigmainv,ci[ind])
+    #a[ind] = 1
+    #chtm[mask] = a 
     offset[mask] = Off
-
-  return medoids, chtm, offset
+  chtm = chtm.reshape([chtm.shape[0],1])
+  chtm = chtm/(chtm.max().item())
+  return np.array(medoids), chtm, offset

@@ -1,5 +1,5 @@
 data:
-  name: 'SparsePixelMapNOvA'
+  name: 'SparsePixelMapNOvAFull'
   filename: '/data/mp5/cvnmap.parquet'
   t_v_split: 0.05
 

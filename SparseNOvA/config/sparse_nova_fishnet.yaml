@@ -1,6 +1,6 @@
 data:
   name: 'SparsePixelMapNOvA'
-  filename: '/data/mp5/cvnmap.parquet'
+  filedir: '/data/mp5/preselection_cvnmap'
   t_v_split: 0.05
 
 model:
@@ -10,8 +10,7 @@ model:
     func: 'CrossEntropyLoss'
   arrange_data: 'arrange_sparse_minkowski_2stack'
   arrange_truth: 'sparse_semantic_truth'
-  collate_train: 'collate_minkowski_2stack_jitter'
-  collate_valid: 'collate_minkowski_2stack'
+  collate: 'collate_sparse_minkowski_2stack'
 
   network_planes: [64, 128, 256, 512, 512, 512, 384, 256, 320, 832, 1600]
   num_res_blks: [2, 4, 8, 4, 2, 2, 2, 2, 2, 4]
@@ -52,7 +51,7 @@ model:
       factor: 0.5
       patience: 3
     StepLR:
-      step_size: 5
+      step_size: 3
       gamma: 0.8
 
   metric_params:
@@ -62,18 +61,18 @@ model:
       class_names: ['numu','nue','nc','cosmic']
 
 data_loader:
-  batch_size: 128
-  num_workers: 3
+  batch_size: 1024
+  num_workers: 5
 
 trainer:
   benchmark: False
-  device: 1 # Which GPU to use
+  device: 7 # Which GPU to use
   n_epochs: 50
   empty_cache: 1 # How many iterations between calls to empty GPU memory cache
   max_iters_train: None
   max_iters_eval:  None
-  train_name:  'Patience_3'
-  summary_dir: '/scratch/SparseNOvA/summary/preselection/bestparam/mobile_net/Minkowski_union/cvnmap/batchsize128/SGD/Mish/ReducedLROnPlateau/'
+  train_name:  'fishnet5'
+  summary_dir: '/scratch/SparseNOvA/summary'
   output_dir:  '/scratch/SparseNOvA/params'
   resume: True
 

@@ -106,8 +106,9 @@ class SparsePixelMap3D(Dataset):
         centroids = dict()
 
         # Transform spacepoint positions
-        transform = np.array([800, -6.5, 0])
-        pos = np.array(coords[idx])[m,:] + transform[None,:]
+        #transform = np.array([800, -6.5, 0])
+        #pos = np.array(coords[idx])[m,:] + transform[None,:]
+        pos = np.array(coords[idx)[m,:]
         w = np.zeros([len(coords[idx]),1], dtype=np.float32)  #trackID/voxel
                                                                     #0 is the label for background (bk: deltar ray,  diffuse, michel
                                                                     # and showers for now) 

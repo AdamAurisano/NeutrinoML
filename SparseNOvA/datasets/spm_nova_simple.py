@@ -26,5 +26,9 @@ class SparsePixelMapNOvA(Dataset):
             scale = random.gauss(1, 0.1)
             data['xfeats'] *= scale
             data['yfeats'] *= scale
+        
+        if self.normalize_coord:
+            norm = torch.tensor([100, 80]).float()    
+            data['xcoords'] = data['xcoords'].float() / norm 
 
         return data

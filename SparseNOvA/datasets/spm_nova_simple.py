@@ -31,5 +31,6 @@ class SparsePixelMapNOvA(Dataset):
         if self.normalize_coord:
             norm = torch.tensor([100, 80]).float()    
             data['xcoords'] = data['xcoords'].float() / norm 
-
+            data['ycoords'] = data['ycoords'].float() / norm 
+        
         return data

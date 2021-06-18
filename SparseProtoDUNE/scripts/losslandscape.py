@@ -8,7 +8,7 @@ import yaml, argparse, logging, math, numpy as np, sys
 if '/scratch' not in sys.path: sys.path.append('/scratch')
 from SparseProtoDUNE import datasets
 from Core import utils
-import torch
+import torch, loss_landscapes
 from torch.utils.data import DataLoader
 import MinkowskiEngine as ME
 
@@ -44,14 +44,18 @@ def main():
   splits = np.cumsum([fulllen-tv_num,0,tv_num])
 
   train_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=0,stop=splits[0]))
-  valid_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=splits[1],stop=splits[2]))
   train_loader = DataLoader(train_dataset, collate_fn=collate, **config['data_loader'], shuffle=True, pin_memory=True)
-  valid_loader = DataLoader(valid_dataset, collate_fn=collate, batch_size=1, shuffle=False)
 
   trainer.build_model(**config['model'])
-  train_summary = trainer.train(train_loader, valid_data_loader=valid_loader, **config['trainer'])
-  print(train_summary)
-  torch.save(train_summary, 'summary_test.pt')
+  trainer.load_state_dict(**config['inference'])
+
+  STEPS=40
+
+  print(iter(train_loader).__next__())
+  x, y = iter(train_loader).__next__())
+  metric = loss_landscapes.metrics.Loss(model.loss_func, x, y)
+  loss_data_fin = loss_landscapes.random_plane(trainer.model, metric, 10, STEPS, normalization='filter', deepcopy_model=True)
+  torch.save(loss_data_fin, 'losslandscape.pt')
 
 if __name__ == '__main__':
   main()

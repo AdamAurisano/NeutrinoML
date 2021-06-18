@@ -8,10 +8,11 @@ import random
 from Core import utils
 
 class SparsePixelMapNOvA(Dataset):
-    def __init__(self, filelist, apply_jitter, **kwargs):
+    def __init__(self, filelist, apply_jitter, normalize_coord, **kwargs):
         '''Initialiser for SparsePixelMapNOvA class'''
         self.files = filelist
         self.apply_jitter = apply_jitter
+        self.normalize_coord = normalize_coord
         
     def __len__(self):
         return len(self.files)
@@ -26,5 +27,10 @@ class SparsePixelMapNOvA(Dataset):
             scale = random.gauss(1, 0.1)
             data['xfeats'] *= scale
             data['yfeats'] *= scale
-
+        
+        if self.normalize_coord:
+            norm = torch.tensor([100, 80]).float()    
+            data['xcoords'] = data['xcoords'].float() / norm 
+            data['ycoords'] = data['ycoords'].float() / norm 
+        
         return data

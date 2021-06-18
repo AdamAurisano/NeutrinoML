@@ -35,11 +35,11 @@ splits_cos = np.cumsum([fulllen_cosmic - tv_num_cosmic, 0, tv_num_cosmic])
 
 train_files = all_nus[0:splits_nu[1]] + all_cosmics[0:splits_cos[1]]
 train_files.sort(key = lambda x: osp.basename(x))  
-train_dataset = datasets.get_dataset(filelist=train_files, apply_jitter=True, **config['data'])
+train_dataset = datasets.get_dataset(filelist=train_files, apply_jitter=True, normalize_coord=True, **config['data'])
 
 valid_files = all_nus[splits_nu[1]:splits_nu[2]] + all_cosmics[splits_cos[1]:splits_cos[2]]
 valid_files.sort(key = lambda x: osp.basename(x))
-valid_dataset = datasets.get_dataset(filelist=valid_files, apply_jitter=False, **config['data'])
+valid_dataset = datasets.get_dataset(filelist=valid_files, apply_jitter=False, normalize_coord=True, **config['data'])
 
 # parameters = [sherpa.Continuous('learning_rate', [1e-5, 1e-1]), sherpa.Continuous('weight_decay', [0.01, 0.1]), sherpa.Discrete('unet_depth', [2, 6])]
 

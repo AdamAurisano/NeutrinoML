@@ -28,7 +28,7 @@ def main():
   '''Main function'''
   args = parse_args()
   config = configure(args.config)
-  full_dataset = datasets.get_dataset(**config['data'])
+  full_dataset = datasets.get_dataset(**config['data'], device=config['trainer']['device'])
   if config['model']['instance_segmentation']:
     from Core.trainers.trainerInsSeg import TrainerInsSeg
     trainer = TrainerInsSeg(**config['trainer'])
@@ -38,23 +38,25 @@ def main():
     trainer = Trainer(**config['trainer'])
     collate = utils.collate_sparse_minkowski
 
-  print(collate)
   fulllen = len(full_dataset)
   tv_num = math.ceil(fulllen*config['data']['t_v_split'])
   splits = np.cumsum([fulllen-tv_num,0,tv_num])
 
   train_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=0,stop=splits[0]))
-  train_loader = DataLoader(train_dataset, collate_fn=collate, **config['data_loader'], shuffle=True, pin_memory=True)
+  train_loader = DataLoader(train_dataset, collate_fn=collate, **config['data_loader'], shuffle=True)
 
   trainer.build_model(**config['model'])
-  trainer.load_state_dict(**config['inference'])
+
+  model = trainer.model
+  model.load_state_dict(torch.load(config['inference']['state_dict'])["model"])
+  model = model.to('cpu')
+  #trainer.load_state_dict(**config['inference'])
 
   STEPS=40
 
-  print(iter(train_loader).__next__())
-  x, y = iter(train_loader).__next__())
-  metric = loss_landscapes.metrics.Loss(model.loss_func, x, y)
-  loss_data_fin = loss_landscapes.random_plane(trainer.model, metric, 10, STEPS, normalization='filter', deepcopy_model=True)
+  x, y = iter(train_loader).__next__()
+  metric = loss_landscapes.metrics.Loss(trainer.loss_func, ME.SparseTensor(x[0], x[1], device='cpu'), y.to('cpu'))
+  loss_data_fin = loss_landscapes.random_plane(model, metric, 10, STEPS, normalization='filter')#, deepcopy_model=True)
   torch.save(loss_data_fin, 'losslandscape.pt')
 
 if __name__ == '__main__':

@@ -6,15 +6,16 @@ from glob import glob
 from functools import partial
 import os, os.path as osp, logging, uproot, torch, multiprocessing as mp, numpy as np
 from .SegTruth import SegTruth
-from .SegTruth_atmo import SegTruth_atmo
+#from .SegTruth_atmo import SegTruth_atmo
 from .InstanceTruth import *
 from time import time
 
 class SparsePixelMap3D(Dataset):
-  def __init__(self, root, trainfiles, **kwargs):
+  def __init__(self, root, trainfiles, device, **kwargs):
     self.root = root
     self.trainfiles = trainfiles
     self.data_files = self.processed_file_names
+    self.device = device
 
   @property
   def raw_dir(self):
@@ -39,14 +40,17 @@ class SparsePixelMap3D(Dataset):
     return len(self.data_files)
 
   def __getitem__(self, idx):
-    enable_panoptic_seg = True
+    enable_panoptic_seg = False
     data = torch.load(self.data_files[idx])
-    x = torch.FloatTensor(data['x'])
-    y = torch.FloatTensor(data['y'])
-    if enable_panoptic_seg == False:
-      c = torch.LongTensor(data['c'])
+    x = torch.FloatTensor(data['x']).to(self.device)
+    y = torch.FloatTensor(data['y']).to(self.device)
+    if not enable_panoptic_seg:
+      c = torch.LongTensor(data['c'])#.to(self.device)
+      im = ( x, c )
+      ret = ( im, y )
       del data
-      return { 'x': x, 'c': c, 'y': y}
+      return ret
+      #return { 'x': x, 'c': c, 'y': y}
     else:
       c = torch.IntTensor(data['c']) 
       chtm = torch.FloatTensor(data['chtm'])
@@ -108,7 +112,7 @@ class SparsePixelMap3D(Dataset):
         # Transform spacepoint positions
         #transform = np.array([800, -6.5, 0])
         #pos = np.array(coords[idx])[m,:] + transform[None,:]
-        pos = np.array(coords[idx)[m,:]
+        pos = np.array(coords[idx])[m,:]
         w = np.zeros([len(coords[idx]),1], dtype=np.float32)  #trackID/voxel
                                                                     #0 is the label for background (bk: deltar ray,  diffuse, michel
                                                                     # and showers for now) 

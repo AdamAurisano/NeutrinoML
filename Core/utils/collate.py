@@ -8,10 +8,12 @@ def collate_sparse(batch):
 
 def collate_sparse_minkowski(batch):
   import MinkowskiEngine as ME
-  coords = ME.utils.batched_coordinates([d['c'].int() for d in batch])
-  feats = torch.cat([d['x'] for d in batch])
-  y = torch.cat([d['y'] for d in batch])
-  ret = { 'f': feats, 'c': coords, 'y': y }
+  coords = ME.utils.batched_coordinates([x[1].int() for x, y in batch])
+  feats = torch.cat([x[0] for x, y in batch])
+  y = torch.cat([y for x, y in batch])
+  im = ( feats, coords )
+  ret = ( im, y )
+#  ret = { 'f': feats, 'c': coords, 'y': y }
   return ret
 
 def collate_sparse_minkowski_panoptic(batch):

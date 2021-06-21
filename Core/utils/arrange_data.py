@@ -6,7 +6,9 @@ def arrange_sparse(data, device):
 
 def arrange_sparse_minkowski(data, device):
     import MinkowskiEngine as ME
-    return ME.SparseTensor(data['f'], data['c'], device=device)
+    x, y = data
+    f, c = x
+    return ME.SparseTensor(f, c, device=device)
 
 def arrange_sparse_minkowski_2stack(data, device):
     return [

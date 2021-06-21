@@ -1,8 +1,10 @@
 import torch
 
-def arrange_sparse(data):
+def arrange_sparse(data, device):
     """Arrange ground truth for a batch of sparse pixel maps"""
-    return data["y"]
+    x, y = data
+    return y.to(device)
+    #return data["y"]
 
 def sparse_semantic_truth(data):
     """Arrange semantic segmentation ground truth for a batch of sparse pixel maps"""

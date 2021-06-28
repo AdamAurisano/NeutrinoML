@@ -25,15 +25,15 @@ else
   echo "Username not recognised! Ask to be added as a user before running Docker."
 fi
 
-container=nvcr.io/univcinci/pytorch-neutrinoml:1.8
+container=nvcr.io/univcinci/pytorch-neutrinoml:1.9
 if [ "$2" == "protodune" ]; then
   datadir=/raid/hewesje/protodune_sparse
   exptport=0
 elif [ "$2" == "nova" ]; then
   datadir=/raid/nova
   exptport=1
-elif [ "$2" == "dunegraph" ]; then
-  datadir=/raid/dune
+elif [ "$2" == "dune" ]; then
+  datadir=/raid/uboone
   exptport=2
 elif [ "$2" == "taurnn" ]; then
   datadir=/raid/taurnn
@@ -51,5 +51,5 @@ export JUPYTER_PORT=${PORT}0
 export SHERPA_PORT=${PORT}1
 export TENSORBOARD_PORT=${PORT}2
 
-nvidia-docker run --name ${USER}-${2}-${1} --expose=${PORT_RANGE} -p ${PORT_RANGE}:${PORT_RANGE} -e USER -e OMP_NUM_THREADS -e JUPYTER_PORT -e SHERPA_PORT -e TENSORBOARD_PORT -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v ${datadir}:/data --workdir /scratch $container
+nvidia-docker run --name ${USER}-${2}-${1} --expose=${PORT_RANGE} -p ${PORT_RANGE}:${PORT_RANGE} -e USER -e OMP_NUM_THREADS -e JUPYTER_PORT -e SHERPA_PORT -e TENSORBOARD_PORT -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v ${datadir}:/data -v /home/${USER}/pynuml:/numl --workdir /scratch $container
 

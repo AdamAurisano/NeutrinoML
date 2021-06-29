@@ -80,15 +80,7 @@ class TrainerPanopticSeg(base):
     batch_size = data_loader.batch_size
     n_batches = int(math.ceil(len(data_loader.dataset)/batch_size)) #if max_iters_train is None else max_iters_train
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
-    #saving values to standarize losses 
-    #ctr_loss = []
-    #off_loss = []
-    #sem_loss = []
-    # initial values 
-    #m_ctr , s_ctr = 0,1
-    #m_off , s_off = 20.75, 25.01
-    #m_sem , s_sem = 0,1
-    
+    #detector_extend = torch.FloatTensor([350,600,700]).to(self.device)
     #looping over batches
     for i, data in t:
       ## data files
@@ -101,20 +93,26 @@ class TrainerPanopticSeg(base):
       pred_htm = batch_output['center_pred'].F
       pred_semseg = batch_output['semantic_pred']
       pred_offset = batch_output['offset_pred'].F
+     # pred_offset = 2*(pred_offset-0.5)
       # targets
       batch_target = self.arrange_truth(data)
       true_htm = batch_target['ctr_htm'].to(self.device)
       scale  = 1/true_htm.max().item()
       true_htm *= scale 
       true_semseg = batch_target['sem_seg'].to(self.device) 
-      true_offset = batch_target['offset'].to(self.device)
-      
+      true_offset = (batch_target['offset']).to(self.device)
+      #true_offset = (1.429e-3*batch_target['offset']).to(self.device)
+
+
+     # print('pred', pred_offset)
+      bk_mask = batch_target['voxId'] != 0 
       #LOSS FUNCTIONS
       _sem_loss = self.semantic_loss(pred_semseg, true_semseg)
       _ctr_loss = self.ctr_loss(pred_htm, true_htm)
-      _offset_loss = 0.01*self.offset_loss(pred_offset, true_offset)
+      #_offset_loss = 150*self.offset_loss(pred_offset, true_offset)
+      _offset_loss = 5e-2*self.offset_loss(pred_offset[bk_mask], true_offset[bk_mask])
        
-      batch_loss = _ctr_loss + _offset_loss +  _sem_loss 
+      batch_loss = _offset_loss +_sem_loss  #_ctr_loss + _offset_loss +  _sem_loss 
        
       
       #back propagation and optimization 
@@ -126,7 +124,7 @@ class TrainerPanopticSeg(base):
       sum_sem_loss += _sem_loss.item() 
       sum_ctr_loss += _ctr_loss.item() 
       sum_offset_loss += _offset_loss.item() 
-      t.set_description("loss = %.5f" % batch_loss.item() )
+      t.set_description("loss = %.5f" % batch_loss.item())  #batch_loss.item() )
       t.refresh() # to show immediately the update
 
       # add to tensorboard summary
@@ -170,8 +168,8 @@ class TrainerPanopticSeg(base):
     batch_size = data_loader.batch_size
     n_batches = int(math.ceil(len(data_loader.dataset)/batch_size))
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
+    detector_extend = torch.FloatTensor([350,600,700]).to(self.device)
     for i, data in t:
-      #print('file ',data_loader.dataset.dataset.data_files[i])
       batch_input = self.arrange_data(data, self.device)
 
       #outputs 
@@ -179,29 +177,26 @@ class TrainerPanopticSeg(base):
       pred_htm = batch_output['center_pred'].F
       pred_semseg = batch_output['semantic_pred'] 
       pred_offset = batch_output['offset_pred'].F
+     # pred_offset = 2*(pred_offset-0.5)
       
       # targets
       batch_target = self.arrange_truth(data)
       true_htm = batch_target['ctr_htm'].to(self.device)
       true_htm *= (0.5*(true_htm.max().item())) 
       true_semseg = batch_target['sem_seg'].to(self.device) 
-      true_offset = batch_target['offset'].to(self.device)
-      
-
+      true_offset = (batch_target['offset']).to(self.device)
+      #true_offset = (1.429e-3*batch_target['offset']).to(self.device)
       #loss calculation 
       _sem_loss = self.semantic_loss(pred_semseg, true_semseg)
       _ctr_loss = self.ctr_loss(pred_htm, true_htm)
-      _offset_loss = 0.01*self.offset_loss(pred_offset, true_offset)
+      _offset_loss = 5e-2*self.offset_loss(pred_offset, true_offset)
 
       #if math.isnan(_distance_loss) or math.isnan(_center_loss):
       #    print('Nan distance loss', data_loader.dataset.dataset.data_files[i])
       #    bad_files(data_loader.dataset.dataset.data_files[i])
       #    continue 
-      # appliying distance loss on voxels with score > threshold  
-      #true_voxels = torch.nonzero(htm >_max*0.5)[:,0]
-      #_distance_loss = self.distance_loss(batch_output['center_pred'][true_voxels], htm[true_voxels])
 
-      batch_loss = _ctr_loss + _offset_loss +  _sem_loss # Panoptic Segmentation Model 
+      batch_loss = _offset_loss + _sem_loss  #_ctr_loss + _offset_loss +  _sem_loss # Panoptic Segmentation Model 
      
       sum_loss += batch_loss.item()
       sum_sem_loss += _sem_loss.item()
@@ -267,7 +262,7 @@ class TrainerPanopticSeg(base):
           self.write_checkpoint(checkpoint_id=i,best=True)
 
       if self.scheduler is not None:
-        self.scheduler.step(sum_valid['valid_loss'])
+        self.scheduler.step()
 
       # Save summary, checkpoint
       self.save_summary(summary)

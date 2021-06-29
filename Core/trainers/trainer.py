@@ -178,7 +178,7 @@ class Trainer(base):
           self.write_checkpoint(checkpoint_id=i,best=True)
 
       if self.scheduler is not None:
-        self.scheduler.step()
+        self.scheduler.step(sum_valid["valid_loss"])
 
       # Save summary, checkpoint
       self.save_summary(summary)

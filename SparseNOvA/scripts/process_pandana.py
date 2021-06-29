@@ -35,10 +35,13 @@ def kEnergy(tables):
 kEnergy = Var(kEnergy)
 def kMap(tables):
     return tables['rec.training.cvnmaps']['cvnmap']
+kMap = Var(kMap)
 def kObj(tables):
-    return tables['rec.training.cvnmapobj']['cvnmapobj']
+    return tables['rec.training.cvnmaps']['cvnobjmap']
+kObj = Var(kObj)
 def kLab(tables):
-    return tables['rec.training.cvnmaplab']['cvnmaplab']
+    return tables['rec.training.cvnmaps']['cvnlabmap']
+kLab = Var(kLab)
 if __name__ == '__main__':
     # Miniprod 5 h5s
     indir = sys.argv[1]
@@ -57,7 +60,7 @@ if __name__ == '__main__':
             continue
         # Make a loader and the two spectra to fill
         tables = loader([os.path.join(indir,f)])
-        specLab    = spectrum(tables, kCut, kLabel)
+        specLabel  = spectrum(tables, kCut, kLabel)
         specMap    = spectrum(tables, kCut, kMap)
         specSign   = spectrum(tables, kCut, kSign)
         specEnergy = spectrum(tables, kCut, kEnergy)
@@ -71,7 +74,7 @@ if __name__ == '__main__':
             continue
         # Concat the dataframes to line up label and map
         # join='inner' ensures there is both a label and a map for the slice
-        df = pd.concat([specLab.df(), specMap.df(), specSign.df(), specEnergy.df(), specObj.df(), specLab.df()], axis=1, join='inner').reset_index()
+        df = pd.concat([specLabel.df(), specMap.df(), specSign.df(), specEnergy.df(), specObj.df(), specLab.df()], axis=1, join='inner').reset_index()
         # Save in an h5
         hf = h5py.File(os.path.join(outdir,outname),'w')
         hf.create_dataset('run',       data=df['run'],         compression='gzip')
@@ -83,6 +86,6 @@ if __name__ == '__main__':
         hf.create_dataset('PDG',       data=df['pdg'],         compression='gzip')
         hf.create_dataset('E',         data=df['nuenergy'],    compression='gzip')
         hf.create_dataset('cvnmap',    data=np.stack(df['cvnmap']), compression='gzip')
-        hf.create_dataset('cvnmaplab', data=np.stack(df['cvnmaplab']), compression='gzip')
-        hf.create_dataset('cvnmapobj', data=np.stack(df['cvnmapobj']), compression='gzip')
+        hf.create_dataset('cvnlabmap', data=np.stack(df['cvnlabmap']), compression='gzip')
+        hf.create_dataset('cvnobjmap', data=np.stack(df['cvnobjmap']), compression='gzip')
         hf.close()

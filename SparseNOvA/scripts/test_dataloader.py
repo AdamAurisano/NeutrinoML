@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 
-import datasets
+import sys
+sys.path.append('/scratch')
+from SparseNOvA import datasets
 
-dataset = datasets.get_dataset(name='SparsePixelMapNOvA', filedir='/data/mp5')
+dataset = datasets.get_dataset(name='SparsePixelMapNOvA', filename='/data/mp5/cvnmap.parquet')
 
-print('Querying length... just returning a placeholder value for now:',len(dataset))
-
-print('Querying first element... just returning a placeholder value for now:', dataset[0])
+print(dataset[0])
+print(dataset.data.caches)
+print(dataset[100])
+print(dataset.data.caches)
 

@@ -15,9 +15,10 @@ class SimpleDataset(tg.data.Dataset):
         start = time()
         filename = self.trainfiles[int(idx)]
         data = torch.load(filename)
-        data['x'] = torch.tensor(data['x']).float()
-        if type(data.edge_index) is not torch.Tensor:
-            data['edge_index'] = torch.tensor(data.edge_index)
-        data['edge_index'] = data.edge_index.long()
-        data['y'] = torch.tensor(data['y']).long()
+        data = tg.data.Data(**data)
+        #data['x'] = torch.tensor(data['x']).float()
+        #if type(data.edge_index) is not torch.Tensor:
+        #    data['edge_index'] = torch.tensor(data.edge_index)
+        #data['edge_index'] = data.edge_index.long()
+        #data['y'] = torch.tensor(data['y']).long()
         return data

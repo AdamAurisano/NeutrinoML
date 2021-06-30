@@ -25,10 +25,11 @@ class Trainer(base):
   """Trainer code for basic classification problems with categorical cross entropy."""
 
   def __init__(self, train_name="test1", summary_dir="summary",
-    empty_cache = None, **kwargs):
+    empty_cache=None, debug=False, **kwargs):
     super(Trainer, self).__init__(train_name=train_name, **kwargs)
     self.summary_dir = f"{summary_dir}/{train_name}"
     self.empty_cache = empty_cache
+    self.debug = debug
 
   def build_model(self, activation_params, optimizer_params, scheduler_params,
       loss_params, metric_params, name="NodeConv",
@@ -37,7 +38,7 @@ class Trainer(base):
     """Instantiate our model"""
 
     # Construct the model
-    torch.cuda.set_device(self.device)
+    if torch.cuda.is_available() and self.device != "cpu": torch.cuda.set_device(self.device)
     model_args["A"] = get_activation(**activation_params)
     self.model = get_model(name=name, **model_args)
     self.model = self.model.to(self.device)
@@ -61,7 +62,8 @@ class Trainer(base):
  
   def load_state_dict(self, state_dict, **kwargs):
     """Load state dict from trained model"""
-    self.model.load_state_dict(torch.load(state_dict, map_location=f"cuda:{self.device}")["model"])
+    location = f"cuda{self.device}" if self.device != "cpu" else "cpu"
+    self.model.load_state_dict(torch.load(state_dict, map_location=location)["model"])
 
   def train_epoch(self, data_loader, **kwargs):
     """Train for one epoch"""
@@ -72,8 +74,8 @@ class Trainer(base):
     start_time = time.time()
     # Loop over training batches
     batch_size = data_loader.batch_size
-    n_batches = int(math.ceil(len(data_loader.dataset)/batch_size)) #if max_iters_train is None else max_iters_train
-    t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
+    n_batches = int(math.ceil(len(data_loader.dataset)/batch_size))
+    t = tqdm.tqdm(enumerate(data_loader),total=n_batches if not self.debug else 5)
     for i, data in t:
       self.optimizer.zero_grad()
       # Different input shapes for SparseConvNet vs MinkowskiEngine
@@ -102,6 +104,8 @@ class Trainer(base):
       if self.empty_cache is not None and self.iteration % self.empty_cache == 0:
         torch.cuda.empty_cache()
 
+      if self.debug and i == 4: break
+
     summary["lr"] = self.optimizer.param_groups[0]["lr"]
     summary["train_time"] = time.time() - start_time
     summary["train_loss"] = sum_loss / n_batches
@@ -120,7 +124,7 @@ class Trainer(base):
     # Loop over batches
     batch_size = data_loader.batch_size
     n_batches = int(math.ceil(len(data_loader.dataset)/batch_size))
-    t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
+    t = tqdm.tqdm(enumerate(data_loader),total=n_batches if not self.debug else 5)
     for i, data in t:
       batch_input = self.arrange_data(data, self.device)
       batch_output = self.model(batch_input)
@@ -128,6 +132,7 @@ class Trainer(base):
       batch_loss = self.loss_func(batch_output, batch_target)
       sum_loss += batch_loss.item()
       self.metrics.valid_batch_metrics(batch_output, batch_target)
+      if self.debug and i == 4: break
     summary["valid_time"] = time.time() - start_time
     summary["valid_loss"] = sum_loss / n_batches
     self.logger.debug(" Processed %i samples in %i batches",
@@ -178,7 +183,7 @@ class Trainer(base):
           self.write_checkpoint(checkpoint_id=i,best=True)
 
       if self.scheduler is not None:
-        self.scheduler.step()
+        self.scheduler.step(sum_valid["valid_loss"])
 
       # Save summary, checkpoint
       self.save_summary(summary)

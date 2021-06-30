@@ -11,11 +11,10 @@ from .InstanceTruth import *
 from time import time
 
 class SparsePixelMap3D(Dataset):
-  def __init__(self, root, trainfiles, device, **kwargs):
+  def __init__(self, root, trainfiles, **kwargs):
     self.root = root
     self.trainfiles = trainfiles
     self.data_files = self.processed_file_names
-    self.device = device
 
   @property
   def raw_dir(self):
@@ -42,8 +41,8 @@ class SparsePixelMap3D(Dataset):
   def __getitem__(self, idx):
     enable_panoptic_seg = False
     data = torch.load(self.data_files[idx])
-    x = torch.FloatTensor(data['x']).to(self.device)
-    y = torch.FloatTensor(data['y']).to(self.device)
+    x = torch.FloatTensor(data['x'])#.to(self.device)
+    y = torch.FloatTensor(data['y'])#.to(self.device)
     if not enable_panoptic_seg:
       c = torch.LongTensor(data['c'])#.to(self.device)
       im = ( x, c )

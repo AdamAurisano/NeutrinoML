@@ -38,7 +38,6 @@ def main():
     trainer = Trainer(**config['trainer'])
     collate = utils.collate_sparse_minkowski
 
-  print(collate)
   fulllen = len(full_dataset)
   tv_num = math.ceil(fulllen*config['data']['t_v_split'])
   splits = np.cumsum([fulllen-tv_num,0,tv_num])

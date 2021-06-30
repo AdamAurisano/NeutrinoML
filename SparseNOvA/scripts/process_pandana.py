@@ -1,47 +1,59 @@
-import os
-import sys
-import random
-from PandAna import *
+import os, sys, random
+if "/scratch" not in sys.path: sys.path.append("/scratch")
+import pandas as pd, h5py, numpy as np
+from pandana.core import *
+from SparseNOvA.utils.index import KL, index
+
 # DQ
-kVeto = Cut(lambda tables: tables['rec.sel.veto']['keep'] == 1)
-kVtx  = Cut(lambda tables: tables['rec.vtx.elastic']['IsValid'] == 1)
-kPng  = Cut(lambda tables: tables['rec.vtx.elastic.fuzzyk']['npng'] > 0)
-kFEB  = Cut(lambda tables: tables['rec.sel.nuecosrej']['hitsperplane'] < 8)
+kVeto = Cut(lambda tables: (tables['rec.sel.veto']['keep'] == 1).groupby(level=KL).first())
+kVtx  = Cut(lambda tables: (tables['rec.vtx.elastic']['IsValid'] == 1).groupby(level=KL).first())
+kPng  = Cut(lambda tables: (tables['rec.vtx.elastic.fuzzyk']['npng'] > 0).groupby(level=KL).first())
+kFEB  = Cut(lambda tables: (tables['rec.sel.nuecosrej']['hitsperplane'] < 8).groupby(level=KL).first())
+
 # Containment
 def kContain(tables):
     df = tables['rec.sel.nuecosrej']
-    return \
+    return ( \
         (df['distallpngtop'] > 30) & \
         (df['distallpngbottom'] > 30) & \
         (df['distallpngeast'] > 30) & \
         (df['distallpngwest'] > 30) & \
         (df['distallpngfront'] > 30) & \
         (df['distallpngback'] > 30)
+    ).groupby(level=KL).first()
 kContain = Cut(kContain)
+
 def kNueOrNumu(tables):
     pdg = tables['rec.mc.nu']['pdg']
     cc = tables['rec.mc.nu']['iscc']
-    return ((pdg==12) | (pdg==14) | (pdg==-12) | (pdg==-14)) & (cc==1)
+    return (((pdg==12) | (pdg==14) | (pdg==-12) | (pdg==-14)) & (cc==1)).groupby(level=KL).first()
 kNueOrNumu = Cut(kNueOrNumu)
+
 def kSign(tables):
-    return tables['rec.mc.nu']['pdg']
+    return tables['rec.mc.nu']['pdg'].groupby(level=KL).first()
 kSign = Var(kSign)
+
 # Labels and maps for CVN training
 def kLabel(tables):
-    return tables['rec.training.trainingdata']['interaction']
+    return tables['rec.training.trainingdata']['interaction'].groupby(level=KL).first()
 kLabel = Var(kLabel)
+
 def kEnergy(tables):
-    return tables['rec.training.trainingdata']['nuenergy']
+    return tables['rec.training.trainingdata']['nuenergy'].groupby(level=KL).first()
 kEnergy = Var(kEnergy)
+
 def kMap(tables):
-    return tables['rec.training.cvnmaps']['cvnmap']
+    return tables['rec.training.cvnmaps']['cvnmap'].groupby(level=KL).first()
 kMap = Var(kMap)
+
 def kObj(tables):
-    return tables['rec.training.cvnmaps']['cvnobjmap']
+    return tables['rec.training.cvnmaps']['cvnobjmap'].groupby(level=KL).first()
 kObj = Var(kObj)
+
 def kLab(tables):
-    return tables['rec.training.cvnmaps']['cvnlabmap']
+    return tables['rec.training.cvnmaps']['cvnlabmap'].groupby(level=KL).first()
 kLab = Var(kLab)
+
 if __name__ == '__main__':
     # Miniprod 5 h5s
     indir = sys.argv[1]
@@ -54,18 +66,19 @@ if __name__ == '__main__':
     kCut = kVeto & kNueOrNumu & kContain & kVtx & kPng & kFEB
     # One file at a time to avoid problems with loading a bunch of pixel maps in memory
     for i,f in enumerate(files):
+        
         # Definte the output name and don't recreate it
         outname = '{0}_TrainData{1}'.format(f[:-9], f[-9:])
         if os.path.exists(os.path.join(outdir,outname)):
             continue
         # Make a loader and the two spectra to fill
-        tables = loader([os.path.join(indir,f)])
-        specLabel  = spectrum(tables, kCut, kLabel)
-        specMap    = spectrum(tables, kCut, kMap)
-        specSign   = spectrum(tables, kCut, kSign)
-        specEnergy = spectrum(tables, kCut, kEnergy)
-        specObj    = spectrum(tables, kCut, kObj)
-        specLab    = spectrum(tables, kCut, kLab)
+        tables = Loader(os.path.join(indir,f), idcol='evt.seq', main_table_name='spill', indices=index)
+        specLabel  = Spectrum(tables, kCut, kLabel)
+        specMap    = Spectrum(tables, kCut, kMap)
+        specSign   = Spectrum(tables, kCut, kSign)
+        specEnergy = Spectrum(tables, kCut, kEnergy)
+        specObj    = Spectrum(tables, kCut, kObj)
+        specLab    = Spectrum(tables, kCut, kLab)
         # GO GO GO
         tables.Go()
         # Don't save an empty file

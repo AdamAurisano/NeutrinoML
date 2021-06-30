@@ -46,6 +46,15 @@ kObj = Var(kObj)
 def kLab(tables):
     return tables['rec.training.cvnmaps']['cvnlabmap'].groupby(level=KL).first()
 kLab = Var(kLab)
+def kFirstcellx(tables):
+    return tables['rec.training.cvnmaps']['firstcellx'].groupby(level=KL).first()
+kFirstcellx = Var(kFirstcellx)
+def kFirstcelly(tables):
+    return tables['rec.training.cvnmaps']['firstcelly'].groupby(level=KL).first()
+kFirstcelly = Var(kFirstcelly)
+def kFirstplane(tables):
+    return tables['rec.training.cvnmaps']['firstplane'].groupby(level=KL).first()
+kFirstcelly = Var(kFirstplane)
 def get_alias(row):
     if 0 <= row.interaction < 4:    return 0
     elif 4 <= row.interaction < 8:  return 1
@@ -77,6 +86,9 @@ if __name__ == '__main__':
         specEnergy = Spectrum(tables, kCut, kEnergy)
         specObj    = Spectrum(tables, kCut, kObj)
         specLab    = Spectrum(tables, kCut, kLab)
+        specFirstcellx = Spectrum(tables, kCut, kFirstcellx)
+        specFirstcelly = Spectrum(tables, kCut, kFirstcelly)
+        specFirstplane = Spectrum(tables, kCut, kFirstplane)
         # GO GO GO
         tables.Go()
         # Don't save an empty file
@@ -85,7 +97,7 @@ if __name__ == '__main__':
             continue
         # Concat the dataframes to line up label and map
         # join='inner' ensures there is both a label and a map for the slice
-        df = pd.concat([specLabel.df(), specMap.df(), specSign.df(), specEnergy.df(), specObj.df(), specLab.df()], axis=1, join='inner').reset_index()
+        df = pd.concat([specLabel.df(), specMap.df(), specSign.df(), specEnergy.df(), specObj.df(), specLab.df(), specFirstcellx.df(), specFirstcelly.df(), specFirstplane.df()], axis=1, join='inner').reset_index()
         # Save in an h5
         hf = h5py.File(os.path.join(outdir,outname),'w')
         hf.create_dataset('run',       data=df['run'],         compression='gzip')
@@ -97,8 +109,11 @@ if __name__ == '__main__':
         hf.create_dataset('PDG',       data=df['pdg'],         compression='gzip')
         hf.create_dataset('E',         data=df['nuenergy'],    compression='gzip')
         hf.create_dataset('cvnmap',    data=np.stack(df['cvnmap']), compression='gzip')
-        hf.create_dataset('cvnobjmap',    data=np.stack(df['cvnobjmap']), compression='gzip')
-        hf.create_dataset('cvnlabmap',    data=np.stack(df['cvnlabmap']), compression='gzip')
+        hf.create_dataset('cvnobjmap', data=np.stack(df['cvnobjmap']), compression='gzip')
+        hf.create_dataset('cvnlabmap', data=np.stack(df['cvnlabmap']), compression='gzip')
+        hf.create_dataset('firstcellx',   data=np.stack(df['firstcellx']), compression='gzip')
+        hf.create_dataset('firstcelly',   data=np.stack(df['firstcelly']), compression='gzip')
+        hf.create_dataset('firstplane',   data=np.stack(df['firstplane']), compression='gzip')
         hf.close()
         df['label'] = df.apply(get_alias, axis=1)
         for j, row in df.iterrows():
@@ -113,6 +128,15 @@ if __name__ == '__main__':
 
             # get the truth
             truth = row.label
+
+            # get offset coordinates
+            zoffset = np.floor(row.firstplane/2)
+            xoffset = row.firstcellx
+            yoffset = row.firstcelly
+
+            # change the coords to global coordinates
+            xmask += np.array([ zoffset, xoffset])
+            ymask += np.array([ zoffset, yoffset])
 
             # use the masks to get data dictionary
             data = { 'xfeats': torch.tensor(xview[xmask]).float(), 

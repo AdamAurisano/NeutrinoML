@@ -69,7 +69,7 @@ def main():
   y_pred_all = None
   colour = mpl.cm.get_cmap('tab10')
 
-  names = config['model']['metric_params']['Classification']['class_names']
+  names = config['model']['metric_params']['Graph']['class_names']
   for i, data in t:
     batch_input  = utils.arrange_data.arrange_graph(data,trainer.device)
     batch_output = trainer.model(batch_input)
@@ -90,8 +90,6 @@ def main():
     del batch_output
     del batch_target
 
-
-
   confusion = confusion_matrix(y_true=y_true_all.cpu().numpy(), y_pred=y_pred_all.cpu().numpy(), normalize='true')
   plt.figure(figsize=[8,6])
   torch.save(confusion, 'plots/confusion.pt')
@@ -102,6 +100,26 @@ def main():
   plt.savefig(f'plots/confusion1.png')
   plt.clf()
   
+  y_true = y_true_all.cpu().numpy()
+  y_pred = y_pred_all.cpu().numpy()
+  torch.save(y_true, 'plots/y_true.pt')
+  torch.save(y_pred, 'plots/y_pred.pt')
+
+  purity = np.zeros([4, 4])
+  for i in range(4):
+    pred = (y_pred_all == i)
+    for j in range(4):
+      true = (y_true_all == j)
+      purity[i,j] = (pred & true).sum() / pred.sum()
+    purity[i,:] /= purity[i,:].sum()
+  sn.heatmap(purity, xticklabels=names, yticklabels=names, annot=True)
+  plt.ylim(0, len(names))
+  plt.xlabel('Assigned label')
+  plt.ylabel('True label')
+  plt.savefig(f'plots/purity1.png')
+  plt.clf()
+
+
 
 if __name__ == '__main__':
   main()

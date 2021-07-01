@@ -4,7 +4,7 @@ conda install -y pytorch=1.9.0 -c pytorch
 export CUDA_HOME=/usr/local/cuda
 pip install parameter-sherpa uproot Particle awkward pyarrow tensorboard-data-server boost_histogram
 pip install -U git+https://github.com/NVIDIA/MinkowskiEngine -v --no-deps
-conda install -y PyYAML tensorboard h5py mpi4py psutil
+conda install -y PyYAML tensorboard h5py mpi4py psutil jupyterlab numba
 conda config --set changeps1 False
 TORCH=torch-1.9.0
 CUDA=cu102

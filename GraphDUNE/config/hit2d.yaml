@@ -1,16 +1,16 @@
 data:
   name: "simple"
-  path: "/data/hit2d/processed-flav-shower"
+  path: "/data/uboone/pandora/processed"
   t_v_split: 0.05
 
 trainer:
-  device: 2
+  device: "cpu"
   batch_size: 4
   n_epochs: 100
   empty_cache: 1 # How many iterations between calls to empty GPU memory cache
-  train_name: "with-8-noedge"
-  summary_dir: "/scratch/GraphDUNE/summary/edgefeats"
-  output_dir: "/scratch/GraphDUNE/params/edgefeats"
+  train_name: "cdac-test"
+  summary_dir: "/scratch/GraphDUNE/summary"
+  output_dir: "/scratch/GraphDUNE/params"
 
 model:
   name: "DeepMultiHead"

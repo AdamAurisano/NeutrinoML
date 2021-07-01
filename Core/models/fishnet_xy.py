@@ -293,14 +293,14 @@ class Fish(ME.MinkowskiNetwork):
 
     
 class FishNet(ME.MinkowskiNetwork):
-    def __init__(self, block, D, A, **kwargs):
+    def __init__(self, block, D, A, input_feats, **kwargs):
         super(FishNet, self).__init__(D)
 
         ME.set_sparse_tensor_operation_mode(ME.SparseTensorOperationMode.SHARE_COORDINATE_MANAGER)
 
-        inplanes = kwargs['network_planes'][0]
+        inplanes = kwargs["network_planes"][0]
         # resolution: 224x224
-        self.conv1 = self._conv_bn_relu(D, A, 1, inplanes // 2, stride=2)
+        self.conv1 = self._conv_bn_relu(D, A, input_feats, inplanes // 2, stride=2)
         self.conv2 = self._conv_bn_relu(D, A, inplanes // 2, inplanes // 2)
         self.conv3 = self._conv_bn_relu(D, A, inplanes // 2, inplanes)
         self.pool1 = ME.MinkowskiMaxPooling(3, stride=2, dimension=D)

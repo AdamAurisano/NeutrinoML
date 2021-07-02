@@ -30,7 +30,7 @@ class SparsePixelMapNOvA(Dataset):
         
         if self.normalize_coord:
             norm = torch.tensor([100, 80]).float()    
-            data['xcoords'] = data['xcoords'].float() / norm 
-            data['ycoords'] = data['ycoords'].float() / norm 
+            data['xfeats'] = torch.cat([data['xfeats'], data['xcoords'].float() / norm], dim=1) 
+            data['yfeats'] = torch.cat([data['yfeats'], data['ycoords'].float() / norm], dim=1) 
         
         return data

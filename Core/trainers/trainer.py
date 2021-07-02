@@ -81,7 +81,7 @@ class Trainer(base):
       # Different input shapes for SparseConvNet vs MinkowskiEngine
       batch_input = self.arrange_data(data, self.device)
       batch_output = self.model(batch_input)
-      batch_target = self.arrange_truth(data).to(self.device)
+      batch_target = self.arrange_truth(data, self.device)
       batch_loss = self.loss_func(batch_output, batch_target)
       batch_loss.backward()
 

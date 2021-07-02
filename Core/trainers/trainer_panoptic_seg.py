@@ -78,7 +78,7 @@ class TrainerPanopticSeg(base):
     start_time = time.time()
     # Loop over training batches
     batch_size = data_loader.batch_size
-    n_batches = int(math.ceil(len(data_loader.dataset)/batch_size)) #if max_iters_train is None else max_iters_train
+    n_batches = int(math.ceil(len(data_loader.dataset)/batch_size))
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
     #saving values to standarize losses 
     #ctr_loss = []
@@ -157,7 +157,7 @@ class TrainerPanopticSeg(base):
     return summary
 
   @torch.no_grad()
-  def evaluate(self, data_loader, max_iters_eval=None, **kwargs):
+  def evaluate(self, data_loader, **kwargs):
     '''Evaluate the model'''
     self.model.eval()
     summary = dict()

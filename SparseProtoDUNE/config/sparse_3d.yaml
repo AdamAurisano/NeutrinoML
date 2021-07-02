@@ -1,7 +1,7 @@
 data:
-  name: 'SparsePixelMap3D'
-  root: '/data/3d'
-  trainfiles: 'processed'
+  name: "SparsePixelMap3D"
+  root: "/data/3d"
+  trainfiles: "processed"
   t_v_split: 0.05
 
 process:
@@ -12,7 +12,7 @@ process:
   feat_norm: [1.e-5, 1.e-5, 1.e-5, 6.25e-4, 1.667e-3, 1.429e-3, 5.e-2]
 
 model:
-  name: 'MinkowskiSeg'
+  name: "MinkowskiSeg"
   n_dims: 3
   extent: 6000 # Maximum dimension of pixel map
   input_feats: 7
@@ -22,17 +22,17 @@ model:
 
   instance_segmentation: False
   loss_params:
-    func: 'categorical_cross_entropy'
-  arrange_data: 'arrange_sparse_minkowski'
-  arrange_truth: 'arrange_sparse'
+    func: "categorical_cross_entropy"
+  arrange_data: "arrange_sparse_minkowski"
+  arrange_truth: "arrange_sparse"
 
   activation_params:
-    activation: 'mish' 
+    activation: "mish" 
     LeakyReLU:
       negative_slope: 0.01
 
   optimizer_params:
-    optimizer: 'AdamW'
+    optimizer: "AdamW"
     AdamW:
       lr: 1.e-4
       weight_decay:     0.01
@@ -48,7 +48,7 @@ model:
       gc_conv_only:     False
 
   scheduler_params:
-    scheduler: 'ReduceLROnPlateau'
+    scheduler: "ReduceLROnPlateau"
     ReduceLROnPlateau:
       factor: 0.9
       patience: 3
@@ -59,10 +59,10 @@ model:
   n_classes: 8
 
   metric_params:
-    metrics: 'SemanticSegmentation'
+    metrics: "SemanticSegmentation"
     include_batch_metrics: True
     SemanticSegmentation:
-      class_names: ['shower','delta','diffuse','kaons','michel','hip','mu','pi']
+      class_names: ["shower","delta","diffuse","kaons","michel","hip","mu","pi"]
 
 data_loader:
   batch_size: 30 
@@ -71,15 +71,16 @@ data_loader:
 trainer:
   device: 6 # Which GPU to use
   n_epochs: 20
-  max_iters_train: None 
-  max_iters_eval:  None 
-  summary_dir: 'summary/3d/test/'
-  output_dir: '/data/3d/params/'
+  train_name: "train1"
+  summary_dir: "/scratch/SparseProtoDUNE/summary"
+  output_dir: "/data/3d/params"
+  resume: True
+  debug: False
 
 inference:
   max_images: 100 # Maximum number of images to process
   event_display: False # Whether to draw event displays
   confusion: True # Whether to draw a confusion matrix
   state_dict: None 
-  # Replace this with a string path to a trained .pth.tar file after training! They're written to params/checkpoints
+  # Replace this with a string path to a trained .pth.tar file after training! They"re written to params/checkpoints
  

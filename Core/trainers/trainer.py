@@ -115,7 +115,7 @@ class Trainer(base):
     return summary
 
   @torch.no_grad()
-  def evaluate(self, data_loader, max_iters_eval=None, **kwargs):
+  def evaluate(self, data_loader, **kwargs):
     """Evaluate the model"""
     self.model.eval()
     summary = dict()

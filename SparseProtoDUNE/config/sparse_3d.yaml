@@ -69,9 +69,9 @@ data_loader:
   num_workers: 0
 
 trainer:
-  device: 6 # Which GPU to use
+  device: "cpu" # Which GPU to use
   n_epochs: 20
-  train_name: "train1"
+  train_name: "default"
   summary_dir: "/scratch/SparseProtoDUNE/summary"
   output_dir: "/data/3d/params"
   resume: True

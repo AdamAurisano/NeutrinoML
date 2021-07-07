@@ -62,10 +62,10 @@ data_loader:
   num_workers: 3
 
 trainer:
-  device: 5 # Which GPU to use
+  device: "cpu" # Which GPU to use
   n_epochs: 30
   empty_cache: 1 # How many iterations between calls to empty GPU memory cache
-  train_name:  "train-dense-1"
+  train_name:  "default"
   summary_dir: "/scratch/SparseNOvA/summary"
   output_dir:  "/scratch/SparseNOvA/params"
   resume: True

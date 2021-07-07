@@ -1,10 +1,10 @@
 data:
-  name: 'SparsePixelMapNOvA'
-  filedir: '/data/mp5/preselection'
+  name: "SparsePixelMapNOvA"
+  filedir: "/data/mp5/preselection"
   t_v_split: 0.05
 
 model:
-  name: 'Minkowski2StackClass'
+  name: "Minkowski2StackClass"
   n_dims: 2
   extent: 6000 # Maximum dimension of pixel map
   input_feats: 1
@@ -12,24 +12,24 @@ model:
   unet_depth: 5
   res_blocks: True # Whether to use residual blocks in unet
   loss_params:
-    func: 'CrossEntropyLoss'
-  optimizer: 'AdamW'
+    func: "CrossEntropyLoss"
+  optimizer: "AdamW"
   learning_rate: 1.e-4
   weight_decay: 0.01
   step_size: 1 # How many epochs between LR reduction
   gamma: 0.8 # Factor to reduce learning rate by
-  class_names: ['numu','nue','nc']
+  class_names: ["numu","nue","nc"]
   n_classes: 3
 
 data_loader:
   batch_size: 64
 
 trainer:
-  device: 0 # Which GPU to use
+  device: "cpu" # Which GPU to use
   n_epochs: 20
-  train_name:  'train1'
-  summary_dir: '/scratch/SparseNOvA/summary'
-  output_dir:  '/scratch/SparseNOvA/params'
+  train_name:  "default"
+  summary_dir: "/scratch/SparseNOvA/summary"
+  output_dir:  "/scratch/SparseNOvA/params"
   resume: True
   debug: False
 
@@ -37,4 +37,4 @@ inference:
   max_images: 100 # Maximum number of images to process
   event_display: True # Whether to draw event displays
   confusion: False # Whether to draw a confusion matrix
-  state_dict: None # Replace this with a string path to a trained .pth.tar file after training! They're written to params/checkpoints
+  state_dict: None # Replace this with a string path to a trained .pth.tar file after training! They"re written to params/checkpoints

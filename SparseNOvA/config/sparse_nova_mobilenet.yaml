@@ -1,29 +1,29 @@
 data:
-  name: 'SparsePixelMapNOvAFull'
-  filename: '/data/mp5/cvnmap.parquet'
+  name: "SparsePixelMapNOvAFull"
+  filename: "/data/mp5/cvnmap.parquet"
   t_v_split: 0.05
 
 model:
-  name: 'MobileNet'
+  name: "MobileNet"
   D: 2
   alpha: 1
   depth: 1
   classes: 4
   dropout: 0.3
   loss_params:
-    func: 'CrossEntropyLoss'
-  arrange_data: 'arrange_sparse_minkowski_2stack'
-  arrange_truth: 'sparse_semantic_truth'
-  collate_train: 'collate_minkowski_2stack_jitter'
-  collate_valid: 'collate_minkowski_2stack'
+    func: "CrossEntropyLoss"
+  arrange_data: "arrange_sparse_minkowski_2stack"
+  arrange_truth: "sparse_semantic_truth"
+  collate_train: "collate_minkowski_2stack_jitter"
+  collate_valid: "collate_minkowski_2stack"
   
   activation_params:
-    activation: 'mish'
+    activation: "mish"
     LeakyReLU:
       negative_slope: 0.01
       
   optimizer_params:
-    optimizer: 'SGD'
+    optimizer: "SGD"
     AdamW:
       lr:               2.e-3
       weight_decay:     0.01
@@ -44,7 +44,7 @@ model:
       momentum:         0.9
 
   scheduler_params:
-    scheduler: 'ReduceLROnPlateau'
+    scheduler: "ReduceLROnPlateau"
     ReduceLROnPlateau:
       factor: 0.5
       patience: 3
@@ -53,22 +53,22 @@ model:
       gamma: 0.8
 
   metric_params:
-    metrics: 'Classification'
+    metrics: "Classification"
     include_batch_metrics: True
     Classification:
-      class_names: ['numu','nue','nc','cosmic']
+      class_names: ["numu","nue","nc","cosmic"]
 
 data_loader:
   batch_size: 128
   num_workers: 3
 
 trainer:
-  device: 0 # Which GPU to use
+  device: "cpu" # Which GPU to use
   n_epochs: 50
   empty_cache: 1 # How many iterations between calls to empty GPU memory cache
-  train_name:  'train1'
-  summary_dir: '/scratch/SparseNOvA/summary'
-  output_dir:  '/scratch/SparseNOvA/params'
+  train_name:  "default"
+  summary_dir: "/scratch/SparseNOvA/summary"
+  output_dir:  "/scratch/SparseNOvA/params"
   resume: True
   debug: False
 
@@ -76,4 +76,4 @@ inference:
   max_images: 100 # Maximum number of images to process
   event_display: True # Whether to draw event displays
   confusion: False # Whether to draw a confusion matrix
-  state_dict: None # Replace this with a string path to a trained .pth.tar file after training! They're written to params/checkpoints
+  state_dict: None # Replace this with a string path to a trained .pth.tar file after training! They"re written to params/checkpoints

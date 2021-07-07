@@ -24,9 +24,11 @@ data_loader:
   batch_size: 10
 
 trainer:
-  benchmark: False
   device: 0 # Which GPU to use
   n_epochs: 20
   train_name:  'train1'
   summary_dir: '/scratch/TauRNN/summary'
   output_dir:  '/scratch/TauRNN/params'
+  resume: True
+  debug: False
+

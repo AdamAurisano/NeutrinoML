@@ -63,15 +63,14 @@ data_loader:
   num_workers: 3
 
 trainer:
-  benchmark: False
   device: 0 # Which GPU to use
   n_epochs: 50
   empty_cache: 1 # How many iterations between calls to empty GPU memory cache
-  max_iters_train: None
-  max_iters_eval:  None
   train_name:  'train1'
   summary_dir: '/scratch/SparseNOvA/summary'
   output_dir:  '/scratch/SparseNOvA/params'
+  resume: True
+  debug: False
 
 inference:
   max_images: 100 # Maximum number of images to process

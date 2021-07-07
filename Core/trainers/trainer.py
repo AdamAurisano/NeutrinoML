@@ -81,7 +81,7 @@ class Trainer(base):
       # Different input shapes for SparseConvNet vs MinkowskiEngine
       batch_input = self.arrange_data(data, self.device)
       batch_output = self.model(batch_input)
-      batch_target = self.arrange_truth(data).to(self.device)
+      batch_target = self.arrange_truth(data, self.device)
       batch_loss = self.loss_func(batch_output, batch_target)
       batch_loss.backward()
 
@@ -115,7 +115,7 @@ class Trainer(base):
     return summary
 
   @torch.no_grad()
-  def evaluate(self, data_loader, max_iters_eval=None, **kwargs):
+  def evaluate(self, data_loader, **kwargs):
     """Evaluate the model"""
     self.model.eval()
     summary = dict()

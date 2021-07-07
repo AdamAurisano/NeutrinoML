@@ -81,10 +81,11 @@ trainer:
   device: 7 # Which GPU to use
   n_epochs: 20
   empty_cache: 1
-  max_iters_train: None 
-  max_iters_eval:  None 
+  train_name: "default"
   summary_dir: 'summary/3d/center_pred_10_std1_newloss'
   output_dir: '/data/3d/params/center_pred_10_std1_newloss'
+  resume: True
+  debug: False
 
 inference:
   max_images: 30000 # Maximum number of images to process

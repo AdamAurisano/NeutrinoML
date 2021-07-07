@@ -1,152 +1,177 @@
-
 import os, sys, random
-if "/scratch" not in sys.path: sys.path.append("/scratch")
-import pandas as pd, h5py, numpy as np
+import pandas as pd, h5py, numpy as np, torch
 from pandana.core import *
-from SparseNOvA.utils.index import KL, index
+from Utils.index import KL, index
 from uuid import uuid4 as uuidgen
 
 # DQ
-kVeto = Cut(lambda tables: tables['rec.sel.veto']['keep'] == 1).groupby(level=KL).first()
-kVtx  = Cut(lambda tables: tables['rec.vtx.elastic']['IsValid'] == 1).groupby(level=KL).first()
-kPng  = Cut(lambda tables: tables['rec.vtx.elastic.fuzzyk']['npng'] > 0).groupby(level=KL).first()
-kFEB  = Cut(lambda tables: tables['rec.sel.nuecosrej']['hitsperplane'] < 8).groupby(level=KL).first()
+kVeto = Cut(lambda tables: (tables['rec.sel.veto']['keep'] == 1).groupby(level=KL).first())
+kVtx  = Cut(lambda tables: (tables['rec.vtx.elastic']['IsValid'] == 1).groupby(level=KL).first())
+kPng  = Cut(lambda tables: (tables['rec.vtx.elastic.fuzzyk']['npng'] > 0).groupby(level=KL).first())
+kFEB  = Cut(lambda tables: (tables['rec.sel.nuecosrej']['hitsperplane'] < 8).groupby(level=KL).first())
+
 # Containment
 def kContain(tables):
-    df = tables['rec.sel.nuecosrej']
-    return (\
-        (df['distallpngtop'] > 30) & \
-        (df['distallpngbottom'] > 30) & \
-        (df['distallpngeast'] > 30) & \
-        (df['distallpngwest'] > 30) & \
-        (df['distallpngfront'] > 30) & \
-        (df['distallpngback'] > 30).groupby(level=KL).first())
+  df = tables['rec.sel.nuecosrej']
+  return (\
+    (df['distallpngtop'] > 30) & \
+    (df['distallpngbottom'] > 30) & \
+    (df['distallpngeast'] > 30) & \
+    (df['distallpngwest'] > 30) & \
+    (df['distallpngfront'] > 30) & \
+    (df['distallpngback'] > 30).groupby(level=KL).first())
 kContain = Cut(kContain)
+
 def kNueOrNumu(tables):
-    pdg = tables['rec.mc.nu']['pdg']
-    cc = tables['rec.mc.nu']['iscc']
-    return (((pdg==12) | (pdg==14) | (pdg==-12) | (pdg==-14)) & (cc==1)).groupby(level=KL).first()
+  pdg = tables['rec.mc.nu']['pdg']
+  cc = tables['rec.mc.nu']['iscc']
+  return (((pdg==12) | (pdg==14) | (pdg==-12) | (pdg==-14)) & (cc==1)).groupby(level=KL).first()
 kNueOrNumu = Cut(kNueOrNumu)
+
 def kSign(tables):
-    return tables['rec.mc.nu']['pdg'].groupby(level=KL).first()
+  return tables['rec.mc.nu']['pdg'].groupby(level=KL).first()
 kSign = Var(kSign)
+
 # Labels and maps for CVN training
 def kLabel(tables):
-    return tables['rec.training.trainingdata']['interaction'].groupby(level=KL).first()
+  return tables['rec.training.trainingdata']['interaction'].groupby(level=KL).first()
 kLabel = Var(kLabel)
+
 def kEnergy(tables):
-    return tables['rec.training.trainingdata']['nuenergy'].groupby(level=KL).first()
+  return tables['rec.training.trainingdata']['nuenergy'].groupby(level=KL).first()
 kEnergy = Var(kEnergy)
+
 def kMap(tables):
-    return tables['rec.training.cvnmaps']['cvnmap'].groupby(level=KL).first()
+  return tables['rec.training.cvnmaps']['cvnmap'].groupby(level=KL).first()
 kMap = Var(kMap)
+
 def kObj(tables):
-    return tables['rec.training.cvnmaps']['cvnobjmap'].groupby(level=KL).first()
+  return tables['rec.training.cvnmaps']['cvnobjmap'].groupby(level=KL).first()
 kObj = Var(kObj)
+
 def kLab(tables):
-    return tables['rec.training.cvnmaps']['cvnlabmap'].groupby(level=KL).first()
+  return tables['rec.training.cvnmaps']['cvnlabmap'].groupby(level=KL).first()
 kLab = Var(kLab)
-def kFirstcellx(tables):
-    return tables['rec.training.cvnmaps']['firstcellx'].groupby(level=KL).first()
-kFirstcellx = Var(kFirstcellx)
-def kFirstcelly(tables):
-    return tables['rec.training.cvnmaps']['firstcelly'].groupby(level=KL).first()
-kFirstcelly = Var(kFirstcelly)
-def kFirstplane(tables):
-    return tables['rec.training.cvnmaps']['firstplane'].groupby(level=KL).first()
-kFirstcelly = Var(kFirstplane)
+
+def kFirstCellX(tables):
+  return tables['rec.training.cvnmaps']['firstcellx'].groupby(level=KL).first()
+kFirstCellX = Var(kFirstCellX)
+
+def kFirstCellY(tables):
+  return tables['rec.training.cvnmaps']['firstcelly'].groupby(level=KL).first()
+kFirstCellY = Var(kFirstCellY)
+
+def kFirstPlane(tables):
+  return tables['rec.training.cvnmaps']['firstplane'].groupby(level=KL).first()
+kFirstPlane = Var(kFirstPlane)
+
 def get_alias(row):
-    if 0 <= row.interaction < 4:    return 0
-    elif 4 <= row.interaction < 8:  return 1
-    elif 8 <= row.interaction < 12: return 2
-    elif row.interaction == 13:     return 3
-    else:                           return 4
+  if 0 <= row.interaction < 4:  return 0
+  elif 4 <= row.interaction < 8:  return 1
+  elif 8 <= row.interaction < 12: return 2
+  elif row.interaction == 13:   return 3
+  else:               return 4
 
 if __name__ == '__main__':
-    # Miniprod 5 h5s
-    indir = sys.argv[1]
-    outdir = sys.argv[2]
-    print('Change files in '+indir+' to training files in '+outdir)
-    files = [f for f in os.listdir(indir) if 'h5caf.h5' in f]
-    files = random.sample(files, len(files))
-    print('There are '+str(len(files))+' files.')
-    # Full selection
-    kCut = kVeto & kNueOrNumu & kContain & kVtx & kPng & kFEB
-    # One file at a time to avoid problems with loading a bunch of pixel maps in memory
-    for i,f in enumerate(files):
-        # Definte the output name and don't recreate it
-        outname = '{0}_TrainData{1}'.format(f[:-9], f[-9:])
-        if os.path.exists(os.path.join(outdir,outname)):
-            continue
-        # Make a loader and the two spectra to fill
-        tables = Loader([os.path.join(indir,f)], idcol='evt.seq', main_table_name='spill', indices=index)
-        specLabel  = Spectrum(tables, kCut, kLabel)
-        specMap    = Spectrum(tables, kCut, kMap)
-        specSign   = Spectrum(tables, kCut, kSign)
-        specEnergy = Spectrum(tables, kCut, kEnergy)
-        specObj    = Spectrum(tables, kCut, kObj)
-        specLab    = Spectrum(tables, kCut, kLab)
-        specFirstcellx = Spectrum(tables, kCut, kFirstcellx)
-        specFirstcelly = Spectrum(tables, kCut, kFirstcelly)
-        specFirstplane = Spectrum(tables, kCut, kFirstplane)
-        # GO GO GO
-        tables.Go()
-        # Don't save an empty file
-        if specLab.entries()==0 or specMap.entries()==0:
-            print(str(i)+': File '+f+' is empty.')
-            continue
-        # Concat the dataframes to line up label and map
-        # join='inner' ensures there is both a label and a map for the slice
-        df = pd.concat([specLabel.df(), specMap.df(), specSign.df(), specEnergy.df(), specObj.df(), specLab.df(), specFirstcellx.df(), specFirstcelly.df(), specFirstplane.df()], axis=1, join='inner').reset_index()
-        # Save in an h5
-        hf = h5py.File(os.path.join(outdir,outname),'w')
-        hf.create_dataset('run',       data=df['run'],         compression='gzip')
-        hf.create_dataset('subrun',    data=df['subrun'],      compression='gzip')
-        hf.create_dataset('cycle',     data=df['cycle'],       compression='gzip')
-        hf.create_dataset('event',     data=df['evt'],         compression='gzip')
-        hf.create_dataset('slice',     data=df['subevt'],      compression='gzip')
-        hf.create_dataset('label',     data=df['interaction'], compression='gzip')
-        hf.create_dataset('PDG',       data=df['pdg'],         compression='gzip')
-        hf.create_dataset('E',         data=df['nuenergy'],    compression='gzip')
-        hf.create_dataset('cvnmap',    data=np.stack(df['cvnmap']), compression='gzip')
-        hf.create_dataset('cvnobjmap', data=np.stack(df['cvnobjmap']), compression='gzip')
-        hf.create_dataset('cvnlabmap', data=np.stack(df['cvnlabmap']), compression='gzip')
-        hf.create_dataset('firstcellx',   data=np.stack(df['firstcellx']), compression='gzip')
-        hf.create_dataset('firstcelly',   data=np.stack(df['firstcelly']), compression='gzip')
-        hf.create_dataset('firstplane',   data=np.stack(df['firstplane']), compression='gzip')
-        hf.close()
-        df['label'] = df.apply(get_alias, axis=1)
-        for j, row in df.iterrows():
-            # reshape the cvnmap and label tensors to correct shape
-            xview, yview = row.cvnmap.reshape(2, 100, 80)
-            xobjmap, yobjmap = row.cvnobjmap.reshape(2, 100, 80)
-            xlabmap, ylabmap = row.cvnlabmap.reshape(2, 100, 80)
+  # Miniprod 5 h5s
+  indir = sys.argv[1]
+  outdir = sys.argv[2]
+  print('Change files in '+indir+' to training files in '+outdir)
+  files = [f for f in os.listdir(indir) if 'h5caf.h5' in f]
+  files = random.sample(files, len(files))
+  print('There are '+str(len(files))+' files.')
 
-            # get the indicies of the nonzero pixels with mask
-            xmask = xview.nonzero()
-            ymask = yview.nonzero()
+  # Full selection
+  kCut = kVeto & kNueOrNumu & kContain & kVtx & kPng & kFEB
 
-            # get the truth
-            truth = row.label
+  # One file at a time to avoid problems with loading a bunch of pixel maps in memory
+  for i,f in enumerate(files):
 
-            # get offset coordinates
-            zoffset = np.floor(row.firstplane/2)
-            xoffset = row.firstcellx
-            yoffset = row.firstcelly
+    # Definte the output name and don't recreate it
+    outname = '{0}_TrainData{1}'.format(f[:-9], f[-9:])
+    if os.path.exists(os.path.join(outdir,outname)):
+      continue
+    
+    # Make a loader and the two spectra to fill
+    tables = Loader([os.path.join(indir,f)], idcol='evt.seq', main_table_name='spill', indices=index)
+    specLabel  = Spectrum(tables, kCut, kLabel)
+    specMap  = Spectrum(tables, kCut, kMap)
+    specSign   = Spectrum(tables, kCut, kSign)
+    specEnergy = Spectrum(tables, kCut, kEnergy)
+    specObj  = Spectrum(tables, kCut, kObj)
+    specLab  = Spectrum(tables, kCut, kLab)
+    specFirstCellX = Spectrum(tables, kCut, kFirstCellX)
+    specFirstCellY = Spectrum(tables, kCut, kFirstCellY)
+    specFirstPlane = Spectrum(tables, kCut, kFirstPlane)
+    
+    # GO GO GO
+    tables.Go()
+    
+    # Don't save an empty file
+    if specLab.entries()==0 or specMap.entries()==0:
+      print(str(i)+': File '+f+' is empty.')
+      continue
+    
+    # Concat the dataframes to line up label and map
+    # join='inner' ensures there is both a label and a map for the slice
+    df = pd.concat([specLabel.df(), specMap.df(), specSign.df(), specEnergy.df(), specObj.df(), specLab.df(), specFirstCellX.df(), specFirstCellY.df(), specFirstPlane.df()], axis=1, join='inner').reset_index()
+    
+    # Save in an h5
+#    hf = h5py.File(os.path.join(outdir,outname),'w')
+#    hf.create_dataset('run',     data=df['run'],     compression='gzip')
+#    hf.create_dataset('subrun',  data=df['subrun'],    compression='gzip')
+#    hf.create_dataset('cycle',   data=df['cycle'],     compression='gzip')
+#    hf.create_dataset('event',   data=df['evt'],     compression='gzip')
+#    hf.create_dataset('slice',   data=df['subevt'],    compression='gzip')
+#    hf.create_dataset('label',   data=df['interaction'], compression='gzip')
+#    hf.create_dataset('PDG',     data=df['pdg'],     compression='gzip')
+#    hf.create_dataset('E',     data=df['nuenergy'],  compression='gzip')
+#    hf.create_dataset('cvnmap',  data=np.stack(df['cvnmap']), compression='gzip')
+#    hf.create_dataset('cvnobjmap', data=np.stack(df['cvnobjmap']), compression='gzip')
+#    hf.create_dataset('cvnlabmap', data=np.stack(df['cvnlabmap']), compression='gzip')
+#    hf.create_dataset('firstcellx',   data=np.stack(df['firstcellx']), compression='gzip')
+#    hf.create_dataset('firstcelly',   data=np.stack(df['firstcelly']), compression='gzip')
+#    hf.create_dataset('firstplane',   data=np.stack(df['firstplane']), compression='gzip')
+#    hf.close()
 
-            # change the coords to global coordinates
-            xmask += np.array([ zoffset, xoffset])
-            ymask += np.array([ zoffset, yoffset])
+    df['label'] = df.apply(get_alias, axis=1)
 
-            # use the masks to get data dictionary
-            data = { 'xfeats': torch.tensor(xview[xmask]).float(), 
-                     'xcoords': torch.tensor(xmask).int(), 
-                     'xsegtruth': torch.tensor(xlabmap[xmask]).long(),
-                     'xinstruth': torch.tensor(xobjmap[xmask]).long(), 
-                     'yfeats': torch.tensor(yview[ymask]).float(),
-                     'ycoords': torch.tensor(ymask).int(),
-                     'ysegtruth': torch.tensor(ylabmap[ymask]).long(), 
-                     'yinstruth': torch.tensor(yobjmap[ymask]).long(), 
-                     'evttruth': torch.tensor(truth).long() }
-            
-            torch.save(data, '/data/p5/processed/{}.pt'.format(uuidgen()))
+    def process_evt(row):
+      # reshape the cvnmap and label tensors to correct shape
+      xview, yview = row.cvnmap.reshape(2, 100, 80)
+      xobjmap, yobjmap = row.cvnobjmap.reshape(2, 100, 80)
+      xlabmap, ylabmap = row.cvnlabmap.reshape(2, 100, 80)
+
+      # get the indicies of the nonzero pixels with mask
+      xmask = np.stack(xview.nonzero(), axis=0)
+      ymask = np.stack(yview.nonzero(), axis=0)
+
+      # get the truth
+      truth = row.label
+
+      # get offset coordinates
+      zoffset = np.floor(row.firstplane/2)
+      xoffset = row.firstcellx
+      yoffset = row.firstcelly
+
+      # change the coords to global coordinates
+      # xmask += np.array([zoffset, xoffset]).astype("int64")[:,None]
+      # ymask += np.array([zoffset, yoffset], dtype=np.int64)[:,None]
+      xglobal = torch.tensor([zoffset, xoffset]).int()
+      yglobal = torch.tensor([zoffset, yoffset]).int()
+
+      # use the masks to get data dictionary
+      data = { 'xfeats': torch.tensor(xview[xmask]).float(),
+              'xcoords': torch.tensor(xmask).int() + xglobal[:,None],
+               'xsegtruth': torch.tensor(xlabmap[xmask]).long(),
+               'xinstruth': torch.tensor(xobjmap[xmask]).long(),
+               'yfeats': torch.tensor(yview[ymask]).float(),
+               'ycoords': torch.tensor(ymask).int() + yglobal[:,None],
+               'ysegtruth': torch.tensor(ylabmap[ymask]).long(),
+               'yinstruth': torch.tensor(yobjmap[ymask]).long(),
+               'evttruth': torch.tensor(truth).long() }
+
+      torch.save(data, '{}/{}.pt'.format(outdir, uuidgen()))
+
+    df.apply(process_evt, axis=1)
+

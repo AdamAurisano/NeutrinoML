@@ -11,6 +11,8 @@ trainer:
   train_name: "cdac-test"
   summary_dir: "/scratch/GraphDUNE/summary"
   output_dir: "/scratch/GraphDUNE/params"
+  resume: True
+  debug: False
 
 model:
   name: "DeepMultiHead"

@@ -25,14 +25,13 @@ data_loader:
   batch_size: 64
 
 trainer:
-  benchmark: False
   device: 0 # Which GPU to use
   n_epochs: 20
-  max_iters_train: None
-  max_iters_eval:  None
   train_name:  'train1'
   summary_dir: '/scratch/SparseNOvA/summary'
   output_dir:  '/scratch/SparseNOvA/params'
+  resume: True
+  debug: False
 
 inference:
   max_images: 100 # Maximum number of images to process

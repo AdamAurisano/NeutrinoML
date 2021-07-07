@@ -13,7 +13,7 @@ from Core import models
 
 # Most of the training options are set in a configuration YAML file. We're going to load this config, and then the options inside will be passed to the relevent piece of the training framework.
 parser = argparse.ArgumentParser('train.py')
-parser.add_argument('config', nargs='?', default='/scratch/SparseNOvA/config/sparse_nova_mobilenet.yaml')
+parser.add_argument('config', nargs='?', default='/scratch/SparseNOvA/config/nova_sparse_fishnet.yaml')
 with open(parser.parse_args().config) as f:
   config = yaml.load(f, Loader=yaml.FullLoader)
 

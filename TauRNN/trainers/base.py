@@ -18,9 +18,9 @@ class base(object):
     logging of summaries, and checkpoints.
     """
 
-    def __init__(self, output_dir=None, train_name='test1', device='cpu', distributed=False, **kwargs):
+    def __init__(self, output_dir=None, train_name="default", device="cpu", distributed=False, **kwargs):
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.output_dir = (f'{output_dir}/{train_name}'
+        self.output_dir = (f"{output_dir}/{train_name}"
                            if output_dir is not None else None)
         self.device = device
         self.distributed = distributed
@@ -29,7 +29,7 @@ class base(object):
     def print_model_summary(self):
         """Override as needed"""
         self.logger.info(
-            'Model: \n%s\nParameters: %i' %
+            "Model: \n%s\nParameters: %i" %
             (self.model, sum(p.numel()
                              for p in self.model.parameters()))
         )
@@ -39,8 +39,8 @@ class base(object):
         model_name = type(model).__name__
         model_params = sum(p.numel() for p in model.parameters())        
         model_cfghash = hashlib.blake2b(repr(model).encode()).hexdigest()[:10]
-        model_user = os.environ['USER']
-        model_fname = '%s_%d_%s_%s'%(model_name, model_params,
+        model_user = os.environ["USER"]
+        model_fname = "%s_%d_%s_%s"%(model_name, model_params,
                                  model_cfghash, model_user)
         return model_fname
         
@@ -52,20 +52,20 @@ class base(object):
 
     def write_summaries(self):
         assert self.output_dir is not None
-        summary_file = os.path.join(self.output_dir, 'summaries.npz')
-        self.logger.info('Saving summaries to %s' % summary_file)
+        summary_file = os.path.join(self.output_dir, "summaries.npz")
+        self.logger.info("Saving summaries to %s" % summary_file)
         np.savez(summary_file, **self.summaries)
 
     def write_checkpoint(self, checkpoint_id, best=False):
         """Write a checkpoint for the model"""
         assert self.output_dir is not None
-        checkpoint_dir = os.path.join(self.output_dir, 'checkpoints')
+        checkpoint_dir = os.path.join(self.output_dir, "checkpoints")
         fname = self.get_model_fname(self.model)
-        checkpoint_file = ''
+        checkpoint_file = ""
         if best:
-            checkpoint_file = 'model_checkpoint_%s.best.pth.tar' % ( fname )
+            checkpoint_file = "model_checkpoint_%s.best.pth.tar" % ( fname )
         else:
-            checkpoint_file = 'model_checkpoint_%s_%03i.pth.tar' % ( fname, checkpoint_id )
+            checkpoint_file = "model_checkpoint_%s_%03i.pth.tar" % ( fname, checkpoint_id )
         os.makedirs(checkpoint_dir, exist_ok=True)
         torch.save(dict(model=self.model.state_dict()),
                    os.path.join(checkpoint_dir, checkpoint_file))
@@ -88,7 +88,7 @@ class base(object):
         # Loop over epochs
         best_valid_loss = 99999
         for i in range(n_epochs):
-            self.logger.info('Epoch %i' % i)
+            self.logger.info("Epoch %i" % i)
             summary = dict(epoch=i)
             # Train on this epoch
             sum_train = self.train_epoch(train_data_loader)
@@ -99,9 +99,9 @@ class base(object):
                 sum_valid = self.evaluate(valid_data_loader)
                 summary.update(sum_valid)
                 
-                if sum_valid['valid_loss'] < best_valid_loss:
-                    best_valid_loss = sum_valid['valid_loss']
-                    self.logger.debug('Checkpointing new best model with loss: %.3f', best_valid_loss)
+                if sum_valid["valid_loss"] < best_valid_loss:
+                    best_valid_loss = sum_valid["valid_loss"]
+                    self.logger.debug("Checkpointing new best model with loss: %.3f", best_valid_loss)
                     self.write_checkpoint(checkpoint_id=i,best=True)
                 
                 if self.lr_scheduler is not None:

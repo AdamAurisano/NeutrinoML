@@ -78,7 +78,7 @@ data_loader:
   num_workers: 0 
 
 trainer:
-  device: 7 # Which GPU to use
+  device: "cpu" # Which GPU to use
   n_epochs: 20
   empty_cache: 1
   train_name: "default"

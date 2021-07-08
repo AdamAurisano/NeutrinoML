@@ -78,7 +78,7 @@ class TrainerPanopticSeg(base):
     start_time = time.time()
     # Loop over training batches
     batch_size = data_loader.batch_size
-    n_batches = int(math.ceil(len(data_loader.dataset)/batch_size))
+    n_batches = int(math.ceil(len(data_loader.dataset)/batch_size)) #if max_iters_train is None else max_iters_train
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
     #detector_extend = torch.FloatTensor([350,600,700]).to(self.device)
     #looping over batches
@@ -112,13 +112,15 @@ class TrainerPanopticSeg(base):
       #_offset_loss = 150*self.offset_loss(pred_offset, true_offset)
       _offset_loss = 5e-2*self.offset_loss(pred_offset[bk_mask], true_offset[bk_mask])
        
-      batch_loss = _offset_loss +_sem_loss  #_ctr_loss + _offset_loss +  _sem_loss 
+      batch_loss = _sem_loss #_offset_loss +_sem_loss  #_ctr_loss + _offset_loss +  _sem_loss 
        
       
       #back propagation and optimization 
       batch_loss.backward()
       self.optimizer.step()
 
+      if self.scheduler is not None:
+        self.scheduler.step()
       
       sum_loss += batch_loss.item() 
       sum_sem_loss += _sem_loss.item() 
@@ -155,7 +157,7 @@ class TrainerPanopticSeg(base):
     return summary
 
   @torch.no_grad()
-  def evaluate(self, data_loader, **kwargs):
+  def evaluate(self, data_loader, max_iters_eval=None, **kwargs):
     '''Evaluate the model'''
     self.model.eval()
     summary = dict()
@@ -196,7 +198,7 @@ class TrainerPanopticSeg(base):
       #    bad_files(data_loader.dataset.dataset.data_files[i])
       #    continue 
 
-      batch_loss = _offset_loss + _sem_loss  #_ctr_loss + _offset_loss +  _sem_loss # Panoptic Segmentation Model 
+      batch_loss = _sem_loss #_offset_loss + _sem_loss  #_ctr_loss + _offset_loss +  _sem_loss # Panoptic Segmentation Model 
      
       sum_loss += batch_loss.item()
       sum_sem_loss += _sem_loss.item()
@@ -261,8 +263,8 @@ class TrainerPanopticSeg(base):
           self.logger.debug('Checkpointing new best model with loss: %.3f', best_valid_loss)
           self.write_checkpoint(checkpoint_id=i,best=True)
 
-      if self.scheduler is not None:
-        self.scheduler.step(sum_valid['valid_loss'])
+     # if self.scheduler is not None:
+     #   self.scheduler.step(sum_valid["valid_loss"])
 
       # Save summary, checkpoint
       self.save_summary(summary)

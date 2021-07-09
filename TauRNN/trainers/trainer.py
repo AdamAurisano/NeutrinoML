@@ -20,7 +20,7 @@ from .base import base
 class Trainer(base):
   '''Trainer code for basic classification problems with categorical cross entropy.'''
 
-  def __init__(self, train_name='test1', summary_dir='summary', **kwargs):
+  def __init__(self, train_name='default', summary_dir='summary', **kwargs):
     super(Trainer, self).__init__(**kwargs)
     self.writer = SummaryWriter(f'{summary_dir}/{train_name}')
 

@@ -1,10 +1,10 @@
 data:
-  name: "DensePixelMapNOvA"
+  name: "SparsePixelMapNOvA"
   filedir: "/data/mp5/preselection_cvnmap"
   t_v_split: 0.05
 
 model:
-  name: "DenseMobileNet"
+  name: "MobileNet"
   D: 2
   alpha: 1
   depth: 1
@@ -12,10 +12,10 @@ model:
   dropout: 0.3
   loss_params:
     func: "CrossEntropyLoss"
-  arrange_data: "arrange_dense_2stack"
-  arrange_truth: "arrange_dense"
-  collate: "collate_dense_2stack"
-  
+  arrange_data: "arrange_sparse_minkowski_2stack"
+  arrange_truth: "sparse_semantic_truth"
+  collate: "collate_sparse_minkowski_2stack"
+
   activation_params:
     activation: "mish"
     LeakyReLU:
@@ -46,10 +46,10 @@ model:
     scheduler: "ReduceLROnPlateau"
     ReduceLROnPlateau:
       factor: 0.5
-      patience: 5
+      patience: 3
     StepLR:
       step_size: 5
-      gamma: 0.8  
+      gamma: 0.8
 
   metric_params:
     metrics: "Classification"
@@ -62,10 +62,10 @@ data_loader:
   num_workers: 3
 
 trainer:
-  device: 5 # Which GPU to use
-  n_epochs: 30
+  device: "cpu" # Which GPU to use
+  n_epochs: 50
   empty_cache: 1 # How many iterations between calls to empty GPU memory cache
-  train_name:  "train-dense-1"
+  train_name:  "default"
   summary_dir: "/scratch/SparseNOvA/summary"
   output_dir:  "/scratch/SparseNOvA/params"
   resume: True

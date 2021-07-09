@@ -78,7 +78,6 @@ model:
       gamma: 1.0
       verbose: True
 
-
   n_classes: 8 
 
   metric_params:
@@ -95,8 +94,6 @@ trainer:
   device: 5 # Which GPU to use
   n_epochs: 20
   empty_cache: 1
-  max_iters_train: None 
-  max_iters_eval:  None 
   summary_dir: 'summary/3d/debugging/feat_test/SemSeg32F_CyclicLR_NO_ASPP_mish_dropout_1-6e-4'
   output_dir: '/data/3d/params/debugging/feat_test/SemSeg32F_CyclicLR_NO_ASPP_mish_dropout_1-6e-4' 
 
@@ -105,4 +102,4 @@ inference:
   event_display: False # Whether to draw event displays
   confusion: True # Whether to draw a confusion matrix
   state_dict: None 
-  
+ 

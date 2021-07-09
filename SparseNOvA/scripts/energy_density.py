@@ -137,8 +137,8 @@ def get_alias(self, flav):
     return flav
 
 def main():
-    parser = argparse.ArgumentParser('train.py')
-    parser.add_argument('config', nargs='?', default='/scratch/SparseNOvA/config/sparse_nova_fishnet.yaml')
+    parser = argparse.ArgumentParser('energy_density.py')
+    parser.add_argument('config', nargs='?', default='/scratch/SparseNOvA/config/nova_sparse_fishnet.yaml')
     with open(parser.parse_args().config) as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 

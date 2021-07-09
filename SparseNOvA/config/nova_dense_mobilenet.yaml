@@ -1,32 +1,28 @@
 data:
-  name: 'SparsePixelMapNOvA'
-  filedir: '/data/mp5/preselection_cvnmap'
+  name: "DensePixelMapNOvA"
+  filedir: "/data/mp5/preselection_cvnmap"
   t_v_split: 0.05
 
 model:
-  name: 'FishNet'
+  name: "DenseMobileNet"
   D: 2
+  alpha: 1
+  depth: 1
+  classes: 4
+  dropout: 0.3
   loss_params:
-    func: 'CrossEntropyLoss'
-  arrange_data: 'arrange_sparse_minkowski_2stack'
-  arrange_truth: 'sparse_semantic_truth'
-  collate: 'collate_sparse_minkowski_2stack'
-
-  input_feats: 1
-  network_planes: [64, 128, 256, 512, 512, 512, 384, 256, 320, 832, 1600]
-  num_res_blks: [2, 4, 8, 4, 2, 2, 2, 2, 2, 4]
-  num_trans_blks: [2, 2, 2, 2, 2, 4]
-  num_cls: 4
-  num_down_sample: 3
-  num_up_sample: 3
+    func: "CrossEntropyLoss"
+  arrange_data: "arrange_dense_2stack"
+  arrange_truth: "arrange_dense"
+  collate: "collate_dense_2stack"
   
   activation_params:
-    activation: 'mish'
+    activation: "mish"
     LeakyReLU:
       negative_slope: 0.01
       
   optimizer_params:
-    optimizer: 'SGD'
+    optimizer: "SGD"
     AdamW:
       lr:               2.e-3
       weight_decay:     0.01
@@ -47,31 +43,31 @@ model:
       momentum:         0.9
 
   scheduler_params:
-    scheduler: 'ReduceLROnPlateau'
+    scheduler: "ReduceLROnPlateau"
     ReduceLROnPlateau:
       factor: 0.5
-      patience: 3
+      patience: 5
     StepLR:
-      step_size: 3
-      gamma: 0.8
+      step_size: 5
+      gamma: 0.8  
 
   metric_params:
-    metrics: 'Classification'
+    metrics: "Classification"
     include_batch_metrics: True
     Classification:
-      class_names: ['numu','nue','nc','cosmic']
+      class_names: ["numu","nue","nc","cosmic"]
 
 data_loader:
-  batch_size: 1024
-  num_workers: 5
+  batch_size: 128
+  num_workers: 3
 
 trainer:
-  device: 7 # Which GPU to use
-  n_epochs: 50
+  device: "cpu" # Which GPU to use
+  n_epochs: 30
   empty_cache: 1 # How many iterations between calls to empty GPU memory cache
-  train_name:  'fishnet5'
-  summary_dir: '/scratch/SparseNOvA/summary'
-  output_dir:  '/scratch/SparseNOvA/params'
+  train_name:  "default"
+  summary_dir: "/scratch/SparseNOvA/summary"
+  output_dir:  "/scratch/SparseNOvA/params"
   resume: True
   debug: False
 
@@ -79,4 +75,4 @@ inference:
   max_images: 100 # Maximum number of images to process
   event_display: True # Whether to draw event displays
   confusion: False # Whether to draw a confusion matrix
-  state_dict: None # Replace this with a string path to a trained .pth.tar file after training! They're written to params/checkpoints
+  state_dict: None # Replace this with a string path to a trained .pth.tar file after training! They"re written to params/checkpoints

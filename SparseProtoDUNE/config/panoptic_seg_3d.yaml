@@ -1,7 +1,8 @@
 data:
   name: 'SparsePixelMap3D'
   root: '/data/3d'
-  trainfiles: 'InsSegSample1'
+  trainfiles: 'showers1'   #'MCProd4a_SPM'  
+  #'2GeVpBarExample' #
   t_v_split: 0.05
 
 process:
@@ -9,16 +10,17 @@ process:
   max_files: 10000
   pre_transform: None
   voxel_size: 1
-  feat_norm: [1.e-5, 1.e-5, 1.e-5, 6.25e-4, 1.667e-3, 1.429e-3, 5.e-2]
+  #feat_norm: [1.e-5, 1.e-5, 1.e-5, 6.25e-4, 1.667e-3, 1.429e-3, 5.e-2]
+  feat_norm: [1.e-5, 1.e-5, 1.e-5, 1.429e-3,1.667e-3,1.429e-3, 5.e-2]
 
 model:
   name: 'ASPP_Panoptic'
-  #'PanopticSeg'  #
+  #'MinkowskiSeg' #
   n_dims: 3
   rate: [6,12,18]
   extent: 6000 # Maximum dimension of pixel map
   input_feats: 7
-  n_feats: 14 # Number of features
+  n_feats: 32 # Number of features
   unet_depth: 10 
   res_blocks: True # Whether to use residual blocks in unet
 
@@ -28,7 +30,6 @@ model:
       func: 'categorical_cross_entropy'
     CENTER:
       func: 'cross_entropy'
-      #'MSELoss' #'cross_entropy' #
     OFFSET:
       func: 'L1Loss' 
   
@@ -36,14 +37,14 @@ model:
   arrange_truth: 'sparse_panoptic_truth'
 
   activation_params:
-    activation: 'ReLU'
+    activation: 'mish'
     LeakyReLU:
-      negative_slope: 0.01
+      negative_slope: 0.1
 
   optimizer_params:
-    optimizer: 'AdamW'
+    optimizer: 'SGD'
     AdamW:
-      lr: 1.e-4
+      lr: 1.e-2
       weight_decay:     0.01
     Ranger:
       lr:               1.e-3
@@ -55,15 +56,28 @@ model:
       weight_decay:     0
       use_gc:           True
       gc_conv_only:     False
+    SGD:
+      lr:               1.e-3
+      momentum:         0.9
 
   scheduler_params:
-    scheduler: 'ReduceLROnPlateau'
+    scheduler: 'CyclicLR'
     ReduceLROnPlateau:
-      factor: 0.9
-      patience: 3
+      factor: 0.5
+      patience: 5
     StepLR:
-      step_size: 5 
-      gamma: 0.8
+      step_size: 3 
+      gamma: 0.1
+      verbose: True 
+    CyclicLR:
+      base_lr: 1.e-4
+      max_lr: 6.e-4
+      step_size_up: 3000
+      step_size_down: 3000
+      mode: 'triangular'
+      gamma: 1.0
+      verbose: False
+
 
   n_classes: 8 
 
@@ -74,24 +88,20 @@ model:
       class_names: ['shower','delta','diffuse','kaons','michel','hip','mu','pi']
 
 data_loader:
-  batch_size: 10 
+  batch_size: 30 
   num_workers: 0 
 
 trainer:
-  device: "cpu" # Which GPU to use
+  device: 5 # Which GPU to use
   n_epochs: 20
   empty_cache: 1
-  train_name: "default"
-  summary_dir: 'summary/3d/center_pred_10_std1_newloss'
-  output_dir: '/data/3d/params/center_pred_10_std1_newloss'
-  resume: True
-  debug: False
+  max_iters_train: None 
+  max_iters_eval:  None 
+  summary_dir: 'summary/3d/debugging/feat_test/SemSeg32F_CyclicLR_NO_ASPP_mish_dropout_1-6e-4'
+  output_dir: '/data/3d/params/debugging/feat_test/SemSeg32F_CyclicLR_NO_ASPP_mish_dropout_1-6e-4' 
 
 inference:
-  max_images: 30000 # Maximum number of images to process
+  max_images: 300 # Maximum number of images to process
   event_display: False # Whether to draw event displays
-  confusion: False # Whether to draw a confusion matrix
-  state_dict: None # '/scratch/SparseProtoDUNE/params/test1/checkpoints/model_checkpoint_PanopticSeg_9733712_12fac6a727_csarasty.best.pth.tar'
-  
-  # Replace this with a string path to a trained .pth.tar file after training! They're written to params/checkpoints
- 
+  confusion: True # Whether to draw a confusion matrix
+  state_dict: None 

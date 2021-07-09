@@ -1,6 +1,6 @@
 data:
-  name: "SparsePixelMapNOvAFull"
-  filename: "/data/mp5/cvnmap.parquet"
+  name: "SparsePixelMapNOvA"
+  filedir: "/data/mp5/preselection_cvnmap"
   t_v_split: 0.05
 
 model:
@@ -14,9 +14,8 @@ model:
     func: "CrossEntropyLoss"
   arrange_data: "arrange_sparse_minkowski_2stack"
   arrange_truth: "sparse_semantic_truth"
-  collate_train: "collate_minkowski_2stack_jitter"
-  collate_valid: "collate_minkowski_2stack"
-  
+  collate: "collate_sparse_minkowski_2stack"
+
   activation_params:
     activation: "mish"
     LeakyReLU:

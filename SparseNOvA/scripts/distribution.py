@@ -24,9 +24,9 @@ import seaborn as sn
 
 def parse_args():
   '''Parse arguments'''
-  parser = argparse.ArgumentParser('process.py')
+  parser = argparse.ArgumentParser('distribution.py')
   add_arg = parser.add_argument
-  add_arg('config', nargs='?', default='config/sparse_nova_dense_mobilenet-Copy1.yaml')
+  add_arg('config', nargs='?', default='config/nova-dense-mobilenet.yaml')
   return parser.parse_args()
 
 def configure(config):

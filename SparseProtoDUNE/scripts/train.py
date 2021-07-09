@@ -30,8 +30,8 @@ def main():
   config = configure(args.config)
   full_dataset = datasets.get_dataset(**config['data'])
   if config['model']['instance_segmentation']:
-    from Core.trainers.trainerInsSeg import TrainerInsSeg
-    trainer = TrainerInsSeg(**config['trainer'])
+    from Core.trainers.trainer_panoptic_seg import TrainerPanopticSeg
+    trainer = TrainerPanopticSeg(**config['trainer'])
     collate = utils.collate_sparse_minkowski_panoptic
   else:
     from Core.trainers.trainer import Trainer
@@ -55,4 +55,3 @@ def main():
 
 if __name__ == '__main__':
   main()
-

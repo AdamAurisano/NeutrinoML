@@ -70,13 +70,13 @@ model:
       gamma: 0.1
       verbose: True 
     CyclicLR:
-      base_lr: 1.e-3
-      max_lr: 6.e-3
-      step_size_up: 2000
-      step_size_down: 2000
+      base_lr: 1.e-4
+      max_lr: 6.e-4
+      step_size_up: 3000
+      step_size_down: 3000
       mode: 'triangular'
       gamma: 1.0
-      verbose: False
+      verbose: True
 
 
   n_classes: 8 
@@ -97,8 +97,8 @@ trainer:
   empty_cache: 1
   max_iters_train: None 
   max_iters_eval:  None 
-  summary_dir: 'summary/3d/debugging/feat_test/SemSeg32F_CyclicLR_NO_ASPP_mish_dropout_1-6e-3'
-  output_dir: '/data/3d/params/debugging/feat_test/SemSeg32F_CyclicLR_NO_ASPP_mish_dropout_1-6e-3' 
+  summary_dir: 'summary/3d/debugging/feat_test/SemSeg32F_CyclicLR_NO_ASPP_mish_dropout_1-6e-4'
+  output_dir: '/data/3d/params/debugging/feat_test/SemSeg32F_CyclicLR_NO_ASPP_mish_dropout_1-6e-4' 
 
 inference:
   max_images: 300 # Maximum number of images to process

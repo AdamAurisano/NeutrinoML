@@ -142,9 +142,9 @@ if __name__ == '__main__':
       xobjmap, yobjmap = row.cvnobjmap.reshape(2, 100, 80)
       xlabmap, ylabmap = row.cvnlabmap.reshape(2, 100, 80)
 
-      # get the indices of the nonzero pixels with mask
-      xmask = xview.nonzero()
-      ymask = yview.nonzero()
+      # get the indicies of the nonzero pixels with mask
+      xmask = np.stack(xview.nonzero(), axis=0)
+      ymask = np.stack(yview.nonzero(), axis=0)
 
       # get the truth
       truth = row.label
@@ -154,17 +154,19 @@ if __name__ == '__main__':
       xoffset = row.firstcellx
       yoffset = row.firstcelly
 
-      # get pixel coordinates
-      xcoord = np.stack(xmask, axis=0) + np.array([zoffset, xoffset])[:,None]
-      ycoord = np.stack(ymask, axis=0) + np.array([zoffset, yoffset])[:,None]
+      # change the coords to global coordinates
+      # xmask += np.array([zoffset, xoffset]).astype("int64")[:,None]
+      # ymask += np.array([zoffset, yoffset], dtype=np.int64)[:,None]
+      xglobal = torch.tensor([zoffset, xoffset]).int()
+      yglobal = torch.tensor([zoffset, yoffset]).int()
 
       # use the masks to get data dictionary
-      data = { 'xfeats': torch.tensor(xview[xmask]).unsqueeze(dim=-1).float(),
-               'xcoords': torch.tensor(xcoord).T.contiguous().int(),
+      data = { 'xfeats': torch.tensor(xview[xmask]).float(),
+              'xcoords': torch.tensor(xmask).int() + xglobal[:,None],
                'xsegtruth': torch.tensor(xlabmap[xmask]).long(),
                'xinstruth': torch.tensor(xobjmap[xmask]).long(),
-               'yfeats': torch.tensor(yview[ymask]).unsqueeze(dim=-1).float(),
-               'ycoords': torch.tensor(ycoord).T.contiguous().int(),
+               'yfeats': torch.tensor(yview[ymask]).float(),
+               'ycoords': torch.tensor(ymask).int() + yglobal[:,None],
                'ysegtruth': torch.tensor(ylabmap[ymask]).long(),
                'yinstruth': torch.tensor(yobjmap[ymask]).long(),
                'evttruth': torch.tensor(truth).long() }

@@ -22,11 +22,24 @@ def kContain(tables):
     (df['distallpngback'] > 30).groupby(level=KL).first())
 kContain = Cut(kContain)
 
-def kNueOrNumu(tables):
+def kNCAndCC(tables):
   pdg = tables['rec.mc.nu']['pdg']
   cc = tables['rec.mc.nu']['iscc']
-  return (((pdg==12) | (pdg==14) | (pdg==-12) | (pdg==-14)) & (cc==1)).groupby(level=KL).first()
-kNueOrNumu = Cut(kNueOrNumu)
+  return ((pdg==12) | (pdg==14) | (pdg==16) | (pdg==-12) | (pdg==-14) | (pdg==-16)).groupby(level=KL).first()
+kNCAndCC = Cut(kNCAndCC)
+
+def kCC(tables):
+  pdg = tables['rec.mc.nu']['pdg']
+  cc = tables['rec.mc.nu']['iscc']
+  return (((pdg==12) | (pdg==14) | (pdg==16) | (pdg==-12) | (pdg==-14) | (pdg==-16)) & (cc==1)).groupby(level=KL).first()
+kCC = Cut(kCC)
+
+def kCosmics(tables):
+  cos = tables['rec.training.trainingdata']['interaction']
+  return ((cos==15).groupby(level=KL).first())
+kCosmics = Cut(kCosmics)
+
+# kCosmics = Cut(lambda tables: (tables['rec.training.trainingdata']['interaction']==15).groupby(level=KL).first())
 
 def kSign(tables):
   return tables['rec.mc.nu']['pdg'].groupby(level=KL).first()
@@ -82,7 +95,7 @@ if __name__ == '__main__':
   print('There are '+str(len(files))+' files.')
 
   # Full selection
-  kCut = kVeto & kNueOrNumu & kContain & kVtx & kPng & kFEB
+  kCut = kVeto & kCosmics & kContain & kVtx & kPng & kFEB
 
   # One file at a time to avoid problems with loading a bunch of pixel maps in memory
   for i,f in enumerate(files):

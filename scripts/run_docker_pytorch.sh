@@ -51,5 +51,5 @@ export JUPYTER_PORT=${PORT}0
 export SHERPA_PORT=${PORT}1
 export TENSORBOARD_PORT=${PORT}2
 
-nvidia-docker run --name ${USER}-${2}-${1} --expose=${PORT_RANGE} -p ${PORT_RANGE}:${PORT_RANGE} -e USER -e OMP_NUM_THREADS -e JUPYTER_PORT -e SHERPA_PORT -e TENSORBOARD_PORT -e PYTHONPATH=/scratch:/usr/local/pynuml:/usr/local/pandana:/usr/local/NOvAPandAna -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v ${datadir}:/data -v /home/${USER}/pynuml:/numl --workdir /scratch $container
+nvidia-docker run --name ${USER}-${2}-${1} --expose=${PORT_RANGE} -p ${PORT_RANGE}:${PORT_RANGE} -e USER -e OMP_NUM_THREADS -e JUPYTER_PORT -e SHERPA_PORT -e TENSORBOARD_PORT -e PYTHONPATH=/scratch:/numl:/usr/local/pynuml:/usr/local/pandana:/usr/local/NOvAPandAna -it --rm --shm-size=16g --ulimit memlock=-1 -v ${topdir}:/scratch -v ${datadir}:/data -v /home/${USER}/pynuml:/numl --workdir /scratch $container
 

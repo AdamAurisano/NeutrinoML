@@ -95,7 +95,7 @@ if __name__ == '__main__':
   print('There are '+str(len(files))+' files.')
 
   # Full selection
-  kCut = kVeto & kCosmics & kContain & kVtx & kPng & kFEB
+  kCut = kVeto & kNCAndCC & kContain & kVtx & kPng & kFEB
 
   # One file at a time to avoid problems with loading a bunch of pixel maps in memory
   for i,f in enumerate(files):
@@ -182,7 +182,8 @@ if __name__ == '__main__':
                'yinstruth': torch.tensor(yobjmap[ymask]).long(),
                'evttruth': torch.tensor(truth).long() }
 
-      torch.save(data, '{}/{}.pt'.format(outdir, uuidgen()))
+      path = os.path.join(outdir, 'r{}_s{}_e{}.pt'.format(row.run, row.subrun, row.evt))
+      torch.save(data, path)
 
     df.apply(process_evt, axis=1)
 

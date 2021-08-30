@@ -28,14 +28,17 @@ def collate_sparse_minkowski_panoptic(batch):
 
 def collate_sparse_minkowski_2stack(batch):
   import MinkowskiEngine as ME
-  x_coords = ME.utils.batched_coordinates([d['xcoords'] for d in batch])
-  x_feats  = torch.cat([d['xfeats'] for d in batch])
-  y_coords = ME.utils.batched_coordinates([d['ycoords'] for d in batch])
-  y_feats  = torch.cat([d['yfeats'] for d in batch])
-  y        = torch.stack([d['truth'] for d in batch])
-  ret = { 'sparse': [x_feats, x_coords, y_feats, y_coords], 'y': y }
+  x_coords   = ME.utils.batched_coordinates([d['xcoords'] for d in batch])
+  x_feats    = torch.cat([d['xfeats'] for d in batch])
+  x_segtruth = torch.cat([d['xsegtruth'] for d in batch])
+  x_instruth = torch.cat([d['xinstruth'] for d in batch])
+  y_coords   = ME.utils.batched_coordinates([d['ycoords'] for d in batch])
+  y_feats    = torch.cat([d['yfeats'] for d in batch])
+  y_segtruth = torch.cat([d['ysegtruth'] for d in batch])
+  y_instruth = torch.cat([d['yinstruth'] for d in batch])
+  y          = torch.stack([d['evttruth'] for d in batch])
+  ret = { 'sparse': [x_feats, x_coords, x_segtruth, x_instruth, y_feats, y_coords, y_segtruth, y_instruth], 'y': y }
   return ret
-
 
 def collate_dense_2stack(batch):
   xview = torch.stack([ x[0] for x in batch ])

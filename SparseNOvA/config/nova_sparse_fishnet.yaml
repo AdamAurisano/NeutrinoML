@@ -1,6 +1,6 @@
 data:
   name: "SparsePixelMapNOvA"
-  filedir: "/data/mp5/preselection_cvnmap"
+  filedir: "/data/p5/processed"
   t_v_split: 0.05
 
 model:
@@ -12,11 +12,11 @@ model:
   arrange_truth: "sparse_semantic_truth"
   collate: "collate_sparse_minkowski_2stack"
 
-  input_feats: 1
+  input_feats: 3
   network_planes: [64, 128, 256, 512, 512, 512, 384, 256, 320, 832, 1600]
   num_res_blks: [2, 4, 8, 4, 2, 2, 2, 2, 2, 4]
   num_trans_blks: [2, 2, 2, 2, 2, 4]
-  num_cls: 4
+  num_cls: 5
   num_down_sample: 3
   num_up_sample: 3
   
@@ -59,18 +59,18 @@ model:
     metrics: "Classification"
     include_batch_metrics: True
     Classification:
-      class_names: ["numu","nue","nc","cosmic"]
+      class_names: ["numu","nue","nc","nutau","cosmic"]
 
 data_loader:
   batch_size: 1024
   num_workers: 5
 
 trainer:
-  device: "cpu" # Which GPU to use
+  device: 4 # Which GPU to use
   n_epochs: 50
   empty_cache: 1 # How many iterations between calls to empty GPU memory cache
-  train_name:  "default"
-  summary_dir: "/scratch/SparseNOvA/summary"
+  train_name:  "/p5"
+  summary_dir: "/scratch/SparseNOvA/summary/preselection/bestparam/fishnet/SGD/batchsize1024"
   output_dir:  "/scratch/SparseNOvA/params"
   resume: True
   debug: False

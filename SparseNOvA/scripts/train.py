@@ -18,8 +18,16 @@ with open(parser.parse_args().config) as f:
   config = yaml.load(f, Loader=yaml.FullLoader)
 
 # Here we load the dataset and the trainer, which is responsible for building the model and overseeing training. There's a block of code which is responsible for slicing the full dataset up into a training dataset and a validation dataset where jitter is applied to training dataset only.
-all_nus = sorted(glob(f'{config["data"]["filedir"]}/nu/*.pt'))
-all_cosmics = sorted(glob(f'{config["data"]["filedir"]}/cosmic/*.pt'))
+
+nonswap = sorted(glob(f'{config["data"]["filedir"]}/fd_fhc_nonswap/*.pt'))
+tauswap = sorted(glob(f'{config["data"]["filedir"]}/fd_fhc_tauswap/*.pt'))
+fluxswap = sorted(glob(f'{config["data"]["filedir"]}/fd_fhc_fluxswap/*.pt'))
+nonswap_cosmics = sorted(glob(f'{config["data"]["filedir"]}/fd_fhc_cosmics1/*.pt'))
+tauswap_cosmics = sorted(glob(f'{config["data"]["filedir"]}/fd_fhc_cosmics2/*.pt'))
+fluxswap_cosmics = sorted(glob(f'{config["data"]["filedir"]}/fd_fhc_cosmics3/*.pt'))
+
+all_nus = nonswap + tauswap + fluxswap
+all_cosmics = nonswap_cosmics + tauswap_cosmics + fluxswap_cosmics
 
 if len(all_cosmics) > int(0.1 * len(all_nus)):
     all_cosmics = all_cosmics[0:int(0.1*len(all_nus))]

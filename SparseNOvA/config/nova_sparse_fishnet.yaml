@@ -1,7 +1,8 @@
 data:
   name: "SparsePixelMapNOvA"
   filedir: "/data/p5/processed"
-  t_v_split: 0.05
+  val_fraction: 0.05
+  test_fraction: 0.05
 
 model:
   name: "FishNet"

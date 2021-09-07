@@ -8,9 +8,9 @@ import random
 from Core import utils
 
 class SparsePixelMapNOvA(Dataset):
-    def __init__(self, filelist, apply_jitter, normalize_coord, **kwargs):
+    def __init__(self, topdir, subdir, apply_jitter, normalize_coord, **kwargs):
         '''Initialiser for SparsePixelMapNOvA class'''
-        self.files = filelist
+        self.files = glob.glob(osp.join(topdir, subdir, "*.pt"))
         self.apply_jitter = apply_jitter
         self.normalize_coord = normalize_coord
         

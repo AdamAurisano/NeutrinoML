@@ -1,6 +1,6 @@
 data:
   name: "SparsePixelMapNOvA"
-  filedir: "/data/p5/processed"
+  topdir: "/data/p5/processed"
   val_fraction: 0.05
   test_fraction: 0.05
 

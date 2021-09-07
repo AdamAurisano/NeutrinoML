@@ -11,13 +11,13 @@ parser.add_argument("config", nargs="?", default="/scratch/SparseNOvA/config/nov
 with open(parser.parse_args().config) as f:
   config = yaml.load(f, Loader=yaml.FullLoader)
 
-filedir = config["data"]["filedir"]
-nonswap = glob(filedir+"/fd_fhc_nonswap/*.pt")
-tauswap = glob(filedir+"/fd_fhc_tauswap/*.pt")
-fluxswap = glob(filedir+"/fd_fhc_fluxswap/*.pt")
-nonswap_cosmics = glob(filedir+"/fd_fhc_cosmics1/*.pt")
-tauswap_cosmics = glob(filedir+"/fd_fhc_cosmics2/*.pt")
-fluxswap_cosmics = glob(filedir+"/fd_fhc_cosmics3/*.pt")
+topdir = config["data"]["topdir"]
+nonswap = glob(topdir+"/fd_fhc_nonswap/*.pt")
+tauswap = glob(topdir+"/fd_fhc_tauswap/*.pt")
+fluxswap = glob(topdir+"/fd_fhc_fluxswap/*.pt")
+nonswap_cosmics = glob(topdir+"/fd_fhc_cosmics1/*.pt")
+tauswap_cosmics = glob(topdir+"/fd_fhc_cosmics2/*.pt")
+fluxswap_cosmics = glob(topdir+"/fd_fhc_cosmics3/*.pt")
 
 all_nus = nonswap + tauswap + fluxswap
 all_cosmics = nonswap_cosmics + tauswap_cosmics + fluxswap_cosmics
@@ -42,15 +42,15 @@ test_dataset = full_dataset[split2:]
 
 print(f"{len(full_dataset)} files: {len(train_dataset)} train, {len(val_dataset)} validation, {len(test_dataset)} test")
 
-def link_files(files, filedir, filetype):
+def link_files(files, topdir, filetype):
   import tqdm, os, os.path as osp
   from uuid import uuid4 as uuid
   print(f"linking {filetype} files...")
   for f in tqdm.tqdm(files):
-    outpath = f"{filedir}/{filetype}/{uuid()}.pt"
+    outpath = f"{topdir}/{filetype}/{uuid()}.pt"
     os.symlink(f, outpath)
 
-link_files(train_dataset, filedir, "training")
-link_files(val_dataset, filedir, "validation")
-link_files(test_dataset, filedir, "testing")
+link_files(train_dataset, topdir, "training")
+link_files(val_dataset, topdir, "validation")
+link_files(test_dataset, topdir, "testing")
 

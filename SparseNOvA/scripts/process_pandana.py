@@ -1,4 +1,5 @@
-import os, sys, random
+#!/usr/bin/env python
+import os, os.path as osp, sys, argparse, random
 import pandas as pd, h5py, numpy as np, torch
 from pandana.core import *
 from Utils.index import KL, index
@@ -36,12 +37,10 @@ def kCC(tables):
   return (((pdg==12) | (pdg==14) | (pdg==16) | (pdg==-12) | (pdg==-14) | (pdg==-16)) & (cc==1)).groupby(level=KL).first()
 kCC = Cut(kCC)
 
-def kCosmics(tables):
+def kCosmic(tables):
   cos = tables['rec.training.trainingdata']['interaction']
   return ((cos==15).groupby(level=KL).first())
-kCosmics = Cut(kCosmics)
-
-# kCosmics = Cut(lambda tables: (tables['rec.training.trainingdata']['interaction']==15).groupby(level=KL).first())
+kCosmic = Cut(kCosmic)
 
 def kSign(tables):
   return tables['rec.mc.nu']['pdg'].groupby(level=KL).first()
@@ -89,27 +88,29 @@ def get_alias(row):
 
 if __name__ == '__main__':
   # Miniprod 5 h5s
-  indir = sys.argv[1]
-  outdir = sys.argv[2]
-  print('Change files in '+indir+' to training files in '+outdir)
-  files = [f for f in os.listdir(indir) if 'h5caf.h5' in f]
+  args = argparse.ArgumentParser(description="Preprocess NOvA HDF5s into ML training inputs")
+  args.add_argument("-i", "--indir", type=str, required=True,
+                    help="directory containing input HDF5 files")
+  args.add_argument("-o", "--outdir", type=str, required=True,
+                    help="directory to write output files to")
+  args.add_argument("-t", "--type", type=str, required=True, nargs=1, choices=["nu", "cosmic"],
+                    help="which selection to apply")
+  opts = args.parse_args()
+  print('Change files in '+opts.indir+' to training files in '+opts.outdir)
+  files = [f for f in os.listdir(opts.indir) if 'h5caf.h5' in f]
   files = random.sample(files, len(files))
   print('There are '+str(len(files))+' files.')
 
   # Full selection
-  kCut = kVeto & kNCAndCC & kContain & kVtx & kPng & kFEB
-#   kCut = kNoCut
+  kCut = kVeto & kContain & kVtx & kPng & kFEB
+  if opts.type == "nu": kCut = kCut & kNCAndCC
+  else: kCut = kCut & kCosmic
 
   # One file at a time to avoid problems with loading a bunch of pixel maps in memory
-  for i,f in enumerate(files):
+  for i, f in enumerate(files):
 
-    # Definte the output name and don't recreate it
-    outname = '{0}_TrainData{1}'.format(f[:-9], f[-9:])
-    if os.path.exists(os.path.join(outdir,outname)):
-      continue
-    
     # Make a loader and the two spectra to fill
-    tables = Loader([os.path.join(indir,f)], idcol='evt.seq', main_table_name='spill', indices=index)
+    tables = Loader([osp.join(opts.indir,f)], idcol='evt.seq', main_table_name='spill', indices=index)
     specLabel  = Spectrum(tables, kCut, kLabel)
     specMap  = Spectrum(tables, kCut, kMap)
     specSign   = Spectrum(tables, kCut, kSign)
@@ -128,31 +129,12 @@ if __name__ == '__main__':
       print(str(i)+': File '+f+' is empty.')
       continue
     
-    # Concat the dataframes to line up label and map
-    # join='inner' ensures there is both a label and a map for the slice
     df = pd.concat([specLabel.df(), specMap.df(), specObj.df(), specLab.df(), specFirstCellX.df(), specFirstCellY.df(), specFirstPlane.df()], axis=1, join='inner').reset_index()
-    
-    # Save in an h5
-#    hf = h5py.File(os.path.join(outdir,outname),'w')
-#    hf.create_dataset('run',     data=df['run'],     compression='gzip')
-#    hf.create_dataset('subrun',  data=df['subrun'],    compression='gzip')
-#    hf.create_dataset('cycle',   data=df['cycle'],     compression='gzip')
-#    hf.create_dataset('event',   data=df['evt'],     compression='gzip')
-#    hf.create_dataset('slice',   data=df['subevt'],    compression='gzip')
-#    hf.create_dataset('label',   data=df['interaction'], compression='gzip')
-#    hf.create_dataset('PDG',     data=df['pdg'],     compression='gzip')
-#    hf.create_dataset('E',     data=df['nuenergy'],  compression='gzip')
-#    hf.create_dataset('cvnmap',  data=np.stack(df['cvnmap']), compression='gzip')
-#    hf.create_dataset('cvnobjmap', data=np.stack(df['cvnobjmap']), compression='gzip')
-#    hf.create_dataset('cvnlabmap', data=np.stack(df['cvnlabmap']), compression='gzip')
-#    hf.create_dataset('firstcellx',   data=np.stack(df['firstcellx']), compression='gzip')
-#    hf.create_dataset('firstcelly',   data=np.stack(df['firstcelly']), compression='gzip')
-#    hf.create_dataset('firstplane',   data=np.stack(df['firstplane']), compression='gzip')
-#    hf.close()
-
+    if opts.type == "nu": df = pd.concat([df, specEnergy.df(), specSign.df()], axis='columns', join='inner').reset_index()
     df['label'] = df.apply(get_alias, axis=1)
 
     def process_evt(row):
+      print(row)
       # reshape the cvnmap and label tensors to correct shape
       xview, yview = row.cvnmap.reshape(2, 100, 80)
       xobjmap, yobjmap = row.cvnobjmap.reshape(2, 100, 80)
@@ -185,11 +167,9 @@ if __name__ == '__main__':
                'yinstruth': torch.tensor(yobjmap[ymask]).long(),
                'evttruth': torch.tensor(truth).long() }
 
-        
-      path = os.path.join(outdir, 'r{}_sr{}_c{}_e{}_s{}.pt'.format(row.run, row.subrun, row.cycle, row.evt, row.subevt))
-      torch.save(data, path)
+      fname = "b{}_c{}_r{}_sr{}_e{}_se{}.pt".format(row.batch, row.cycle, row.run,
+                                                    row.subrun, row.evt, row.subevt)
+      torch.save(data, osp.join(opts.outdir, fname))
 
     df.apply(process_evt, axis=1)
-    
-
 

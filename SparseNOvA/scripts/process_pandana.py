@@ -3,12 +3,14 @@ import pandas as pd, h5py, numpy as np, torch
 from pandana.core import *
 from Utils.index import KL, index
 from uuid import uuid4 as uuidgen
+import matplotlib.pyplot as plt
 
 # DQ
 kVeto = Cut(lambda tables: (tables['rec.sel.veto']['keep'] == 1).groupby(level=KL).first())
 kVtx  = Cut(lambda tables: (tables['rec.vtx.elastic']['IsValid'] == 1).groupby(level=KL).first())
 kPng  = Cut(lambda tables: (tables['rec.vtx.elastic.fuzzyk']['npng'] > 0).groupby(level=KL).first())
 kFEB  = Cut(lambda tables: (tables['rec.sel.nuecosrej']['hitsperplane'] < 8).groupby(level=KL).first())
+kNoCut = Cut(lambda tables: tables['rec.slc']['nhit'] > 0)
 
 # Containment
 def kContain(tables):
@@ -96,6 +98,7 @@ if __name__ == '__main__':
 
   # Full selection
   kCut = kVeto & kNCAndCC & kContain & kVtx & kPng & kFEB
+#   kCut = kNoCut
 
   # One file at a time to avoid problems with loading a bunch of pixel maps in memory
   for i,f in enumerate(files):
@@ -127,7 +130,7 @@ if __name__ == '__main__':
     
     # Concat the dataframes to line up label and map
     # join='inner' ensures there is both a label and a map for the slice
-    df = pd.concat([specLabel.df(), specMap.df(), specSign.df(), specEnergy.df(), specObj.df(), specLab.df(), specFirstCellX.df(), specFirstCellY.df(), specFirstPlane.df()], axis=1, join='inner').reset_index()
+    df = pd.concat([specLabel.df(), specMap.df(), specObj.df(), specLab.df(), specFirstCellX.df(), specFirstCellY.df(), specFirstPlane.df()], axis=1, join='inner').reset_index()
     
     # Save in an h5
 #    hf = h5py.File(os.path.join(outdir,outname),'w')
@@ -182,8 +185,11 @@ if __name__ == '__main__':
                'yinstruth': torch.tensor(yobjmap[ymask]).long(),
                'evttruth': torch.tensor(truth).long() }
 
-      path = os.path.join(outdir, 'r{}_s{}_e{}.pt'.format(row.run, row.subrun, row.evt))
+        
+      path = os.path.join(outdir, 'r{}_sr{}_c{}_e{}_s{}.pt'.format(row.run, row.subrun, row.cycle, row.evt, row.subevt))
       torch.save(data, path)
 
     df.apply(process_evt, axis=1)
+    
+
 

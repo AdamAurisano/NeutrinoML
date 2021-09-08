@@ -28,7 +28,7 @@ kContain = Cut(kContain)
 def kNCAndCC(tables):
   pdg = tables['rec.mc.nu']['pdg']
   cc = tables['rec.mc.nu']['iscc']
-  return ((pdg==12) | (pdg==14) | (pdg==16) | (pdg==-12) | (pdg==-14) | (pdg==-16)).groupby(level=KL).first()
+  return ((abs(pdg)==12) | (abs(pdg)==14) | (abs(pdg)==16)).groupby(level=KL).first()
 kNCAndCC = Cut(kNCAndCC)
 
 def kCC(tables):
@@ -93,7 +93,7 @@ if __name__ == '__main__':
                     help="directory containing input HDF5 files")
   args.add_argument("-o", "--outdir", type=str, required=True,
                     help="directory to write output files to")
-  args.add_argument("-t", "--type", type=str, required=True, nargs=1, choices=["nu", "cosmic"],
+  args.add_argument("-t", "--type", type=str, required=True, choices=["nu", "cosmic"],
                     help="which selection to apply")
   opts = args.parse_args()
   print('Change files in '+opts.indir+' to training files in '+opts.outdir)
@@ -107,7 +107,8 @@ if __name__ == '__main__':
   else: kCut = kCut & kCosmic
 
   # One file at a time to avoid problems with loading a bunch of pixel maps in memory
-  for i, f in enumerate(files):
+  from tqdm import tqdm
+  for i, f in enumerate(tqdm(files)):
 
     # Make a loader and the two spectra to fill
     tables = Loader([osp.join(opts.indir,f)], idcol='evt.seq', main_table_name='spill', indices=index)
@@ -125,16 +126,12 @@ if __name__ == '__main__':
     tables.Go()
     
     # Don't save an empty file
-    if specLab.entries()==0 or specMap.entries()==0:
-      print(str(i)+': File '+f+' is empty.')
-      continue
+    if specLab.entries() == 0 or specMap.entries() == 0: continue
     
     df = pd.concat([specLabel.df(), specMap.df(), specObj.df(), specLab.df(), specFirstCellX.df(), specFirstCellY.df(), specFirstPlane.df()], axis=1, join='inner').reset_index()
-    if opts.type == "nu": df = pd.concat([df, specEnergy.df(), specSign.df()], axis='columns', join='inner').reset_index()
     df['label'] = df.apply(get_alias, axis=1)
 
     def process_evt(row):
-      print(row)
       # reshape the cvnmap and label tensors to correct shape
       xview, yview = row.cvnmap.reshape(2, 100, 80)
       xobjmap, yobjmap = row.cvnobjmap.reshape(2, 100, 80)

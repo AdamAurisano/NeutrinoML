@@ -12,12 +12,12 @@ with open(parser.parse_args().config) as f:
   config = yaml.load(f, Loader=yaml.FullLoader)
 
 topdir = config["data"]["topdir"]
-nonswap = glob(topdir+"/fd_fhc_nonswap/*.pt")
-tauswap = glob(topdir+"/fd_fhc_tauswap/*.pt")
-fluxswap = glob(topdir+"/fd_fhc_fluxswap/*.pt")
-nonswap_cosmics = glob(topdir+"/fd_fhc_cosmics1/*.pt")
-tauswap_cosmics = glob(topdir+"/fd_fhc_cosmics2/*.pt")
-fluxswap_cosmics = glob(topdir+"/fd_fhc_cosmics3/*.pt")
+nonswap = glob(topdir+"/nonswap_nu/*.pt")
+tauswap = glob(topdir+"/tauswap_nu/*.pt")
+fluxswap = glob(topdir+"/fluxswap_nu/*.pt")
+nonswap_cosmics = glob(topdir+"/nonswap_cosmic/*.pt")
+tauswap_cosmics = glob(topdir+"/tauswap_cosmic/*.pt")
+fluxswap_cosmics = glob(topdir+"/fluxswap_cosmic/*.pt")
 
 all_nus = nonswap + tauswap + fluxswap
 all_cosmics = nonswap_cosmics + tauswap_cosmics + fluxswap_cosmics

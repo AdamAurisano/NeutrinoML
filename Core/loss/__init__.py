@@ -15,6 +15,9 @@ def get_loss(func, **params):
   if func == "twoloss":
     from .twoloss import double_loss
     return double_loss(**params)
+  if func == "categorical_focal_loss":
+    from .loss import categorical_focal_loss
+    return categorical_focal_loss
   else:
     from torch import nn
     return getattr(nn.modules.loss, func)(**params)

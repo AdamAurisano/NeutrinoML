@@ -24,6 +24,22 @@ def cross_entropy(y_true,y_pred):
     weighted_loss = weights*loss
     return  weighted_loss.mean() 
 
+def categorical_focal_loss(y_pred, y_true, gamma=2):
+    '''Focal loss function for multiclass classification with integer labels. '''
+    #weigths 
+    weights = torch.ones(y_true.shape[1]).to(y_true.device)
+    class_sum = y_true.sum(dim=0)
+    mask = (class_sum>0)
+    weights[mask] = torch.sqrt(y_true[:,mask].shape[0]/(y_true.shape[1]*class_sum[mask]))
+    w = torch.gather(weights, 0, y_true.argmax(dim=1))
+    ## loss calculation 
+    softmax = nn.Softmax(dim=0)
+    y_true = y_true.argmax(dim=1)
+    pt = torch.gather(y_pred,1,y_true[:,None]) #model's estimated probability for the true label 
+    pt = torch.clamp(pt, 1e-9, 1 - 1e-9)
+    loss = -((1-pt)**gamma) * torch.log(pt)
+    loss *= w[:,None]   #weighted loss 
+    return loss.mean()
 
 def generalized_dice(y_pred, y_true):
     weights = torch.zeros(y_true.shape[1]).to(y_true.device)

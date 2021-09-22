@@ -3,8 +3,7 @@ This module defines a generic trainer for simple models and datasets.
 """
 
 # System
-import time
-import math
+import time, math
 
 # Externals
 import torch
@@ -29,6 +28,7 @@ class TrainerPanopticSeg(base):
     empty_cache = None, **kwargs):
     super(TrainerPanopticSeg, self).__init__(train_name=train_name, **kwargs)
     self.writer = SummaryWriter(f"{summary_dir}/{train_name}")
+    self.summary_dir = f"{summary_dir}/{train_name}"
     self.empty_cache = empty_cache
 
   def build_model(self, activation_params, optimizer_params, scheduler_params,
@@ -65,6 +65,11 @@ class TrainerPanopticSeg(base):
   def load_state_dict(self, state_dict, **kwargs):
     """Load state dict from trained model"""
     self.model.load_state_dict(torch.load(state_dict, map_location=f"cuda:{self.device}")["model"])
+    
+    '''Load state dict from trained model'''
+    location = f"cuda:{self.device}" if self.device != "cpu" else "cpu"
+    print(state_dict)
+    self.model.load_state_dict(torch.load(state_dict, map_location=location)['model'])
 
   def train_epoch(self, data_loader, **kwargs): #lambda_weight, **kwargs):
     """Train for one epoch"""
@@ -80,19 +85,9 @@ class TrainerPanopticSeg(base):
     batch_size = data_loader.batch_size
     n_batches = int(math.ceil(len(data_loader.dataset)/batch_size))
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
-    #saving values to standarize losses 
-    #ctr_loss = []
-    #off_loss = []
-    #sem_loss = []
-    # initial values 
-    #m_ctr , s_ctr = 0,1
-    #m_off , s_off = 20.75, 25.01
-    #m_sem , s_sem = 0,1
     
     #looping over batches
     for i, data in t:
-      ## data files
-      #print(data_loader.dataset.dataset.data_files[i])
       self.optimizer.zero_grad()
       # input
       batch_input = self.arrange_data(data, self.device)
@@ -110,9 +105,10 @@ class TrainerPanopticSeg(base):
       true_offset = batch_target["offset"].to(self.device)
       
       #LOSS FUNCTIONS
+      bk_mask = batch_target['voxId'] != 0  // for center regression
       _sem_loss = self.semantic_loss(pred_semseg, true_semseg)
       _ctr_loss = self.ctr_loss(pred_htm, true_htm)
-      _offset_loss = 0.01*self.offset_loss(pred_offset, true_offset)
+      _offset_loss = 3.e-2*self.offset_loss(pred_offset[bk_mask], true_offset[bk_mnask])
        
       batch_loss = _ctr_loss + _offset_loss +  _sem_loss 
        
@@ -121,6 +117,8 @@ class TrainerPanopticSeg(base):
       batch_loss.backward()
       self.optimizer.step()
 
+      #if self.scheduler is not None:
+      #  self.scheduler.step()
       
       sum_loss += batch_loss.item() 
       sum_sem_loss += _sem_loss.item() 
@@ -140,6 +138,7 @@ class TrainerPanopticSeg(base):
         self.writer.add_scalar("sem_loss/batch", _sem_loss.item(), self.iteration)
         self.writer.add_scalar("center_loss/batch", _ctr_loss.item(), self.iteration)
         self.writer.add_scalar("offset_loss/batch", _offset_loss.item(), self.iteration)
+        self.writer.add_scalar('Learning rate/batch', self.optimizer.param_groups[0]['lr'], self.iteration)
       self.iteration += 1
 
       if self.empty_cache is not None and self.iteration % self.empty_cache == 0:
@@ -171,7 +170,6 @@ class TrainerPanopticSeg(base):
     n_batches = int(math.ceil(len(data_loader.dataset)/batch_size))
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
     for i, data in t:
-      #print("file ",data_loader.dataset.dataset.data_files[i])
       batch_input = self.arrange_data(data, self.device)
 
       #outputs 
@@ -186,20 +184,12 @@ class TrainerPanopticSeg(base):
       true_htm *= (0.5*(true_htm.max().item())) 
       true_semseg = batch_target["sem_seg"].to(self.device) 
       true_offset = batch_target["offset"].to(self.device)
-      
 
       #loss calculation 
+      bk_mask = batch_target['voxId'] != 0 
       _sem_loss = self.semantic_loss(pred_semseg, true_semseg)
       _ctr_loss = self.ctr_loss(pred_htm, true_htm)
-      _offset_loss = 0.01*self.offset_loss(pred_offset, true_offset)
-
-      #if math.isnan(_distance_loss) or math.isnan(_center_loss):
-      #    print("Nan distance loss", data_loader.dataset.dataset.data_files[i])
-      #    bad_files(data_loader.dataset.dataset.data_files[i])
-      #    continue 
-      # appliying distance loss on voxels with score > threshold  
-      #true_voxels = torch.nonzero(htm >_max*0.5)[:,0]
-      #_distance_loss = self.distance_loss(batch_output["center_pred"][true_voxels], htm[true_voxels])
+      _offset_loss = 3.e-2*self.offset_loss(pred_offset[bk_mask], true_offset[bk_mask])
 
       batch_loss = _ctr_loss + _offset_loss +  _sem_loss # Panoptic Segmentation Model 
      
@@ -225,8 +215,30 @@ class TrainerPanopticSeg(base):
     # Loop over epochs
     best_valid_loss = 99999
     self.iteration = 0
-    avg_loss = torch.zeros([n_epochs, 2]).to(self.device)
-    lambda_weight = torch.ones([2, n_epochs]).to(self.device)
+    #avg_loss = torch.zeros([n_epochs, 2]).to(self.device)
+    #lambda_weight = torch.ones([2, n_epochs]).to(self.device)
+  
+    #resume training 
+    if resume:
+      self.logger.info("Resuming existing training!")
+      state_dict = None
+      while True:
+        state_files = glob.glob(f"{self.output_dir}/checkpoints/*{self.first_epoch:03d}.pth.tar")
+        if len(state_files) > 1:
+          raise Exception(f"More than one state file found for epoch {self.first_epoch}!")
+        elif len(state_files) == 0:
+          if state_dict is not None:
+            self.logger.info(f"Resuming training from epoch {self.first_epoch}.")
+            self.load_state_dict(state_dict)
+          else:
+            self.logger.info("No state dicts found to resume training - starting from scratch.")
+          break
+        state_dict = state_files[0]
+        self.first_epoch += 1
+    n_batches = int(math.ceil(len(train_data_loader.dataset)/train_data_loader.batch_size))
+    self.iteration = self.first_epoch * n_batches
+    self.writer = SummaryWriter(self.summary_dir, purge_step=self.iteration)
+
 
     for i in range(n_epochs):
       self.logger.info("Epoch %i" % i)
@@ -267,7 +279,8 @@ class TrainerPanopticSeg(base):
           self.write_checkpoint(checkpoint_id=i,best=True)
 
       if self.scheduler is not None:
-        self.scheduler.step(sum_valid["valid_loss"])
+        self.scheduler.step()
+        #self.scheduler.step(sum_valid["valid_loss"])
 
       # Save summary, checkpoint
       self.save_summary(summary)

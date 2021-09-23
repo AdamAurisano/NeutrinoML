@@ -1,7 +1,7 @@
 data:
   name: "SparsePixelMap3D"
   root: "/data/3d"
-  trainfiles: "showers1" #"processed"
+  trainfiles: "showers1"
   t_v_split: 0.1
 
 process:
@@ -81,17 +81,15 @@ trainer:
   device: 6 # Which GPU to use
   n_epochs: 50
   train_name: "train"
-  summary_dir: "/scratch/SparseProtoDUNE/summary/Test"  #SSUNet34C_FocalLoss1Labelsqrtlr001"
-  output_dir: "/data/3d/params/debugging/Test" #SSUNet34CA_FocalLoss1Labelsqrtlr001"
+  summary_dir: "/scratch/SparseProtoDUNE/summary/Test"  
+  output_dir: "/data/3d/params/debugging/Test" 
   resume: False
   debug: False
-  state_dict: #'/data/3d/params/debugging/SSUResNetTWFocalLossG2/train1/checkpoints/model_checkpoint_SemanticSegUResNet_146253824_c720019873_csarasty.best.pth.tar' 
+  state_dict: None 
 
 inference:
   max_images: 500 # Maximum number of images to process
   event_display: False #  Whether to draw event displays
   confusion: True # Whether to draw a confusion matrix
-  state_dict: '/data/3d/params/debugging/SSUNet34CA_FocalLoss1Labelsqrtlr001/train/checkpoints/model_checkpoint_SemanticSeg_37870888_86e9f582c0_csarasty_006.pth.tar'
-  #'/data/3d/params/debugging/SSUNet34C/train1/checkpoints/model_checkpoint_SemanticSeg_37870888_86e9f582c0_csarasty.best.pth.tar' 
-  #'/data/3d/params/debugging/SSUNet34CA_FocalLoss1Label/train1/checkpoints/model_checkpoint_SemanticSeg_37870888_86e9f582c0_csarasty.best.pth.tar' 
-  # Replace this with a string path to a trained .pth.tar file after training! They"re written to params/checkpoints
+  state_dict: None  # Replace this with a string path to a trained .pth.tar file after training! They"re written to params/checkpoints
+ 

@@ -3,7 +3,9 @@ Module for retrieving PyTorch network architectures
 """
 
 def get_model(name, **model_args):
-    
+    if name =='SemanticSegUNet34C':
+        from .semantic_segMinkUNet34C import SemanticSeg
+        return SemanticSeg(**model_args)
     if name == "MinkowskiSeg":
         from .minkowski_seg import MinkowskiSeg
         return MinkowskiSeg(**model_args)

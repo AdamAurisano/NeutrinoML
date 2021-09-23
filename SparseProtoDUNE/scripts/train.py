@@ -30,8 +30,8 @@ def main():
   config = configure(args.config)
   full_dataset = datasets.get_dataset(**config['data'])
   if config['model']['instance_segmentation']:
-    from Core.trainers.trainerInsSeg import TrainerInsSeg
-    trainer = TrainerInsSeg(**config['trainer'])
+    from Core.trainers.trainer_panoptic_seg import TrainerPanopticSeg
+    trainer = TrainerPanopticSeg(**config['trainer'])
     collate = utils.collate_sparse_minkowski_panoptic
   else:
     from Core.trainers.trainer import Trainer
@@ -46,7 +46,7 @@ def main():
   train_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=0,stop=splits[0]))
   valid_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=splits[1],stop=splits[2]))
   train_loader = DataLoader(train_dataset, collate_fn=collate, **config['data_loader'], shuffle=True, pin_memory=True)
-  valid_loader = DataLoader(valid_dataset, collate_fn=collate, batch_size=1, shuffle=False)
+  valid_loader = DataLoader(valid_dataset, collate_fn=collate, **config['data_loader'], shuffle=False)
 
   trainer.build_model(**config['model'])
   train_summary = trainer.train(train_loader, valid_data_loader=valid_loader, **config['trainer'])
@@ -55,4 +55,3 @@ def main():
 
 if __name__ == '__main__':
   main()
-

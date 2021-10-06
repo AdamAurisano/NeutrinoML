@@ -44,18 +44,18 @@ class SparsePixelMap3D(Dataset):
   def __getitem__(self, idx):
     enable_panoptic_seg = True
     data = torch.load(self.data_files[idx])
-    x = torch.tensor(data['x'])
-    y = torch.tensor(data['y'])
+    x = data['x']
+    y = data['y']
     if enable_panoptic_seg == False:
-      c = torch.tensor(data['c'])
+      c = data['c']
       del data
       return { 'x': x, 'c': c, 'y': y}
     else:
       c = data['c'] 
       htm = data['htm']
-      offset = ['offset']
-      medoids = ['medoids']
-      voxI = data['voxId')
+      offset = data['offset']
+      medoids = data['medoids']
+      voxI = data['voxId']
       del data
       return { 'x': x, 'c': c, 'y': y, 'chtm': chtm,  'medoids':medoids, 'offset':offset, 'voxId':voxId} 
     #Mix kaons and hip

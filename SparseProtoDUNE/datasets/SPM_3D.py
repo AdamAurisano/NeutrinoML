@@ -1,14 +1,17 @@
 '''
 PyTorch data structure for sparse pixel maps
 '''
-from torch.utils.data import Dataset
-from glob import glob
-from functools import partial
-import os, os.path as osp, logging, uproot, torch, multiprocessing as mp, numpy as np
-from .SegTruth import SegTruth
-from .SegTruth_atmo import SegTruth_atmo
-from .InstanceTruth import *
+
 from time import time
+from glob import glob
+from scipy import stats
+from functools import partial
+from torch.utils.data import Dataset
+import os, os.path as osp, logging, uproot, torch, multiprocessing as mp, numpy as np
+
+#Locals
+from .InstanceTruth import *
+from .SegTruth import SegTruth
 
 class SparsePixelMap3D(Dataset):
   def __init__(self, root, trainfiles, **kwargs):
@@ -41,18 +44,18 @@ class SparsePixelMap3D(Dataset):
   def __getitem__(self, idx):
     enable_panoptic_seg = True
     data = torch.load(self.data_files[idx])
-    x = torch.FloatTensor(data['x'])
-    y = torch.FloatTensor(data['y'])
+    x = torch.tensor(data['x'])
+    y = torch.tensor(data['y'])
     if enable_panoptic_seg == False:
-      c = torch.LongTensor(data['c'])
+      c = torch.tensor(data['c'])
       del data
       return { 'x': x, 'c': c, 'y': y}
     else:
-      c = torch.IntTensor(data['c']) 
-      chtm = torch.FloatTensor(data['chtm'])
-      offset = torch.FloatTensor(data['offset'])
-      medoids = torch.IntTensor(data['medoids'])
-      voxId = torch.IntTensor(data['voxId'])
+      c = data['c'] 
+      htm = data['htm']
+      offset = ['offset']
+      medoids = ['medoids']
+      voxI = data['voxId')
       del data
       return { 'x': x, 'c': c, 'y': y, 'chtm': chtm,  'medoids':medoids, 'offset':offset, 'voxId':voxId} 
     #Mix kaons and hip
@@ -71,10 +74,9 @@ class SparsePixelMap3D(Dataset):
         print(f'File {f} is bad! Removing...')
         os.remove(f)
 
-  def process_file(self, filename, feat_norm, voxel_size=0.3, **kwargs):
+  def process_file(self, filename, feat_norm, voxel_size=1, **kwargs):
     '''Process a single raw input file'''
-    f = uproot.open(filename)
-    t = f['CVNSparse']
+    t = uproot.open(filename)['CVNSparse']
     coords, feats, pix_pdg, pix_id, pix_e, pix_proc = t.arrays(
       ['Coordinates', 'Features', 'PixelPDG', 'PixelTrackID', 'PixelEnergy', 'Process'], library='np', how=tuple)
     uuid = osp.basename(filename)[10:-5]
@@ -86,83 +88,66 @@ class SparsePixelMap3D(Dataset):
         
         coords[idx] = np.array(coords[idx])
         feats[idx] = np.array(feats[idx])
-       # if idx !=4: continue 
-      #try:
-        # Get per-spacepoint ground truth
         start = time()
-        m, y, p  = SegTruth(pix_pdg[idx], pix_id[idx], pix_proc[idx], pix_e[idx])
-       # print('m & y', len(m), len(y))
-        logging.info(f'Ground truth calculating took {time()-start:.2f} seconds.')
-
-        # Get a unique trackId list 
-        trks, unique_tracks, counts = get_track_list(pix_pdg[idx], pix_id[idx], pix_e[idx])
-       # Voxelise inputs
+        m, sp_y, sp_id = SegTruth(pix_pdg[idx], pix_id[idx], pix_e[idx]) # Get semantic label 
        
+        ## Voxelization
         coordinates = dict()
         features = dict()
-        truth = dict()
-        process = dict()
-        instanceId = dict()
-        centroids = dict()
+        sem_label = dict()
 
-        # Transform spacepoint positions
-        #transform = np.array([800, -6.5, 0])
-        #pos = np.array(coords[idx])[m,:] + transform[None,:]
-        pos = np.array(coords[idx])[m,:]
-        w = np.zeros([len(coords[idx]),1], dtype=np.float32)  #trackID/voxel
-                                                                    #0 is the label for background (bk: deltar ray,  diffuse, michel
-                                                                    # and showers for now) 
-        InstanceId = 0
-        for jdx in range(len(unique_tracks)):
-          if counts[jdx]>40:
-            mask = (trks  == unique_tracks[jdx])
-            w[mask] = InstanceId
-            InstanceId +=1
+        pos = np.floor(coords[idx]/voxel_size)  
+        for vox, sp_truth, sp_feats in zip(pos[m,:], sp_y[m,:], feats[idx][m,:]):
+            vox = tuple(vox)
+            if not vox in coordinates:
+                features[vox] = np.zeros(7)
+                coordinates[vox] = vox
+                sem_label[vox] = sp_truth
+                features[vox][:3] = sp_feats
+                features[vox][3:6] = vox
+            else:
+                features[vox][:3] += sp_feats
+                features[vox][6] += 1
+                sem_label[vox] += sp_truth
         
-        start = time()
-        for sp_pos, sp_proc, sp_feats, sp_truth, sp_tid in zip(pos, p[m,:], np.array(feats[idx])[m,:], y[m,:], w[m]):
-          vox = tuple( np.floor(val/voxel_size) for val in sp_pos )
-          if not vox in coordinates:
-            coordinates[vox] = np.array(vox)
-            features[vox] = np.zeros(7)
-            features[vox][:3] = sp_feats
-            features[vox][3:6] = sp_pos
-            features[vox][6] = 1
-            truth[vox] = sp_truth
-            process[vox] = sp_proc
-            instanceId[vox] = np.array(sp_tid) 
-          else:
-            features[vox][:3] += sp_feats
-            features[vox][6] += 1
-            truth[vox] += sp_truth
-        logging.info(f'Voxelising took {time()-start:.2f} seconds.')
 
-        voxId = [instanceId[key].item() for key in coordinates if truth[key].sum()>0]
-        c = torch.IntTensor([np.array(coordinates[key]) for key in coordinates if truth[key].sum()>0])
-        x = torch.FloatTensor([np.array(features[key]) for key in coordinates if truth[key].sum()>0])
-        norm = np.array(feat_norm)
-        x = x * norm[None,:] # Normalise features
-        y = torch.FloatTensor([truth[key]/truth[key].sum() for key in coordinates if truth[key].sum()>0])
-        p = [process[key] for key in coordinates if truth[key].sum()>0]
-        if x.max() > 1: print('Feature greater than one at ', x.argmax())
-        medoids, chtm, offset =  get_InstanceTruth(c,voxId,8)
+        c, vox_id = [], []
+        x, y = [], []
+        for key in coordinates:
+            val = np.array(coordinates[key])
+            c.append(val)
+            mask = (val == pos)
+            mask_vox = mask.sum(axis=1) == 3
+            vox_id.append(stats.mode(sp_id[mask_vox])[0].item())
+            x.append(features[key])
+            y.append(sem_label[key]/(sem_label[key].sum()))
        
-        if len(medoids) ==0:  continue
-        # skip events with no medoids
-        data = { 'c': c, 'x': x.float(), 'y': y, 'p':p, 'voxId': voxId, 'medoids':medoids, 'offset': offset, 'chtm':chtm}
-        
-        if fname not in self.processed_dir:
-          logging.info(f'Saving file {fname} with {c.shape[0]} voxels.')
-          torch.save(data, f'{self.processed_dir}/{fname}')
+       ## Output 
+        norm = np.array(feat_norm)
+        c = torch.tensor(c)
+        y = torch.tensor(y)
+        x = torch.tensor(x) * norm[None,:]# Normalise features
+        vox_id = torch.tensor(vox_id)
+       
+        medoids, htm, offsets, vox_id = get_InstanceTruth(c, vox_id, y.argmax(dim=1), 8)
+        ## Get Medoids and offsets 
+         
 
-      #except:
-      #  logging.info(f'Exception occurred during processing of event {idx} in file {filename}! Skipping.')
+        # Save file 
+        data = { 'c': c, 'x': x, 'y': y, 'voxId': vox_id, 'medoids':  medoids, 'htm': htm, 'offsets': offsets}
+        logging.info(f'Processing event took:  {time()-start:.2f} seconds.')
+   
+        if fname not in self.processed_dir:
+            logging.info(f'Saving file {fname} with {c.shape[0]} voxels.')
+            torch.save(data, f'{self.processed_dir}/{fname}')
+
+
+
   def process(self, processes, max_files=None, **kwargs):
     '''Process raw input files'''
     proc = partial(self.process_file, **kwargs)
     if max_files is not None:
       files = self.raw_file_names[:max_files]
-     # print(type(files),'  ', len(files))
     else:
       files = self.raw_file_names
     if processes == 1:
@@ -170,4 +155,5 @@ class SparsePixelMap3D(Dataset):
     else:
       with mp.Pool(processes=processes) as pool:
         pool.map(proc, files)
+
 

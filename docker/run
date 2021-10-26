@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+
+def main():
+  import argparse, os, os.path as osp
+
+  user = os.getenv("USER")
+  scriptdir = os.path.dirname(os.path.realpath(__file__))
+
+  args = argparse.ArgumentParser()
+  args.add_argument("-i", "--image", type=str, required=True,
+          help="docker image to run")
+  opts = args.parse_args()
+
+  cmd = f"nvidia-docker run --name {user}-dev -it --rm "
+  cmd += "--shm-size=16g --ulimit memlock=-1 "
+  cmd += f"-v {scriptdir}:/scratch --workdir /scratch {opts.image}"
+
+  os.system(cmd)
+
+if __name__ == "__main__":
+  main()
+

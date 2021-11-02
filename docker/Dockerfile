@@ -16,7 +16,7 @@ RUN conda install -y pytorch=$TORCH=*cuda11.3* torchvision cudatoolkit h5py=*=*m
 
 RUN pip install parameter-sherpa uproot Particle awkward pyarrow \
                 tensorboard-data-server boost_histogram seaborn
-RUN conda install -y PyYAML tensorboard psutil jupyterlab numba && \
+RUN conda install -y PyYAML tensorboard psutil jupyterlab numba plotly && \
     conda config --set changeps1 False
 
 ARG GEO_CUDA=cu113

@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-if [ "$2" == "" ]; then
+if [ $# != 2 ]; then
   echo "You must provide an integer and an experiment name as argument! Exiting."
   exit
 fi
@@ -25,7 +25,7 @@ else
   echo "Username not recognised! Ask to be added as a user before running Docker."
 fi
 
-container=nvcr.io/univcinci/pytorch-neutrinoml:1.9
+container=neutrinoml:pytorch1.10.0-cuda11.3-devel
 if [ "$2" == "protodune" ]; then
   datadir=/raid/hewesje/protodune_sparse
   exptport=0

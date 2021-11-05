@@ -94,49 +94,48 @@ class SparsePixelMap3D(Dataset):
         m, sp_y, sp_id = SegTruth(pix_pdg[idx], pix_id[idx], pix_e[idx], pix_proc[idx], pix_end_proc[idx] ) # Get semantic label 
        
         ## Voxelization
-        coordinates = dict()
-        features = dict()
-        sem_label = dict()
+        pos = np.floor(coords[idx]/voxel_size)
+        import pandas as pd
 
-        pos = np.floor(coords[idx]/voxel_size)  
-        for vox, sp_truth, sp_feats in zip(pos[m,:], sp_y[m,:], feats[idx][m,:]):
-            vox = tuple(vox)
-            if not vox in coordinates:
-                features[vox] = np.zeros(7)
-                coordinates[vox] = vox
-                sem_label[vox] = sp_truth
-                features[vox][:3] = sp_feats
-                features[vox][3:6] = vox
-                features[vox][6] = 1
-            else:
-                features[vox][:3] += sp_feats
-                features[vox][6] += 1
-                sem_label[vox] += sp_truth
-        
+        # concatenate together the numpy arrays and create a dataframe
+        cols_coord  = [ "c_x", "c_y", "c_z"           ]
+        cols_label  = [ f"l_{i+1}" for i in range(10) ]
+        cols_charge = [ "q_u", "q_v", "q_y"           ]
+        df = pd.DataFrame(np.concatenate([pos[m,:], sp_y[m,:], feats[idx][m,:], sp_id[m, None]], axis=1),
+                columns=cols_coord + cols_label + cols_charge + [ "vox_id" ])
+        df["n_sp"] = 1 # when we voxelise, this becomes number of spacepoints per voxel
 
-        c, vox_id = [], []
-        x, y, dE = [], [], []
-        for key in coordinates:
-            val = np.array(coordinates[key])
-            c.append(val)
-            mask = (val == pos)
-            mask_vox = mask.sum(axis=1) == 3
-            vox_id.append(stats.mode(sp_id[mask_vox])[0].item())
-            x.append(features[key])
-            dE.append(sem_label[key])
-            y.append(sem_label[key]/(sem_label[key].sum()))
-       
-       ## Output 
-        norm = np.array(feat_norm)
-        c = torch.tensor(np.array(c))
-        y = torch.tensor(np.array(y))
-        x = torch.tensor(np.array(x)) * norm[None,:]# Normalise features
-        vox_id = torch.tensor(np.array(vox_id))
-        dE = torch.tensor(np.array(dE))
-       
+        # here we define a dictionary telling pandas how to aggregate each column
+        agg_label  = { key: "sum"      for key in cols_label  }
+        sum_unique = lambda x: sum(set(x))
+        agg_charge = { key: sum_unique for key in cols_charge }
+        mode = lambda x: stats.mode(x)[0].item()
+
+        # uncomment the print statements below to see how the dataframe is changing
+        #
+        # group by voxel coordinates and aggregate down to a single row per voxel
+        # print("before voxelisation\n", df, "\n\n")
+        df = df.groupby(cols_coord).agg(agg_label | agg_charge | { "n_sp": "sum", "vox_id": mode }).reset_index()
+        # print("after voxelisation\n", df, "\n\n")
+
+        # just for fun, let's normalise the truth labels
+        dE = torch.tensor(df[cols_label].to_numpy()).float()
+        def norm_labels(row):
+            labels = row[cols_label]
+            row[cols_label] = labels / sum(labels)
+            return row
+        df = df.apply(norm_labels, axis="columns")
+        # print("after label norm\n", df, "\n\n")
+
+        # select columns from dataframe to turn into pixel map tensors
+        cols_feat = cols_charge + cols_coord + [ "n_sp" ]
+        x = torch.tensor(df[cols_feat].to_numpy() * np.array(feat_norm)[None,:]).float()
+        c = torch.tensor(df[cols_coord].to_numpy()).int()
+        y = torch.tensor(df[cols_label].to_numpy()).float()
+        vox_id = torch.tensor(df["vox_id"].to_numpy()).int()
+
         medoids, htm, offsets, vox_id = get_InstanceTruth(c, vox_id, y.argmax(dim=1), 8)
         ## Get Medoids and offsets 
-         
 
         # Save file 
         data = { 'c': c, 'x': x, 'y': y, 'voxId': vox_id, 'medoids':  medoids, 'htm': htm, 'offsets': offsets, 'dE':dE}

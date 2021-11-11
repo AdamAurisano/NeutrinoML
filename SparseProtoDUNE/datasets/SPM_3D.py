@@ -44,12 +44,14 @@ class SparsePixelMap3D(Dataset):
   def __getitem__(self, idx):
     enable_panoptic_seg = False
     data = torch.load(self.data_files[idx])
-    x = data['x'].float()
+    feat_norm =  torch.tensor([1.429e-3,1.667e-3,1.429e-3]).float()
+    x = data['x'][:,:3].float()
     y = data['y'].float()
     y = torch.hstack((y[:,:2],(y[:,2:3]+y[:,8:9]),y[:,3:-2]))
     y = torch.hstack((y[:,:3], (y[:,3:4] + y[:,5:6]), y[:,4:5], y[:,6:]))
     if enable_panoptic_seg == False:
       c = data['c'].int()
+      #x = torch.cat((x,c*feat_norm[None,:]),dim=1) 
       del data
       return { 'x': x, 'c': c, 'y': y}
     else:
@@ -76,12 +78,15 @@ class SparsePixelMap3D(Dataset):
         print(f'File {f} is bad! Removing...')
         os.remove(f)
 
-  def process_file(self, filename, feat_norm, voxel_size=1, **kwargs):
+  def process_file(self, filename, voxel_size=1, **kwargs):
     '''Process a single raw input file'''
     t = uproot.open(filename)['CVNSparse']
     coords, feats, pix_pdg, pix_id, pix_e, pix_proc, pix_end_proc = t.arrays(
       ['Coordinates', 'Features', 'PixelPDG', 'PixelTrackID', 'PixelEnergy', 'Process', 'EndProcess'], library='np', how=tuple)
     uuid = osp.basename(filename)[10:-5]
+
+    mean = np.array([59.11111069, 78.96726227, 58.77098083])
+    sigma = np.array([49.33889008, 63.78802109, 48.79499054])
 
     # Loop over pixel maps in file
     for idx in range(len(feats)):
@@ -129,13 +134,13 @@ class SparsePixelMap3D(Dataset):
 
         # select columns from dataframe to turn into pixel map tensors
         cols_feat = cols_charge + cols_coord + [ "n_sp" ]
-        x = torch.tensor(df[cols_feat].to_numpy() * np.array(feat_norm)[None,:]).float()
-        c = torch.tensor(df[cols_coord].to_numpy()).int()
         y = torch.tensor(df[cols_label].to_numpy()).float()
+        c = torch.tensor(df[cols_coord].to_numpy()).int()
+        x = torch.tensor((df[cols_feat].to_numpy()[:,:3] - mean)/sigma).float() #* np.array(feat_norm)[None,:]).float()
         vox_id = torch.tensor(df["vox_id"].to_numpy()).int()
 
-        medoids, htm, offsets, vox_id = get_InstanceTruth(c, vox_id, y.argmax(dim=1), 8)
         ## Get Medoids and offsets 
+        medoids, htm, offsets, vox_id = get_InstanceTruth(c, vox_id, y.argmax(dim=1), 8)
 
         # Save file 
         data = { 'c': c, 'x': x, 'y': y, 'voxId': vox_id, 'medoids':  medoids, 'htm': htm, 'offsets': offsets, 'dE':dE}

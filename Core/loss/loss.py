@@ -2,38 +2,41 @@ import torch
 
 def categorical_cross_entropy(y_pred, y_true):
     y_pred = torch.clamp(y_pred, 1e-9, 1 - 1e-9)
+    y_true = y_true[:,:9]
     # Normalise the loss!
     loss = -(y_true * torch.log(y_pred))
-    weights = torch.zeros(y_true.shape[1]).to(y_true.device)
-    class_sum = y_true.sum(dim=0)
-    mask = (class_sum>0)
-    weights[mask] = y_true[:,mask].shape[0]/(y_true.shape[1]*class_sum[mask])
-    weighted_loss = weights[None,:] * loss
-    return weighted_loss.sum(dim=1).mean()
-
-def cross_entropy(y_true,y_pred):
+    return loss.sum(dim=1).mean() 
+ #  weights = torch.zeros(y_true.shape[1]).to(y_true.device)
+  #  class_sum = y_true.sum(dim=0)
+   # mask = (class_sum>0)
+   # weights[mask] = y_true[:,mask].shape[0]/(y_true.shape[1]*class_sum[mask])
+   # weighted_loss = weights[None,:] * loss
+    #return weighted_loss.sum(dim=1).mean()
+    
+def cross_entropy(y_pred, y_true):
     y_pred = torch.clamp(y_pred, 1e-9, 1 - 1e-9)
     loss = -((y_true * torch.log(y_pred)) + ((1-y_true) * torch.log(1-y_pred)))
-    weights = torch.zeros(y_true.shape[0]).to(y_true.device)
-    _max = y_true.max().item()
-    N = y_true.shape[0] #total numbers of entries 
-    med_location = torch.nonzero(y_true>=_max)[:,0] # medoid location 
-    other_voxels = N-med_location.shape[0] # other voxels
-    weights +=  N/(2*other_voxels)
-    weights[med_location] = N/(2*med_location.shape[0])
-    weighted_loss = weights*loss
-    return  weighted_loss.mean() 
+    ### weigts 
+    weights = torch.ones_like(y_true).to(y_true.device)
+    f_true = y_true.flatten()
+    N = f_true.shape[0] # total number of voxels
+    n = (f_true>0.6).sum().item() # miningful voxels
+    weights[f_true>0.6] = N/(2*n)
+    return (loss*weights).mean()
+    #return loss.mean()
 
 def categorical_focal_loss(y_pred, y_true, gamma=2):
+    import torch.nn as nn
     '''Focal loss function for multiclass classification with integer labels. '''
     #weigths 
     weights = torch.ones(y_true.shape[1]).to(y_true.device)
     class_sum = y_true.sum(dim=0)
     mask = (class_sum>0)
-    weights[mask] = torch.sqrt(y_true[:,mask].shape[0]/(y_true.shape[1]*class_sum[mask]))
+    #weights[mask] = torch.sqrt(y_true[:,mask].shape[0]/(y_true.shape[1]*class_sum[mask]))
+    weights[mask] = y_true[:,mask].shape[0]/(y_true.shape[1]*class_sum[mask])
     w = torch.gather(weights, 0, y_true.argmax(dim=1))
     ## loss calculation 
-    softmax = nn.Softmax(dim=0)
+    #softmax = nn.Softmax(dim=0)
     y_true = y_true.argmax(dim=1)
     pt = torch.gather(y_pred,1,y_true[:,None]) #model's estimated probability for the true label 
     pt = torch.clamp(pt, 1e-9, 1 - 1e-9)

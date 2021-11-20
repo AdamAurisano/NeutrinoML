@@ -25,7 +25,7 @@ else
   echo "Username not recognised! Ask to be added as a user before running Docker."
 fi
 
-container=neutrinoml:pytorch1.10.0-cuda11.3-devel
+container=jhewes/neutrinoml:pytorch1.10.0-cuda11.3-devel
 if [ "$2" == "protodune" ]; then
   datadir=/raid/hewesje/protodune_sparse
   exptport=0

@@ -16,8 +16,8 @@ def gauss_pdf(c, sigmainv, mu, dim=3):
 
 def get_InstanceTruth(c, vox_id, y, width):                                   
 
-    # background                                                               
-    stuff_list = [1,2,4] 
+   # background                                                               
+    stuff_list = [1,2,4] # delta, diffuse, michel 
     for k in stuff_list:
         vox_id[y ==k] = 0
   
@@ -26,12 +26,13 @@ def get_InstanceTruth(c, vox_id, y, width):
     medoids = []
     offset = np.ones((c.shape[0],c.shape[1]))*(-1)
     chtm = np.zeros(c.shape[0])                                                                       
-    u, ct = np.unique(vox_id, return_counts=True)  
-    for p, _nvox in zip(u, ct): 
+    u, ct = np.unique(vox_id, return_counts=True) 
+    for p, _nvox in zip(u[:1], ct):
+        #if p == 0: continue
         if _nvox < 5:
             vox_id[vox_id ==p ]= 0
             continue
-        mask = vox_id ==p                                                                              
+        mask = vox_id ==p
         ci = c[mask]
         a = np.zeros(ci.shape[0])                                                                     
         l = tuple(np.linalg.norm((k -ci),axis=1).sum() for k in ci)                                   
@@ -42,5 +43,5 @@ def get_InstanceTruth(c, vox_id, y, width):
         chtm[mask] /= chtm[mask].max().item() 
         offset[mask] = Off
         
-    chtm = torch.tensor(chtm.reshape([chtm.shape[0],1]))                                                                                                                             
-    return torch.tensor(medoids), chtm, torch.tensor(offset), vox_id  
+    chtm = torch.tensor(chtm.reshape([chtm.shape[0],1])) 
+    return torch.tensor(np.array(medoids)), chtm, torch.tensor(np.array(offset)), vox_id  

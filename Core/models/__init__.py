@@ -3,9 +3,15 @@ Module for retrieving PyTorch network architectures
 """
 
 def get_model(name, **model_args):
+    if name =='SSMinkUNet34B':
+        from .SSMinkUNet34B import SSMinkUNet34B
+        return SSMinkUNet34B(**model_args)
     if name =='SemanticSegUNet34C':
         from .semantic_segMinkUNet34C import SemanticSeg
         return SemanticSeg(**model_args)
+    if name == 'Semantic_SegUResNet':
+        from .semantic_segUResNet import SemanticSegUResNet
+        return SemanticSegUResNet(**model_args)
     if name == "MinkowskiSeg":
         from .minkowski_seg import MinkowskiSeg
         return MinkowskiSeg(**model_args)
@@ -15,6 +21,19 @@ def get_model(name, **model_args):
     elif name == "PanopticSeg":
         from .minkowski_panoptic_seg import PanopticSeg
         return PanopticSeg(**model_args)
+    elif name == "PanopticSegNet":
+        from .PanopticSegNet import PanopticSegNet
+        return PanopticSegNet(**model_args)
+    elif name == "PanopticSegNetV2":
+        from .PanopticSegNetV2 import PanopticSegNetV2
+        return PanopticSegNetV2(**model_args)
+    elif name == 'PanopticNet':
+        from .PanopticNet import PanopticNet
+        return PanopticNet(**model_args)
+    elif name == 'InstanceSegNet':
+        from .InstanceSegNet import InstanceSegNet
+        return InstanceSegNet(**model_args)
+
     elif name == "MinkowskiClass":
         from .minkowski_class import MinkowskiClass
         return MinkowskiClass(**model_args)

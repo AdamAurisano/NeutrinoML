@@ -1,0 +1,121 @@
+data:
+  name: 'SparsePixelMap3D'
+  root: '/data/3d'
+  #trainfiles: '1GeVPions_test'
+  trainfiles: 'Panoptic_dataset_1GeV' 
+  t_v_split: 0.05
+
+process:
+  processes: 50
+  max_files: 10000
+  pre_transform: None
+  voxel_size: 1
+  #feat_norm: [1.e-5, 1.e-5, 1.e-5, 6.25e-4, 1.667e-3, 1.429e-3, 5.e-2]
+  #feat_norm: [1.e-5, 1.e-5, 1.e-5, 1.429e-3,1.667e-3,1.429e-3, 5.e-2]
+
+model:
+  name: 'InstanceSegNet'
+  n_dims: 3
+  extent: 6000 # Maximum dimension of pixel map
+  input_feats: 6
+  n_feats: 32 # Number of features
+  bias: True
+  panoptic_segmentation: False 
+  instance_segmentation: True
+  loss_params:
+    CENTER:
+            #func: 'Weighted_MSLoss' 
+      func: 'cross_entropy' 
+    OFFSET:
+      func: 'L1Loss' 
+  
+  arrange_data: 'arrange_sparse_minkowski'
+  arrange_truth: 'sparse_panoptic_truth'
+
+  activation_params:
+    activation: 'mish'
+    LeakyReLU:
+      negative_slope: 0.1
+
+  optimizer_params:
+    optimizer: 'SGD'
+    AdamW:
+      lr: 1.e-2
+      weight_decay:     0.01
+    Ranger:
+      lr:               1.e-3
+      alpha:            0.5
+      k:                6
+      N_sma_threshhold: 5
+      betas:            [ 0.95, 0.999 ]
+      eps:              1.e-5
+      weight_decay:     0
+      use_gc:           True
+      gc_conv_only:     False
+    SGD:
+      lr:               1.e-1
+      momentum:         0.9
+
+
+  scheduler_params:
+    scheduler: 'StepLR'
+    ReduceLROnPlateau:
+      factor: 0.8
+      patience: 3
+    StepLR:
+      step_size: 15
+      gamma: 0.8
+    CyclicLR:
+      base_lr: 7.e-4
+      max_lr: 9.e-4
+      step_size_up: 8000
+      mode: 'triangular2'
+      verbose: False
+      #gamma: 0.98 
+
+  n_classes: 7 
+
+  metric_params:
+    metrics: 'SemanticSegmentation'
+    include_batch_metrics: False
+    SemanticSegmentation:
+      class_names: ["shower","delta","diffuse","hip","michel","mu","pi"]
+data_loader:
+  batch_size: 50 
+  num_workers: 0 
+
+trainer:
+  device: 6 # Which GPU to use
+  n_epochs: 50
+  empty_cache: 1
+  train_name: 'instance_net_test_Channelwise_BCENoWeights_config3'
+  summary_dir: 'summary/3d/PanopticSegNet/'
+  output_dir: '/data/3d/params/PanopticSegnetNet/'
+  resume: False
+
+inference:
+  _dir: '/scratch/SparseProtoDUNE/evaluation/PanopticSeg/'
+  max_images: 200 # Maximum number of images to process
+  event_display: False # Draw event displays
+  confusion: False # Draw a confusion matrix
+  offset_metric: True # Draw a histogram with the norm of the true and pred offset tensors 
+  medoid_pred_metric: True # Calculate purity and eff for center prediction head
+  state_dict: '/data/3d/params/PanopticSegnetNet/instance_net_test_Channelwise_BCENoWeights_config3/checkpoints/model_checkpoint_InstanceSegNet_36241988_e52fcd0cb9_csarasty.best.pth.tar' 
+  #'/data/3d/params/PanopticSegnetNet/instance_net_test_Channelwise_BCENoWeights_config2/checkpoints/model_checkpoint_InstanceSegNet_36241988_e52fcd0cb9_csarasty_049.pth.tar' 
+  #'/data/3d/params/PanopticSegnetNet/instance_net_test_Channelwise_BCENoWeights/checkpoints/model_checkpoint_InstanceSegNet_20090180_b49005c5c0_csarasty.best.pth.tar'
+  #'/data/3d/params/PanopticSegnetNet/instance_net_test_Channelwise_sigmoid_thLoos08/checkpoints/model_checkpoint_InstanceSegNet_20090180_b49005c5c0_csarasty.best.pth.tar'
+  #'/data/3d/params/PanopticSegnetNet/instance_net_test_Channelwise/checkpoints/model_checkpoint_InstanceSegNet_20090180_0f445dcde5_csarasty.best.pth.tar' 
+  #'/data/3d/params/PanopticSegnetNet/instance_net_test/checkpoints/model_checkpoint_InstanceSegNet_36237956_546a77ac4c_csarasty.best.pth.tar' 
+  #'/data/3d/params/PanopticSegnetNet/panoptic_seg_test/checkpoints/model_checkpoint_PanopticNet_47832555_c47aa066ef_csarasty.best.pth.tar' 
+  #'/data/3d/params/PanopticSegnetNet/PSN6feats_bias_lr1e-1/default/checkpoints/model_checkpoint_PanopticSegNet_36651627_2b646f7648_csarasty.best.pth.tar' 
+  #'/data/3d/params/PanopticSegnetNet/instance_seg_WMSE_L1/checkpoints/model_checkpoint_PanopticSegNetV2_146315691_1dc2fe688d_csarasty_049.pth.tar' 
+  #'/data/3d/params/PanopticSegnetNet/instance_seg_BCE_L1/checkpoints/model_checkpoint_PanopticSegNetV2_146315691_1dc2fe688d_csarasty_049.pth.tar' 
+  #'/data/3d/params/PanopticSegnetNet/instance_seg_3X2WMSE_L1_test/checkpoints/model_checkpoint_PanopticSegNetV2_146315691_1dc2fe688d_csarasty.best.pth.tar' 
+  #'/data/3d/params/PanopticSegnetNet/instance_seg_2WMSE_L1/checkpoints/model_checkpoint_PanopticSegNetV2_146315691_1dc2fe688d_csarasty_049.pth.tar' 
+  #'/data/3d/params/PanopticSegnetNet/instance_seg_3X2WMSE_L1/checkpoints/model_checkpoint_PanopticSegNetV2_146315691_1dc2fe688d_csarasty_028.pth.tar' 
+  #'/data/3d/params/PanopticSegnetNet/instance_seg_WMSE_L1/checkpoints/model_checkpoint_PanopticSegNetV2_146315691_1dc2fe688d_csarasty.best.pth.tar' 
+  #'/data/3d/params/PanopticSegnetNet/PSN_6feats_bias_lr1e-1Try1/default/checkpoints/model_checkpoint_PanopticSegNetV2_146315691_1dc2fe688d_csarasty_018.pth.tar' 
+  #'/data/3d/params/PanopticSegnetNet/PSN_6feats_bias_lr1e-1Center/default/checkpoints/model_checkpoint_PanopticSegNetV2_146315691_1dc2fe688d_csarasty_011.pth.tar'
+  #
+  #'/data/3d/params/PanopticSegnetNet/PSN_6feats_bias_lr1e-1Center/default/checkpoints/model_checkpoint_PanopticSegNetV2_146315691_1dc2fe688d_csarasty_011.pth.tar' 
+

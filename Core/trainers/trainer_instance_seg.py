@@ -24,7 +24,7 @@ from Core.optim import get_optim
 from Core.scheduler import get_scheduler
 from Core.metrics import get_metrics
 from Core.utils import *
-from Core.metrics.instance_segmentation import offset_metric, get_ins_seg_metric_batch
+from Core.metrics.panoptic_segmentation import offset_metric, instance_segementation_metrics_batch
 
 class TrainerInstanceSeg(base):
   """Trainer code for basic classification problems with categorical cross entropy."""
@@ -193,7 +193,7 @@ class TrainerInstanceSeg(base):
  
       # Metrics
       #offsets 
-      instance_seg_metrics = get_ins_seg_metric_batch(batch_target,batch_output,th=0.8)
+      instance_seg_metrics = instance_segmentation_metrics_batch(batch_target,batch_output,th=0.8)
       metric_medoid_head += instance_seg_metrics['medoid_batch_metrics']
       if h_offsets_norm is None: h_offsets_norm = instance_seg_metrics['offset_batch_metric']
       else: h_offsets_norm = np.concatenate((h_offsets_norm,instance_seg_metrics['offset_batch_metric']), axis=0)

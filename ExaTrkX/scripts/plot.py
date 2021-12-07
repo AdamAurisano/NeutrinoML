@@ -3,12 +3,16 @@
 # Import modules
 import os, sys, yaml, argparse, logging, numpy as np, tqdm
 import matplotlib.pyplot as plt
-import torch, torch_geometric
-if '/scratch' not in sys.path: sys.path.append('/scratch')
-from ExaTrkX import datasets
-from ExaTrkX.plot import graphplot
-from Core.trainers import Trainer
-from torch_geometric.data import DataLoader
+import torch
+
+if (len(sys.argv) == 1 or sys.argv[1] == 'config/hit2d.yaml'):
+    if '/scratch' not in sys.path: sys.path.append('/scratch')
+
+elif sys.argv[1] == 'config/cori.yaml':
+    if os.environ['SLURM_SUBMIT_DIR'] not in sys.path: sys.path.append(os.environ['SLURM_SUBMIT_DIR'])
+
+import datasets, numl
+from core.trainers import Trainer
 
 # Configuration options
 def configure(config):
@@ -19,7 +23,7 @@ def configure(config):
 # Configuration options (overwrite default configuration with your own if you want!)
 parser = argparse.ArgumentParser('plot.py')
 add_arg = parser.add_argument
-add_arg('config', nargs='?', default='/scratch/ExaTrkX/config/hit2d.yaml')
+add_arg('config', nargs='?', default='/scratch/config/hit2d.yaml')
 args = parser.parse_args()
 config = configure(args.config)
 
@@ -37,29 +41,20 @@ valid_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=splits[1],s
 trainer.build_model(**config['model'])
 trainer.load_state_dict(**config['inference'])
 
-gp = graphplot.GraphPlot()
-
 # Draw plots
 name = config['trainer']['train_name']
-if not os.path.exists(f'plots/{name}'): os.makedirs(f'plots/{name}')
-for i in tqdm.tqdm(range(26)):
-  if i != 6 and i != 25: continue
+plotdir = f'plots/{name}'
+if not os.path.exists(plotdir): os.makedirs(plotdir)
+for i in tqdm.tqdm(range(config['inference']['max_inputs'])):
   graph = valid_dataset[i]
-  gp.plot_edge_truth(graph)
-  if i == 6:
-    plt.xlim([7200,7700])
-    plt.ylim([7200,8400])
-    plt.tight_layout()
-  plt.savefig(f'plots/{name}/graph_{i:04d}_truth.pdf')
+  numl.plot.graph.plot_node_score(graph, graph.y)
+  plt.savefig(f'{plotdir}/graph_{i:04d}_node_truth.pdf')
   plt.close()
-  gp.plot_edge_score(trainer, graph)
-  if i == 6:
-    plt.xlim([7200,7700])
-    plt.ylim([7200,8400])
-    plt.tight_layout()
-  plt.savefig(f'plots/{name}/graph_{i:04d}_score.pdf')
+  numl.plot.graph.plot_edge_score(graph, graph.y_edge)
+  plt.savefig(f'{plotdir}/graph_{i:04d}_edge_truth.pdf')
   plt.close()
-  gp.plot_edge_diff(trainer, graph)
-  plt.savefig(f'plots/{name}/graph_{i:04d}_diff.pdf')
+  y_pred = trainer.model(graph.to(trainer.device)).cpu()
+  numl.plot.graph.plot_node_score(graph.cpu(), y_pred.argmax(dim=1))
+  plt.savefig(f'{plotdir}/graph_{i:04d}_node_score.pdf')
   plt.close()
 

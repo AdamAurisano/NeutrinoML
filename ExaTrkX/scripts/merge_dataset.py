@@ -5,12 +5,12 @@ import sys, os.path as osp, yaml, argparse, logging, math, numpy as np, torch, s
 sys.path.append('/scratch') # This line is equivalent to doing source scripts/source_me.sh in a bash terminal
 from torch.utils.data import DataLoader
 from Core import utils
-from GraphDUNE import datasets
+from ExaTrkX import datasets
 import awkward as ak
 
 # Most of the training options are set in a configuration YAML file. We're going to load this config, and then the options inside will be passed to the relevent piece of the training framework.
 parser = argparse.ArgumentParser('train.py')
-parser.add_argument('config', nargs='?', default='/scratch/GraphDUNE/config/hit2d.yaml')
+parser.add_argument('config', nargs='?', default='/scratch/ExaTrkX/config/hit2d.yaml')
 with open(parser.parse_args().config) as f:
   config = yaml.load(f, Loader=yaml.FullLoader)
 

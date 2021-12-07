@@ -6,7 +6,7 @@ Script for sparse convolutional network inference
 import sys
 if '/scratch' not in sys.path: sys.path.append('/scratch')
 from Core import utils
-from GraphDUNE import datasets
+from ExaTrkX import datasets
 from Core.trainers import Trainer
 from torch_geometric.data import DataLoader
 
@@ -24,7 +24,7 @@ def parse_args():
   '''Parse arguments'''
   parser = argparse.ArgumentParser('process.py')
   add_arg = parser.add_argument
-  add_arg('config', nargs='?', default='/scratch/GraphDUNE/config/hit2d.yaml')
+  add_arg('config', nargs='?', default='/scratch/ExaTrkX/config/hit2d.yaml')
   return parser.parse_args()
 
 def configure(config):

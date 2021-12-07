@@ -4,8 +4,8 @@
 import sys, yaml, logging, numpy as np, tqdm
 import torch, torch_geometric
 if '/scratch' not in sys.path: sys.path.append('/scratch')
-from GraphDUNE import datasets, models
-from GraphDUNE.trainers.gnn_parallel import GNNParallelTrainer
+from ExaTrkX import datasets, models
+from ExaTrkX.trainers.gnn_parallel import GNNParallelTrainer
 from torch_geometric.data import DataListLoader, DataLoader
 
 # Configuration options
@@ -15,7 +15,7 @@ def configure(config):
     return yaml.load(f, Loader=yaml.FullLoader)
 
 # Configuration options (overwrite default configuration with your own if you want!)
-config = configure('/scratch/GraphDUNE/config/hit2d.yaml')
+config = configure('/scratch/ExaTrkX/config/hit2d.yaml')
 
 full_dataset = datasets.get_dataset(**config['data'])
 device = torch.device(f'cuda:{config["model"]["gpus"][0]}' if torch.cuda.is_available() else 'cpu')

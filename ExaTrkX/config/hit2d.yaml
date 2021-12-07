@@ -9,8 +9,8 @@ trainer:
   n_epochs: 100
   empty_cache: 1 # How many iterations between calls to empty GPU memory cache
   train_name: "default"
-  summary_dir: "/scratch/GraphDUNE/summary"
-  output_dir: "/scratch/GraphDUNE/params"
+  summary_dir: "/scratch/ExaTrkX/summary"
+  output_dir: "/scratch/ExaTrkX/params"
   resume: True
   debug: False
 

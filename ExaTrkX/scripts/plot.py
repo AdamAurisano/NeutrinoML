@@ -5,8 +5,8 @@ import os, sys, yaml, argparse, logging, numpy as np, tqdm
 import matplotlib.pyplot as plt
 import torch, torch_geometric
 if '/scratch' not in sys.path: sys.path.append('/scratch')
-from GraphDUNE import datasets
-from GraphDUNE.plot import graphplot
+from ExaTrkX import datasets
+from ExaTrkX.plot import graphplot
 from Core.trainers import Trainer
 from torch_geometric.data import DataLoader
 
@@ -19,7 +19,7 @@ def configure(config):
 # Configuration options (overwrite default configuration with your own if you want!)
 parser = argparse.ArgumentParser('plot.py')
 add_arg = parser.add_argument
-add_arg('config', nargs='?', default='/scratch/GraphDUNE/config/hit2d.yaml')
+add_arg('config', nargs='?', default='/scratch/ExaTrkX/config/hit2d.yaml')
 args = parser.parse_args()
 config = configure(args.config)
 

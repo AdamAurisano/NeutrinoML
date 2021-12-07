@@ -4,7 +4,7 @@
 import sys, os, argparse, yaml, logging, numpy as np, tqdm
 import torch, torch_geometric
 if '/scratch' not in sys.path: sys.path.append('/scratch')
-from GraphDUNE import datasets
+from ExaTrkX import datasets
 from Core.trainers import Trainer
 from torch_geometric.data import DataLoader
 
@@ -17,7 +17,7 @@ def configure(config):
 # Configuration options (overwrite default configuration with your own if you want!)
 parser = argparse.ArgumentParser('train.py')
 add_arg = parser.add_argument
-add_arg('config', nargs='?', default='/scratch/GraphDUNE/config/hit2d.yaml')
+add_arg('config', nargs='?', default='/scratch/ExaTrkX/config/hit2d.yaml')
 args = parser.parse_args()
 config = configure(args.config)
 
@@ -33,7 +33,7 @@ valid_dataset = torch.utils.data.Subset(full_dataset,np.arange(start=splits[1],s
 
 # Generate class weights, or load from file if already generated
 data_name = os.path.basename(config['data']['path']) + '.pt'
-weights_file = os.path.join('/scratch/GraphDUNE/weights', data_name)
+weights_file = os.path.join('/scratch/ExaTrkX/weights', data_name)
 if not os.path.exists(weights_file):
   n_classes = config['model']['out_dim']
   total = 0

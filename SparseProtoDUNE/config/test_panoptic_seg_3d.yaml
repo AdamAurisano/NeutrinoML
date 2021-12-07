@@ -1,0 +1,105 @@
+data:
+  name: 'SparsePixelMap3D'
+  root: '/data/3d'
+  trainfiles: '1GeVPionsValidation'
+  #trainfiles: 'Panoptic_dataset_1GeV' 
+  t_v_split: 0.05
+
+process:
+  processes: 50
+  max_files: 10000
+  pre_transform: None
+  voxel_size: 1
+  #feat_norm: [1.e-5, 1.e-5, 1.e-5, 6.25e-4, 1.667e-3, 1.429e-3, 5.e-2]
+  #feat_norm: [1.e-5, 1.e-5, 1.e-5, 1.429e-3,1.667e-3,1.429e-3, 5.e-2]
+
+model:
+  name: 'PanopticNet'
+  n_dims: 3
+  extent: 6000 # Maximum dimension of pixel map
+  input_feats: 6
+  n_feats: 32 # Number of features
+  bias: True
+  panoptic_segmentation: True
+  instance_segmentation: False
+  loss_params:
+    SEMANTIC: 
+      func: 'categorical_focal_loss' 
+    CENTER:
+      func: 'cross_entropy' 
+    OFFSET:
+      func: 'L1Loss' 
+  
+  arrange_data: 'arrange_sparse_minkowski'
+  arrange_truth: 'sparse_panoptic_truth'
+
+  activation_params:
+    activation: 'mish'
+    LeakyReLU:
+      negative_slope: 0.1
+
+  optimizer_params:
+    optimizer: 'SGD'
+    AdamW:
+      lr: 1.e-2
+      weight_decay:     0.01
+    Ranger:
+      lr:               1.e-3
+      alpha:            0.5
+      k:                6
+      N_sma_threshhold: 5
+      betas:            [ 0.95, 0.999 ]
+      eps:              1.e-5
+      weight_decay:     0
+      use_gc:           True
+      gc_conv_only:     False
+    SGD:
+      lr:               1.e-1
+      momentum:         0.9
+
+
+  scheduler_params:
+    scheduler: 'StepLR'
+    ReduceLROnPlateau:
+      factor: 0.8
+      patience: 3
+    StepLR:
+      step_size: 7
+      gamma: 0.8
+    CyclicLR:
+      base_lr: 7.e-4
+      max_lr: 9.e-4
+      step_size_up: 8000
+      mode: 'triangular2'
+      verbose: False
+      #gamma: 0.98 
+
+  n_classes: 7 
+
+  metric_params:
+    metrics: 'SemanticSegmentation'
+    include_batch_metrics: True
+    SemanticSegmentation:
+      class_names: ["shower","delta","diffuse","hip","michel","mu","pi"]
+data_loader:
+  batch_size: 50 
+  num_workers: 0 
+
+trainer:
+  device: 6 # Which GPU to use
+  n_epochs: 50
+  empty_cache: 1
+  train_name: 'panoptic_seg_net1'
+  summary_dir: 'summary/3d/PanopticSegNet/test'
+  output_dir: '/data/3d/params/PanopticSegnetNet/test'
+  resume: False
+
+inference:
+  _dir: '/scratch/SparseProtoDUNE/evaluation/PanopticSeg/'
+  max_images: 200 # Maximum number of images to process
+  event_display: False # Draw event displays
+  confusion: True # Draw a confusion matrix
+  offset_metric: True # Draw a histogram with the norm of the true and pred offset tensors 
+  medoid_pred_metric: True # Calculate purity and eff for center prediction head
+  state_dict: None
+

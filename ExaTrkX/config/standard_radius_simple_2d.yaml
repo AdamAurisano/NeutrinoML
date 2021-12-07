@@ -1,32 +1,37 @@
 data:
-  name: "simple"
-  path: "/data/uboone/pandora/processed"
-  t_v_split: 0.05
+  name: "spacepoint"
+  path: "/data/uboone/processed/standard_radius"
+  val_fraction: 0.05
+  test_fraction: 0.05
+  label_scheme: "simple"
+  label_map: [ 0, 1, 0, 0, 2, 3, 1, 4 ]
 
 trainer:
-  device: "cpu"
-  batch_size: 4
-  n_epochs: 100
-  empty_cache: 1 # How many iterations between calls to empty GPU memory cache
-  train_name: "default"
-  summary_dir: "/scratch/ExaTrkX/summary"
-  output_dir: "/scratch/ExaTrkX/params"
+  device: "cuda:0"
+  batch_size: 16
+  num_workers: 1
+  n_epochs: 20
+  empty_cache: 100
+  train_name: "standard_radius_simple_2d"
+  summary_dir: "/scratch/summary"
+  output_dir: "/scratch/params"
   resume: True
-  debug: False
 
 model:
-  name: "DeepMultiHead"
-  input_dim: 9
+  name: "3DeepMultiHead"
+  input_dim: 4
   hidden_dim: 64
-  out_dim: 4
+  output_dim: 5
   n_iters: 4
   how: "classwise"
   stacks: True
   edgefeats: False
+  classify_node: True
+  use_spacepoints: False
   loss_params:
     func: "CrossEntropyLoss"
   arrange_data: "arrange_graph"
-  arrange_truth: "arrange_graph"
+  arrange_truth: "arrange_graph_3d"
 
   scheduler_params:
     scheduler: "ReduceLROnPlateau"
@@ -54,7 +59,5 @@ model:
     metrics: "Graph"
     include_batch_metrics: True
     Graph:
-      class_names: [ "false", "shower", "muon", "hadronic" ]
+      class_names: [ "HIP", "MIP", "shower", "michel", "diffuse" ]
 
-inference:
-  state_dict: "params/deep-classwise-adamw-2/checkpoints/model_checkpoint_GNNDeepMultiHead_113412_4956229998_hewesje.best.pth.tar"

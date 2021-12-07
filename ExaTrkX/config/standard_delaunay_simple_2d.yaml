@@ -1,0 +1,66 @@
+data:
+  name: "spacepoint"
+  path: "/data/uboone/processed/standard_delaunay"
+  val_fraction: 0.05
+  test_fraction: 0.05
+  label_scheme: "simple"
+  label_map: [ 0, 1, 0, 0, 2, 3, 1, 4 ]
+
+trainer:
+  device: "cuda:0"
+  batch_size: 16
+  num_workers: 1
+  n_epochs: 20
+  empty_cache: 100
+  train_name: "standard_delaunay_simple_2d"
+  summary_dir: "/scratch/summary"
+  output_dir: "/scratch/params"
+  resume: True
+
+model:
+  name: "3DeepMultiHead"
+  input_dim: 4
+  hidden_dim: 64
+  output_dim: 5
+  n_iters: 4
+  how: "classwise"
+  stacks: True
+  edgefeats: False
+  classify_node: True
+  use_spacepoints: False
+  loss_params:
+    func: "CrossEntropyLoss"
+  arrange_data: "arrange_graph"
+  arrange_truth: "arrange_graph_3d"
+
+  scheduler_params:
+    scheduler: "ReduceLROnPlateau"
+    ReduceLROnPlateau:
+      factor: 0.5
+      patience: 3
+    StepLR:
+      step_size: 5
+      gamma: 0.8
+
+  activation_params:
+    activation: "mish"
+
+  optimizer_params:
+    optimizer: "AdamW"
+    AdamW:
+      lr: 1.e-4
+      weight_decay: 0.01
+    Fromage:
+      lr: 0.01
+    SGD:
+      lr: 0.01
+      
+  metric_params:
+    metrics: "Graph"
+    include_batch_metrics: True
+    Graph:
+      class_names: [ "HIP", "MIP", "shower", "michel", "diffuse" ]
+
+inference:
+  state_dict: "/scratch/params/standard_delaunay_simple_2d/checkpoints/model_checkpoint_GNN3DeepMultiHead_397470_2892ec439b_hewesje.best.pth.tar"
+  max_inputs: 100

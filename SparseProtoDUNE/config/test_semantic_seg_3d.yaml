@@ -1,0 +1,98 @@
+data:
+  name: 'SparsePixelMap3D'
+  root: '/data/3d'
+  trainfiles: 'Panoptic_dataset_1GeV'
+  t_v_split: 0.05
+
+process:
+  processes: 30
+  max_files: 10000
+  pre_transform: None
+  voxel_size: 1
+  feat_norm: [1.429e-3,1.667e-3,1.429e-3] # for coordinates only
+
+model:
+  name: 'SSMinkUNet34B'
+        #name: "Semantic_SegUResNet" 
+        #name: 'SemanticSegUNet34C' 
+  n_dims: 3
+  extent: 6000 # Maximum dimension of pixel map
+  input_feats: 6
+  n_feats: 32 # Number of features
+  unet_depth: 4 
+  bias: False
+  panoptic_segmentation: False 
+  instance_segmentation: False 
+  loss_params:
+    func: "categorical_focal_loss" 
+  arrange_data: "arrange_sparse_minkowski"
+  arrange_truth: "sparse_semantic_truth"
+
+  activation_params:
+    activation: "mish" 
+    LeakyReLU:
+      negative_slope: 0.01
+
+  optimizer_params:
+    optimizer: "SGD"
+    AdamW:
+      lr: 1.e-2
+      weight_decay:     0.01
+    Ranger:
+      lr:               1.e-3
+      alpha:            0.5
+      k:                6
+      N_sma_threshhold: 5
+      betas:            [ 0.95, 0.999 ]
+      eps:              1.e-5
+      weight_decay:     0
+      use_gc:           True
+      gc_conv_only:     False
+    SGD:
+      lr:               1.e-1
+      momentum:         0.9
+
+  scheduler_params:
+    scheduler: 'StepLR' #'ReduceLROnPlateau' 
+    ReduceLROnPlateau:
+      factor: 0.9
+      patience: 10
+    StepLR:
+      step_size: 10 
+      gamma: 0.5
+    CyclicLR:
+      base_lr: 7.e-4
+      max_lr: 9.e-4
+      step_size_up: 8000
+      mode: 'triangular'
+      verbose: True
+
+  n_classes: 7
+
+  metric_params:
+    metrics: "SemanticSegmentation"
+    include_batch_metrics: True
+    SemanticSegmentation:
+            class_names: ["shower","delta","diffuse","hip","michel","mu","pi"]
+            #class_names: ["shower","delta","diffuse","kaons","michel","hip","mu","pi"]
+
+data_loader:
+  batch_size: 50 
+  num_workers: 0
+
+trainer:
+  device: 5 # Which GPU to use
+  n_epochs: 100
+  train_name: 'test'
+  summary_dir: 'summary/SSUResNet/test'
+  output_dir: '/data/3d/params/test'
+  resume: False
+  debug: False
+  state_dict: None 
+
+inference:
+  _dir: '/scratch/SparseProtoDUNE/evaluation/Depth_Study/'
+  max_images: 3000 # Maximum number of images to process
+  event_display: False #  Whether to draw event displays
+  confusion: True # Whether to draw a confusion matrix
+  state_dict: None 

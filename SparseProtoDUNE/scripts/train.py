@@ -29,7 +29,6 @@ def main():
   args = parse_args()
   config = configure(args.config)
   full_dataset = datasets.get_dataset(**config['data'])
-  print(config['model']['panoptic_segmentation']) 
   if config['model']['panoptic_segmentation']:
     from Core.trainers.trainer_panoptic_seg import TrainerPanopticSeg
     trainer = TrainerPanopticSeg(**config['trainer'])
@@ -38,7 +37,7 @@ def main():
     from Core.trainers.trainer_instance_seg import TrainerInstanceSeg
     trainer = TrainerInstanceSeg(**config['trainer'])
     collate = utils.collate_sparse_minkowski_panoptic
-  if (config['model']['instance_segmentation'] == False and TrainerPanopticSeg(**config['trainer']) == False):
+  if (config['model']['instance_segmentation'] == False and config['model']['panoptic_segmentation'] ==False):
     from Core.trainers.trainer import Trainer
     trainer = Trainer(**config['trainer'])
     collate = utils.collate_sparse_minkowski

@@ -42,7 +42,7 @@ class SparsePixelMap3D(Dataset):
     return len(self.data_files)
 
   def __getitem__(self, idx):
-    enable_panoptic_seg = False
+    enable_panoptic_seg = True
     data = torch.load(self.data_files[idx])
     feat_norm =  torch.tensor([1.429e-3,1.667e-3,1.429e-3]).float()
     x = data['x'][:,:3].float()
@@ -55,16 +55,15 @@ class SparsePixelMap3D(Dataset):
       del data
       return { 'x': x, 'c': c, 'y': y}
     else:
-      c = data['c'] 
-      htm = data['htm']
-      offset = data['offsets']
-      medoids = data['medoids']
-      voxId = data['voxId']
+      c = data['c'].int() 
+      x = torch.cat((x,c*feat_norm[None,:]),dim=1) 
+      htm = data['htm'].float()
+      offset = data['offsets'].int()
+      medoids = data['medoids'].int()
+      voxId = data['voxId'].int()
+      meta = medoids.shape[0]
       del data
-      return { 'x': x, 'c': c, 'y': y, 'chtm': htm,  'medoids':medoids, 'offset':offset, 'voxId':voxId} 
-    #Mix kaons and hip
-   # y = np.array(data['y']) 
-   # y = np.hstack((y[:,:2], (y[:,2:3] + y[:,4:5]) ,y[:,3:4], y[:,5:]) )
+      return { 'x': x, 'c': c, 'y': y, 'htm': htm,  'medoids':medoids, 'offset':offset, 'voxId':voxId, 'meta':meta} 
   
   def vet_files(self):
     for f in self.data_files:
@@ -146,7 +145,7 @@ class SparsePixelMap3D(Dataset):
         data = { 'c': c, 'x': x, 'y': y, 'voxId': vox_id, 'medoids':  medoids, 'htm': htm, 'offsets': offsets, 'dE':dE}
         logging.info(f'Processing event took:  {time()-start:.2f} seconds.')
    
-        if fname not in self.processed_dir:
+        if fname not in self.processed_dir and medoids.shape[0]>0:
             logging.info(f'Saving file {fname} with {c.shape[0]} voxels.')
             torch.save(data, f'{self.processed_dir}/{fname}')
 

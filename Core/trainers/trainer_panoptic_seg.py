@@ -7,9 +7,13 @@ import time, math
 
 # Externals
 import torch
+import pandas as pd
 import torch.nn as nn
-from torch.utils.tensorboard import SummaryWriter
+import seaborn as sns 
+import matplotlib.pyplot as plt
 import tqdm, numpy as np, psutil
+from sklearn.metrics import confusion_matrix
+from torch.utils.tensorboard import SummaryWriter
 
 # Locals
 from Core.models import get_model
@@ -20,6 +24,7 @@ from Core.optim import get_optim
 from Core.scheduler import get_scheduler
 from Core.metrics import get_metrics
 from Core.utils import *
+from Core.metrics.panoptic_segmentation import offset_metric, instance_segementation_metrics_batch
 
 class TrainerPanopticSeg(base):
   """Trainer code for basic classification problems with categorical cross entropy."""
@@ -64,11 +69,11 @@ class TrainerPanopticSeg(base):
  
   def load_state_dict(self, state_dict, **kwargs):
     """Load state dict from trained model"""
-    self.model.load_state_dict(torch.load(state_dict, map_location=f"cuda:{self.device}")["model"])
+    location = f"cuda:{self.device}" if self.device != "cpu" else "cpu"
+    self.model.load_state_dict(torch.load(state_dict, map_location=location)['model'])
     
     '''Load state dict from trained model'''
     location = f"cuda:{self.device}" if self.device != "cpu" else "cpu"
-    print(state_dict)
     self.model.load_state_dict(torch.load(state_dict, map_location=location)['model'])
 
   def train_epoch(self, data_loader, **kwargs): #lambda_weight, **kwargs):
@@ -97,23 +102,28 @@ class TrainerPanopticSeg(base):
       pred_semseg = batch_output["semantic_pred"]
       pred_offset = batch_output["offset_pred"].F
       # targets
-      batch_target = self.arrange_truth(data)
-      true_htm = batch_target["ctr_htm"].to(self.device)
-      scale  = 1/true_htm.max().item()
-      true_htm *= scale 
-      true_semseg = batch_target["sem_seg"].to(self.device) 
-      true_offset = batch_target["offset"].to(self.device)
+      batch_target = self.arrange_truth(data, self.device)
+      true_htm = batch_target["htm"]
+      true_semseg = batch_target["sem_seg"]
+      true_offset = batch_target["offset"]
       
       #LOSS FUNCTIONS
-      bk_mask = batch_target['voxId'] != 0  // for center regression
+      bk_mask = batch_target['voxId'] != 0  ## for center regression
       _sem_loss = self.semantic_loss(pred_semseg, true_semseg)
-      _ctr_loss = self.ctr_loss(pred_htm, true_htm)
-      _offset_loss = 3.e-2*self.offset_loss(pred_offset[bk_mask], true_offset[bk_mnask])
+      _ctr_loss = 3*self.ctr_loss(pred_htm, true_htm)
+      _offset_loss = 0.05*self.offset_loss(pred_offset[bk_mask], true_offset[bk_mask])
+      #_offset_loss = 3.e-2*self.offset_loss(pred_offset[bk_mask], true_offset[bk_mask])
        
-      batch_loss = _ctr_loss + _offset_loss +  _sem_loss 
+      #print('sem_loss: ',_sem_loss)
+      #print('ctr_loss: ',_ctr_loss)
+      #print('offset_loss: ',_offset_loss)
+      batch_loss = _sem_loss + _ctr_loss + _offset_loss 
+      #batch_loss =  _ctr_loss + _offset_loss 
+      #batch_loss = _ctr_loss  
        
       
       #back propagation and optimization 
+      metrics = self.metrics.train_batch_metrics(pred_semseg,true_semseg) 
       batch_loss.backward()
       self.optimizer.step()
 
@@ -128,12 +138,12 @@ class TrainerPanopticSeg(base):
       t.refresh() # to show immediately the update
 
       # add to tensorboard summary
-      if self.batch_metrics:
+      #if self.batch_metrics:
         #Calculate accuracy for semantic Segmentation
-        metrics = self.metrics.train_batch_metrics(pred_semseg,true_semseg) 
-        for key, val in metrics.items(): self.writer.add_scalar(key, val, self.iteration)
+      #  metrics = self.metrics.train_batch_metrics(pred_semseg,true_semseg) 
      
       if self.iteration%100 == 0:
+        for key, val in metrics.items(): self.writer.add_scalar(key, val, self.iteration)
         self.writer.add_scalar("loss/batch", batch_loss.item(), self.iteration)
         self.writer.add_scalar("sem_loss/batch", _sem_loss.item(), self.iteration)
         self.writer.add_scalar("center_loss/batch", _ctr_loss.item(), self.iteration)
@@ -169,6 +179,12 @@ class TrainerPanopticSeg(base):
     batch_size = data_loader.batch_size
     n_batches = int(math.ceil(len(data_loader.dataset)/batch_size))
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
+
+    metric_medoid_head = [0,0]
+    h_offsets_norm = None
+    y_true_all = None
+    y_pred_all = None
+    names = ["shower","delta","diffuse","hip","michel","mu","pi"]
     for i, data in t:
       batch_input = self.arrange_data(data, self.device)
 
@@ -179,42 +195,75 @@ class TrainerPanopticSeg(base):
       pred_offset = batch_output["offset_pred"].F
       
       # targets
-      batch_target = self.arrange_truth(data)
-      true_htm = batch_target["ctr_htm"].to(self.device)
-      true_htm *= (0.5*(true_htm.max().item())) 
-      true_semseg = batch_target["sem_seg"].to(self.device) 
-      true_offset = batch_target["offset"].to(self.device)
+      batch_target = self.arrange_truth(data, self.device)
+      true_htm = batch_target["htm"]
+      true_semseg = batch_target["sem_seg"] 
+      true_offset = batch_target["offset"]
 
       #loss calculation 
       bk_mask = batch_target['voxId'] != 0 
       _sem_loss = self.semantic_loss(pred_semseg, true_semseg)
-      _ctr_loss = self.ctr_loss(pred_htm, true_htm)
-      _offset_loss = 3.e-2*self.offset_loss(pred_offset[bk_mask], true_offset[bk_mask])
+      _ctr_loss = 3*self.ctr_loss(pred_htm, true_htm)
+      _offset_loss = 0.05*self.offset_loss(pred_offset[bk_mask], true_offset[bk_mask])
 
       batch_loss = _ctr_loss + _offset_loss +  _sem_loss # Panoptic Segmentation Model 
-     
+      #batch_loss =  _ctr_loss + _offset_loss 
+      #batch_loss = _ctr_loss 
+ 
+      # Metrics
+      #offsets 
+      instance_seg_metrics = instance_segmentation_metrics_batch(batch_target,batch_output,th=0.8)
+      metric_medoid_head += instance_seg_metrics['medoid_batch_metrics']
+      if h_offsets_norm is None: h_offsets_norm = instance_seg_metrics['offset_batch_metric']
+      else: h_offsets_norm = np.concatenate((h_offsets_norm,instance_seg_metrics['offset_batch_metric']), axis=0)
+      #medoids  
+      metric_medoid_head += instance_seg_metrics['medoid_batch_metrics']
+
+      #semantic segmentation
+      ## input for the confusion matrix 
+      if y_true_all is None: y_true_all = true_semseg.argmax(dim=1)
+      else: y_true_all = torch.cat([y_true_all, true_semseg.argmax(dim=1)], dim=0)
+      if y_pred_all is None: y_pred_all = pred_semseg.argmax(dim=1)
+      else: y_pred_all = torch.cat([y_pred_all, pred_semseg.argmax(dim=1)], dim=0)
       sum_loss += batch_loss.item()
       sum_sem_loss += _sem_loss.item()
       sum_ctr_loss += _ctr_loss.item()
       sum_offset_loss += _offset_loss.item()
       self.metrics.valid_batch_metrics(pred_semseg, true_semseg)
-    
+   
+    ## calculate confusion matrix
+    cf_matrix = confusion_matrix(y_true_all.cpu().numpy(), y_pred_all.cpu().numpy(),normalize='true')
+    df_cm = pd.DataFrame(cf_matrix, index=[i for i in names], columns=[i for i in names])
+
     summary["valid_time"] = time.time() - start_time
     summary["valid_loss"] = sum_loss / n_batches
     summary["valid_semantic_loss"] = sum_sem_loss / n_batches
     summary["valid_center_loss"] = sum_ctr_loss / n_batches
     summary["valid_offset_loss"] = sum_offset_loss / n_batches
+
+    summary['Purity'] = metric_medoid_head[0]/(i+1) 
+    summary['Efficiency'] = metric_medoid_head[1]/(i+1) 
+    a = plt.figure(figsize=(12, 7))
+    summary['Offsets_norm_histogram'] = sns.histplot(data = h_offsets_norm, bins=100, element='step').get_figure() 
+    b = plt.figure(figsize=(12, 7))
+    summary['confusion_matrix'] = sns.heatmap(df_cm, annot = True, cmap='Blues').get_figure()
+
+    del a, b 
+    #print results (Optional)
+    #print(df_cm)
+    print('Purity, Efficiency =', metric_medoid_head/(i+1))
+
     self.logger.debug(" Processed %i samples in %i batches",
                       len(data_loader.sampler), n_batches)
     self.logger.info("  Validation loss: %.3f" % (summary["valid_loss"]))
     return summary
 
-  def train(self, train_data_loader, n_epochs, valid_data_loader=None, sherpa_study=None, sherpa_trial=None, **kwargs):
+  def train(self, train_data_loader, n_epochs, resume=False, valid_data_loader=None, sherpa_study=None, sherpa_trial=None, **kwargs):
     """Run the model training"""
 
     # Loop over epochs
     best_valid_loss = 99999
-    self.iteration = 0
+    self.first_epoch = 0
     #avg_loss = torch.zeros([n_epochs, 2]).to(self.device)
     #lambda_weight = torch.ones([2, n_epochs]).to(self.device)
   
@@ -287,6 +336,10 @@ class TrainerPanopticSeg(base):
       if self.output_dir is not None:
         self.write_checkpoint(checkpoint_id=i)
 
+      self.writer.add_figure('confusion_matrix',summary['confusion_matrix'],i+1)
+      self.writer.add_figure('Offsets norm',summary['Offsets_norm_histogram'],i+1)
+      self.writer.add_scalar('Purity', summary['Purity'],i+1)
+      self.writer.add_scalar('Efficiency', summary['Efficiency'],i+1)
       self.writer.add_scalars("loss/epoch", {
           "train": summary["train_loss"],
           "valid": summary["valid_loss"] }, i+1)

@@ -6,25 +6,25 @@ from collections import Counter
 #__all__ = ['get_center_prediction', 'get_panoptic_segmentation']
 
 def get_center_prediction(htm,c, nms_kernel, threshold, top_k=None):
-  '''Find medoid location from the heatmap''' 
-  htm = f.threshold(htm, threshold, -1)
-  htm = torch.reshape(htm,(htm.shape[1],htm.shape[0]))
-  nms_padding = (nms_kernel - 1) // 2
-  htm = htm.unsqueeze(0)
-  pooled_htm = f.max_pool1d(htm, kernel_size=nms_kernel, stride=1, padding=nms_padding)
-  #pooled_htm = F.avg_pool1d(htm, kernel_size=nms_kernel, stride=1, padding=nms_padding)
-  htm[htm != pooled_htm] =-1
-  # finding center candidates
-  ctr_all = torch.nonzero(htm > 0)
-  if top_k is None:
-    return c[ctr_all[:,2]]
-  elif ctr_all.shape[0] < top_k:
-    return c[ctr_all[:,2]]
-  else:
-  # find top k centers.
-    top_k_scores, _ = torch.topk(torch.flatten(htm), top_k)
+    '''Find medoid location from the heatmap''' 
+    htm = f.threshold(htm, threshold, -1)
+    htm = torch.reshape(htm,(htm.shape[1],htm.shape[0]))
+    nms_padding = (nms_kernel - 1) // 2
+    htm = htm.unsqueeze(0)
+    pooled_htm = f.max_pool1d(htm, kernel_size=nms_kernel, stride=1, padding=nms_padding)
+    #pooled_htm = F.avg_pool1d(htm, kernel_size=nms_kernel, stride=1, padding=nms_padding)
+    htm[htm != pooled_htm] =-1
+    # finding center candidates
+    ctr_all = torch.nonzero(htm > 0)
+    if top_k is None:
+        return c[ctr_all[:,2]]
+    elif ctr_all.shape[0] < top_k:
+        return c[ctr_all[:,2]]
+    else:
+    # find top k centers.
+        top_k_scores, _ = torch.topk(torch.flatten(htm), top_k)
     #return top_k_scores, _
-    return c[torch.nonzero(htm >= top_k_scores[-1])[:,2]]
+        return c[torch.nonzero(htm >= top_k_scores[-1])[:,2]]
 
 
        
@@ -57,29 +57,29 @@ def get_medoid_prediction_sparse(htm, nms_kernel, threshold, top_k=None):
         top_k_scores, _ = torch.topk(torch.flatten(htm.F), top_k)
         return c[torch.nonzero(htm.F >= top_k_scores[-1])[:,0]]
 
-def group_pixels(c,offset,ctr):
-  voxel_id = []
-  for ci,Oi in zip(c,offset):
-     _list = []
-     for _ctr in ctr:
-       if _ctr.sum() == -2997:
-           continue
-       Diff =   ci-_ctr -Oi  #_ctr -(ci+Oi)
-       #_list.append(np.linalg.norm(Diff))
-       _list.append(torch.norm(Diff))
-     Id = np.argmin(_list)
-     voxel_id.append(Id+1)
-  voxel_id = torch.IntTensor(voxel_id)
-  return voxel_id
+
+def group_voxels(co, offsets, medoids):
+    ''' Script to perform instance center regression
+        ------- 
+        Returns:   
+        voxel instance id 
+    '''
+    voxel_id = []
+    for ci, Oi in zip (co, offsets):
+        _id = torch.norm((ci - medoids - Oi).float(), dim=1).argmin()
+        voxel_id.append(_id+1)
+    voxel_id = torch.tensor(voxel_id).int()
+ 
+    return voxel_id
 
 def get_instance_segmentation(c,offset,ctr, sem_seg):
-  voxel_id = group_pixels(c,offset,ctr)
-  thing_list = [0,3,5,6]
-  thing_seg = torch.zeros_like(sem_seg)
-  for thing_class in thing_list:
-    thing_seg[sem_seg == thing_class] = 1
+    voxel_id = group_pixels(c,offset,ctr)
+    thing_list = [0,3,5,6]
+    thing_seg = torch.zeros_like(sem_seg)
+    for thing_class in thing_list:
+        thing_seg[sem_seg == thing_class] = 1
   
-  return thing_seg*voxel_id
+    return thing_seg*voxel_id
 
 def merge_semantic_and_instance(sem_seg, voxel_id):
     class_name = ["shower","delta","diffuse","hip","michel","mu","pi"]
@@ -120,8 +120,8 @@ def get_panoptic_segmentation(htm, c, nms_kernel=3, top_k=10):
   return ctr #ctr, pan_seg
 
 def medoid_pred_metric(true_med, pred_med):
-    '''  script to calculate purity and efficiency for the medoid prediction head.
-         Also sort the predicted medoids with respect to the true medoids
+    ''' Script to calculate purity and efficiency for the medoid prediction head.
+        Also sort the predicted medoids with respect to the true medoids
         ------- 
         Returns:
         tuple (putiry, efficiency)'''
@@ -150,7 +150,7 @@ def medoid_pred_metric(true_med, pred_med):
         sorted_pred_medoids[index] = k
     purity = one_med/pred_med.shape[0]
     efficiency = one_med/true_med.shape[0]
-    #sorted_pred_medoids = 
+    
     return np.array([purity, efficiency], dtype=np.float32), sorted_pred_medoids
 
 

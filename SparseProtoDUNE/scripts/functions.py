@@ -82,6 +82,13 @@ def get_instance_segmentation(c,offset,ctr, sem_seg):
     return thing_seg*voxel_id
 
 def merge_semantic_and_instance(sem_seg, voxel_id):
+    '''
+        ------- 
+        Returns:   
+        panoptic_label:
+        class_id_tracker:
+        particle_tracker:
+    '''
     class_name = ["shower","delta","diffuse","hip","michel","mu","pi"]
     thing_list = [0,3,5,6]
     label_divisor = 100
@@ -106,25 +113,51 @@ def merge_semantic_and_instance(sem_seg, voxel_id):
     return pan_seg, class_id_tracker, particle_tracker 
 
 def get_semantic_segmentation(sem_seg):
-  sem_label = sem_seg.argmax(dim=1) 
+    '''
+        ------- 
+        Returns:
+        one-hot semantic labels '''
+    sem_label = sem_seg.argmax(dim=1) 
+    return semantic_label
 
-  return sem_label
+def get_panoptic_segmentation(coords, offsets, semantic_label, medoids):
+    '''
+        get final panoptic segmentation results
+        ------- 
+        Returns:   
+        panoptic_label: Unique label that unifies semantic and instance labels
+        class_id_tracker: dictionary to store number of particles with its corresponding semantic label 
+                          example:
+                          Counter({'shower': 2, 'pi': 1})
+        particle_tracker: dictionary to store voxels corresponding to each object object 
+                          example:
+                          
+                          Counter({'shower1': tensor([False, False, False, False, False, False, False, False, False, False,
+                          False, False, False, False, False, False, False, False, False, False,
+                          False, False, False, False, False, False, False, False, False, False, ...
+                          
+                          'pi1': tensor([False, False, False, False, False, False, False, False, False, False,
+                          False, False, False, False, False, False, False, False, False, False,
+                          False, False, False, False, False, False, False, False, False, False,
+                          False, False, False, False, False, False, False, False, False, False, ...
+                          
+                          'shower2': tensor([ True,  True,  True,  True,  True,  True,  True,  True,  True,  True,
+                          True,  True,  True,  True,  True,  True,  True,  True,  True,  True,
+                          True,  True,  True,  True,  True,  True,  True,  True,  True,  True,
+                          True,  True,  True,  True,  True,  True,  True,  True,  True,  True, ...
+                          )
 
-def get_panoptic_segmentation(htm, c, nms_kernel=3, top_k=10):
-  print(nms_kernel,htm.shape,top_k,c.shape)
-  ctr = get_center_prediction(htm,c,nms_kernel,top_k)
-  print(ctr)
- # voxel_id = group_pixels(c,offset,ctr)
- # sem_label = get_semantic_segmentation(sem_seg)
- # pan_seg = merge_semantic_and_instance(sem_label,voxel_id)
-  return ctr #ctr, pan_seg
+    '''
+    voxel_id = group_voxels(coords, offsets, medoids).to(coords.device)
+    return merge_semantic_and_instance(semantic_label, voxel_id)
+
 
 def medoid_pred_metric(true_med, pred_med):
-    ''' Script to calculate purity and efficiency for the medoid prediction head.
+    '''Script to calculate purity and efficiency for the medoid prediction head.
         Also sort the predicted medoids with respect to the true medoids
         ------- 
         Returns:
-        tuple (putiry, efficiency)'''
+        tuple (putiry, efficiency) '''
 
     sorted_pred_medoids = torch.ones_like(true_med)*(-999)
     empty = 0 # N of instances with no pred medoid

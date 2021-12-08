@@ -64,4 +64,7 @@ def panoptic_segmentation_metrics(true_id, reco_id):
         else:
             purity = correct/reco_mask.sum()
             completeness = correct/true_mask.sum()
-    return np.array([event_completeness,  event_purity],dtype=np.float32)/n_objects 
+        event_completeness += completeness
+        event_purity += purity
+
+    return np.array([event_completeness.cpu(),  event_purity.cpu()],dtype=np.float32)/n_objects 

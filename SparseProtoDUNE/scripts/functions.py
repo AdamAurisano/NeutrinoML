@@ -126,11 +126,13 @@ def get_panoptic_segmentation(coords, offsets, semantic_label, medoids):
         ------- 
         Returns:   
         panoptic_label: Unique label that unifies semantic and instance labels
-        class_id_tracker: dictionary to store number of particles with its corresponding semantic label 
-                          example:
+        
+        class_id_tracker: Dictionary to store number of particles with its corresponding semantic label 
+                          Example:
+
                           Counter({'shower': 2, 'pi': 1})
-        particle_tracker: dictionary to store voxels corresponding to each object object 
-                          example:
+        particle_tracker: Dictionary to store voxels corresponding to each object object 
+                          Example:
                           
                           Counter({'shower1': tensor([False, False, False, False, False, False, False, False, False, False,
                           False, False, False, False, False, False, False, False, False, False,
@@ -148,6 +150,7 @@ def get_panoptic_segmentation(coords, offsets, semantic_label, medoids):
                           )
 
     '''
+    assert len(semantic_label.size()) ==1, "semantic_label must be one-hot"
     voxel_id = group_voxels(coords, offsets, medoids).to(coords.device)
     return merge_semantic_and_instance(semantic_label, voxel_id)
 

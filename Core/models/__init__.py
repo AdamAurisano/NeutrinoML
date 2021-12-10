@@ -33,6 +33,9 @@ def get_model(name, **model_args):
     elif name == 'InstanceSegNet':
         from .InstanceSegNet import InstanceSegNet
         return InstanceSegNet(**model_args)
+    elif name =='SemanticSegNet':
+        from .SemanticSegNet import SemanticSegNet
+        return SemanticSegNet(**model_args)
 
     elif name == "MinkowskiClass":
         from .minkowski_class import MinkowskiClass

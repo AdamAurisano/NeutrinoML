@@ -140,3 +140,15 @@ class InstanceEncoder(EncoderBase):
     BLOCK = BasicBlock
     Planes = (32, 64, 128, 256)
     LAYERS = (2, 3, 4, 6)
+class SemanticEncoder(EncoderBase):
+    BLOCK = BasicBlock
+    Planes = (32, 64, 128, 256)
+    LAYERS = (2, 3, 4, 6)
+class SemanticEncoderA(EncoderBase):
+    BLOCK = BasicBlock
+    Planes = (32, 64, 128, 256)
+    LAYERS = (2, 4, 6, 8)
+class SemanticEncoderB(EncoderBase):
+    BLOCK = BasicBlock
+    Planes = (32, 64, 128, 256)
+    LAYERS = (2, 3, 4, 5)

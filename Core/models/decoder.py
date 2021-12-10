@@ -100,3 +100,15 @@ class InstanceDecoder(DecoderBase):
     BLOCK = BasicBlock
     LAYERS = (2, 3, 4, 6, 2, 2, 2, 2)
     PLANES = (32, 64, 128, 256, 256, 128, 128, 32)
+
+class SemanticDecoder(DecoderBase):
+    BLOCK = BasicBlock
+    LAYERS = (2, 3, 4, 6, 2, 2, 2, 2)
+    PLANES = (32, 64, 128, 256, 256, 128, 64, 32)
+
+class SemanticDecoderA(DecoderBase):
+    BLOCK = BasicBlock
+    LAYERS = (2, 4, 6, 8, 2, 2, 2, 2)
+    PLANES = (32, 64, 128, 256, 256, 128, 64, 32)
+
+

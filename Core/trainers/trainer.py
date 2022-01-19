@@ -3,26 +3,16 @@ This module defines a generic trainer for simple models and datasets.
 """
 
 # System
-import time, math, glob
+import time, math, glob, tqdm
 
 # Externals
-import torch
-import pandas as pd
-import seaborn as sn
-import torch.nn as nn
+import torch, pandas as pd, seaborn as sn
 import matplotlib.pyplot as plt
-import tqdm, numpy as np, psutil
 from sklearn.metrics import confusion_matrix
 from torch.utils.tensorboard import SummaryWriter
 # Locals
-from Core.models import get_model
 from .base import base
-from Core.loss import get_loss
-from Core.activation import get_activation
-from Core.optim import get_optim
-from Core.scheduler import get_scheduler
-from Core.metrics import get_metrics
-from Core.utils import *
+import Core
 
 class Trainer(base):
   """Trainer code for basic classification problems with categorical cross entropy."""
@@ -34,7 +24,7 @@ class Trainer(base):
     self.empty_cache = empty_cache
     self.debug = debug
 
-  def build_model(self, activation_params, optimizer_params, scheduler_params,
+  def build_model(self, model, activation_params, optimizer_params, scheduler_params,
       loss_params, metric_params, name="NodeConv",
       arrange_data="arrange_sparse_minkowski", arrange_truth="arrange_sparse",
       **model_args):
@@ -42,26 +32,25 @@ class Trainer(base):
 
     # Construct the model
     if torch.cuda.is_available() and self.device != "cpu": torch.cuda.set_device(self.device)
-    model_args["A"] = get_activation(**activation_params)
-    self.model = get_model(name=name, **model_args)
-    self.model = self.model.to(self.device)
+    model_args["A"] = Core.get_activation(**activation_params)
+    self.model = model(**model_args).to(self.device)
     
     # Construct the loss function
-    self.loss_func = get_loss(**loss_params)
+    self.loss_func = Core.loss.get_loss(**loss_params)
 
     # Construct the optimizer
-    self.optimizer = get_optim(model_params=self.model.parameters(), **optimizer_params)
-    self.scheduler = get_scheduler(self.optimizer, **scheduler_params)
+    self.optimizer = Core.optim.get_optim(model_params=self.model.parameters(), **optimizer_params)
+    self.scheduler = Core.scheduler.get_scheduler(self.optimizer, **scheduler_params)
 
     # Configure metrics
     metrics=metric_params["metrics"]
     metric_args = metric_params[metrics]
-    self.metrics = get_metrics(metrics)(**metric_args)
+    self.metrics = Core.metrics.get_metrics(metrics)(**metric_args)
     self.batch_metrics = metric_params["include_batch_metrics"]
 
     # Select function to arrange data
-    self.arrange_data = get_arrange_data(arrange_data)
-    self.arrange_truth = get_arrange_truth(arrange_truth)
+    self.arrange_data = Core.get_arrange_data(arrange_data)
+    self.arrange_truth = Core.get_arrange_truth(arrange_truth)
  
   def load_state_dict(self, state_dict, **kwargs):
     """Load state dict from trained model"""

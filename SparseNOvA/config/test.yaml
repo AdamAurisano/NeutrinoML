@@ -67,11 +67,11 @@ data_loader:
   num_workers: 5
 
 trainer:
-  device: 6 # Which GPU to use
+  device: "cuda:0" # Which GPU to use
   n_epochs: 50
-  empty_cache: 1 # How many iterations between calls to empty GPU memory cache
-  train_name:  "/focal_loss"
-  summary_dir: "/scratch/SparseNOvA/summary/preselection/bestparam/fishnet/SGD/batchsize1024"
+  empty_cache: 100
+  train_name:  "test"
+  summary_dir: "/scratch/SparseNOvA/summary"
   output_dir:  "/scratch/SparseNOvA/params"
   resume: True
   debug: False

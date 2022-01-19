@@ -6,8 +6,7 @@ def train():
   workdir = osp.dirname(osp.dirname(osp.realpath(__file__)))
   import torch, torch_geometric
   if workdir not in sys.path: sys.path.append(workdir)
-  import datasets
-  from core.trainers import Trainer
+  import Core, ExaTrkX
   from torch_geometric.loader import DataLoader
 
   # Configuration options
@@ -23,11 +22,11 @@ def train():
   args = parser.parse_args()
   config = configure(args.config)
 
-  trainer = Trainer(**config["trainer"])
+  trainer = Core.Trainer(**config["trainer"])
 
   # Load dataset
-  train_dataset = datasets.training_dataset(**config["data"])
-  valid_dataset = datasets.validation_dataset(**config["data"])
+  train_dataset = ExaTrkX.training_dataset(**config["data"])
+  valid_dataset = ExaTrkX.validation_dataset(**config["data"])
 
   weights = train_dataset.load_weights(trainer.device).pow(0.75)
   # weights = torch.ones(config["model"]["output_dim"], device=trainer.device)
@@ -37,7 +36,7 @@ def train():
     print(f"  {name}: {weight}")
 
   mean, std = train_dataset.load_norm(trainer.device)
-  transform = datasets.FeatureNorm(mean, std)
+  transform = ExaTrkX.FeatureNorm(mean, std)
   config["model"]["loss_params"]["weight"] = weights
 
   train_loader = DataLoader(train_dataset, batch_size=config["trainer"]["batch_size"], 
@@ -46,7 +45,8 @@ def train():
     num_workers=config["trainer"]["num_workers"], shuffle=False, follow_batch=['x_u', 'x_v', 'x_y'])
 
   # Build model
-  trainer.build_model(**config["model"], transform=transform)
+  model = ExaTrkX.get_model(**config["model"])
+  trainer.build_model(model, **config["model"], transform=transform)
 
   # Train!
   train_summary = trainer.train(train_loader, valid_data_loader=valid_loader, **config["trainer"])

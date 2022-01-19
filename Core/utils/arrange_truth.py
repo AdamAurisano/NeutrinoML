@@ -22,3 +22,9 @@ def arrange_dense(data, device):
 def arrange_graph(data, device):
     """Arrange ground truth for a batch of graphs when using DataParallel"""
     return data.y.to(device)
+
+def arrange_graph_3d(data, device):
+    """Arrange ground truth for a batch of graphs when using DataParallel"""
+    import torch
+    return torch.cat([data.y_s_u, data.y_s_v, data.y_s_y], dim=0).to(device)
+

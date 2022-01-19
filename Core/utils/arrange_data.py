@@ -1,5 +1,3 @@
-import torch
-
 def arrange_sparse(data, device):
     batch_input = (data['c'].to(device), data['x'].to(device), batch_size)
     return batch_input

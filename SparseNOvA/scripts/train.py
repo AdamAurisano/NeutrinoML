@@ -19,8 +19,9 @@ with open(parser.parse_args().config) as f:
 
 # Here we load the dataset and the trainer, which is responsible for building the model and overseeing training. There's a block of code which is responsible for slicing the full dataset up into a training dataset and a validation dataset where jitter is applied to training dataset only.
 
-train_dataset = datasets.get_dataset(subdir="training", apply_jitter=True, normalize_coord=True, **config['data'])
-valid_dataset = datasets.get_dataset(subdir="validation", apply_jitter=False, normalize_coord=True, **config['data'])
+limit = 5*config["data_loader"]["batch_size"] if config["trainer"]["debug"] else None
+train_dataset = datasets.get_dataset(subdir="training", apply_jitter=True, normalize_coord=True, limit=limit, **config['data'])
+valid_dataset = datasets.get_dataset(subdir="validation", apply_jitter=False, normalize_coord=True, limit=limit, **config['data'])
 
 # parameters = [sherpa.Continuous('learning_rate', [1e-5, 1e-1]), sherpa.Continuous('weight_decay', [0.01, 0.1]), sherpa.Discrete('unet_depth', [2, 6])]
 trainer = Trainer(**config['trainer'])

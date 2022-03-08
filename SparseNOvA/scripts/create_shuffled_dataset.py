@@ -15,17 +15,17 @@ topdir = config["data"]["topdir"]
 nonswap = glob(topdir+"/nonswap_nu/*.pt")
 tauswap = glob(topdir+"/tauswap_nu/*.pt")
 fluxswap = glob(topdir+"/fluxswap_nu/*.pt")
-nonswap_cosmics = glob(topdir+"/nonswap_cosmic/*.pt")
-tauswap_cosmics = glob(topdir+"/tauswap_cosmic/*.pt")
-fluxswap_cosmics = glob(topdir+"/fluxswap_cosmic/*.pt")
+# nonswap_cosmics = glob(topdir+"/nonswap_cosmic/*.pt")
+# tauswap_cosmics = glob(topdir+"/tauswap_cosmic/*.pt")
+# fluxswap_cosmics = glob(topdir+"/fluxswap_cosmic/*.pt")
 
 all_nus = nonswap + tauswap + fluxswap
-all_cosmics = nonswap_cosmics + tauswap_cosmics + fluxswap_cosmics
+# all_cosmics = nonswap_cosmics + tauswap_cosmics + fluxswap_cosmics
 
-max_cosmics = int(0.1 * len(all_nus))
-if len(all_cosmics) > max_cosmics: all_cosmics = all_cosmics[0:max_cosmics]
+# max_cosmics = int(0.1 * len(all_nus))
+# if len(all_cosmics) > max_cosmics: all_cosmics = all_cosmics[0:max_cosmics]
 
-full_dataset = all_nus + all_cosmics
+full_dataset = all_nus #+ all_cosmics
 shuffle(full_dataset)
 
 val_frac = config["data"]["val_fraction"]

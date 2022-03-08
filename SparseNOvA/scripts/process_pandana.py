@@ -145,13 +145,15 @@ if __name__ == '__main__':
       truth = row.label
 
       # get offset coordinates
-      zoffset = np.floor(row.firstplane/2)
-      xoffset = row.firstcellx
-      yoffset = row.firstcelly
+#       zoffset = np.floor(row.firstplane/2)
+#       xoffset = row.firstcellx
+#       yoffset = row.firstcelly
 
       # get pixel coordinates
-      xcoord = np.stack(xmask, axis=0) + np.array([zoffset, xoffset])[:,None]
-      ycoord = np.stack(ymask, axis=0) + np.array([zoffset, yoffset])[:,None]
+#       xcoord = np.stack(xmask, axis=0) + np.array([zoffset, xoffset])[:,None]
+#       ycoord = np.stack(ymask, axis=0) + np.array([zoffset, yoffset])[:,None]
+      xcoord = np.stack(xmask, axis=0)
+      ycoord = np.stack(ymask, axis=0)
 
       # use the masks to get data dictionary
       data = { 'xfeats': torch.tensor(xview[xmask]).unsqueeze(dim=-1).float(),

@@ -61,7 +61,7 @@ class Trainer(base):
  
   def load_state_dict(self, state_dict, **kwargs):
     """Load state dict from trained model"""
-    location = f"cuda{self.device}" if self.device != "cpu" else "cpu"
+    location = f"cuda:{self.device}" if self.device != "cpu" else "cpu"
     self.model.load_state_dict(torch.load(state_dict, map_location=location)["model"])
 
   def train_epoch(self, data_loader, **kwargs):

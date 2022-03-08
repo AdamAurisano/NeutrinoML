@@ -25,11 +25,10 @@ class Trainer(base):
   """Trainer code for basic classification problems with categorical cross entropy."""
 
   def __init__(self, train_name="test1", summary_dir="summary",
-    empty_cache=None, debug=False, **kwargs):
+    empty_cache=None, **kwargs):
     super(Trainer, self).__init__(train_name=train_name, **kwargs)
     self.summary_dir = f"{summary_dir}/{train_name}"
     self.empty_cache = empty_cache
-    self.debug = debug
 
   def build_model(self, activation_params, optimizer_params, scheduler_params,
       loss_params, metric_params, name="NodeConv",
@@ -75,7 +74,7 @@ class Trainer(base):
     # Loop over training batches
     batch_size = data_loader.batch_size
     n_batches = int(math.ceil(len(data_loader.dataset)/batch_size))
-    t = tqdm.tqdm(enumerate(data_loader),total=n_batches if not self.debug else 5)
+    t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
     for i, data in t:
       self.optimizer.zero_grad()
       # Different input shapes for SparseConvNet vs MinkowskiEngine
@@ -104,8 +103,6 @@ class Trainer(base):
       if self.empty_cache is not None and self.iteration % self.empty_cache == 0:
         torch.cuda.empty_cache()
 
-      if self.debug and i == 4: break
-
     summary["lr"] = self.optimizer.param_groups[0]["lr"]
     summary["train_time"] = time.time() - start_time
     summary["train_loss"] = sum_loss / n_batches
@@ -124,7 +121,7 @@ class Trainer(base):
     # Loop over batches
     batch_size = data_loader.batch_size
     n_batches = int(math.ceil(len(data_loader.dataset)/batch_size))
-    t = tqdm.tqdm(enumerate(data_loader),total=n_batches if not self.debug else 5)
+    t = tqdm.tqdm(enumerate(data_loader),total=n_batches)
     for i, data in t:
       batch_input = self.arrange_data(data, self.device)
       batch_output = self.model(batch_input)
@@ -132,7 +129,6 @@ class Trainer(base):
       batch_loss = self.loss_func(batch_output, batch_target)
       sum_loss += batch_loss.item()
       self.metrics.valid_batch_metrics(batch_output, batch_target)
-      if self.debug and i == 4: break
     summary["valid_time"] = time.time() - start_time
     summary["valid_loss"] = sum_loss / n_batches
     self.logger.debug(" Processed %i samples in %i batches",

@@ -7,13 +7,10 @@ import time, math, glob
 
 # Externals
 import torch
-import pandas as pd
-import seaborn as sn
 import torch.nn as nn
-import matplotlib.pyplot as plt
-import tqdm, numpy as np, psutil
-from sklearn.metrics import confusion_matrix
 from torch.utils.tensorboard import SummaryWriter
+import tqdm, numpy as np, psutil
+
 # Locals
 from Core.models import get_model
 from .base import base
@@ -65,7 +62,7 @@ class Trainer(base):
  
   def load_state_dict(self, state_dict, **kwargs):
     """Load state dict from trained model"""
-    location = f"cuda:{self.device}" if self.device != "cpu" else "cpu"
+    location = f"cuda{self.device}" if self.device != "cpu" else "cpu"
     self.model.load_state_dict(torch.load(state_dict, map_location=location)["model"])
 
   def train_epoch(self, data_loader, **kwargs):
@@ -128,9 +125,6 @@ class Trainer(base):
     batch_size = data_loader.batch_size
     n_batches = int(math.ceil(len(data_loader.dataset)/batch_size))
     t = tqdm.tqdm(enumerate(data_loader),total=n_batches if not self.debug else 5)
-    y_true_all = None
-    y_pred_all = None
-    names = ["shower","delta","diffuse","hip","michel","mu","pi"] 
     for i, data in t:
       batch_input = self.arrange_data(data, self.device)
       batch_output = self.model(batch_input)
@@ -138,21 +132,9 @@ class Trainer(base):
       batch_loss = self.loss_func(batch_output, batch_target)
       sum_loss += batch_loss.item()
       self.metrics.valid_batch_metrics(batch_output, batch_target)
-      ## input for the confusion matrix 
-      if y_true_all is None: y_true_all = batch_target.argmax(dim=1)
-      else: y_true_all = torch.cat([y_true_all, batch_target.argmax(dim=1)], dim=0)
-      if y_pred_all is None: y_pred_all = batch_output.argmax(dim=1)
-      else: y_pred_all = torch.cat([y_pred_all, batch_output.argmax(dim=1)], dim=0)
       if self.debug and i == 4: break
-    ## calculate confusion matrix
-    print(torch.unique(y_pred_all))
-    cf_matrix = confusion_matrix(y_true_all.cpu().numpy(), y_pred_all.cpu().numpy(),normalize='true')
-    df_cm = pd.DataFrame(cf_matrix, index=[i for i in names], columns=[i for i in names])
-    print(df_cm)
-    plt.figure(figsize=(12, 7))
     summary["valid_time"] = time.time() - start_time
     summary["valid_loss"] = sum_loss / n_batches
-    summary['confusion_matrix'] = sn.heatmap(df_cm, annot = True).get_figure()
     self.logger.debug(" Processed %i samples in %i batches",
                       len(data_loader.sampler), n_batches)
     self.logger.info("  Validation loss: %.3f" % (summary["valid_loss"]))
@@ -200,20 +182,14 @@ class Trainer(base):
           self.logger.debug("Checkpointing new best model with loss: %.3f", best_valid_loss)
           self.write_checkpoint(checkpoint_id=i,best=True)
 
-      # use this with StepLR to suppress warning message 
-      if self.scheduler is not None: 
-        self.scheduler.step()
-
-     # else: 
-     #   self.scheduler.step(sum_valid["valid_loss"])
+      if self.scheduler is not None:
+        self.scheduler.step(sum_valid["valid_loss"])
 
       # Save summary, checkpoint
       self.save_summary(summary)
       if self.output_dir is not None:
         self.write_checkpoint(checkpoint_id=i)
 
-      self.writer.add_figure('confusion_matrix_true/pred',summary['confusion_matrix'],i+1)
-      #summary['confusion_matrix'].savefig(f'plots/test/semantic_{i+1}.png')
       self.writer.add_scalar("learning_rate", self.optimizer.param_groups[0]["lr"], i+1)
       self.writer.add_scalars('loss/epoch', {
           'train': summary['train_loss'],
@@ -226,6 +202,7 @@ class Trainer(base):
               iteration=i,
               objective=metrics["acc/epoch"]["valid"])
           if sherpa_study.should_trial_stop(sherpa_trial): break
+
     return self.summaries
 
 def _test():

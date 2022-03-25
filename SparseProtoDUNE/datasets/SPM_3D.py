@@ -14,14 +14,15 @@ from .InstanceTruth import *
 from .SegTruth import SegTruth
 
 class SparsePixelMap3D(Dataset):
-  def __init__(self, root, trainfiles, **kwargs):
+  def __init__(self, root, trainfiles, raw, **kwargs):
     self.root = root
     self.trainfiles = trainfiles
     self.data_files = self.processed_file_names
+    self.raw = raw 
 
   @property
   def raw_dir(self):
-    return f'{self.root}/raw'
+    return f'{self.root}/{self.raw}'
 
   @property
   def processed_dir(self):
@@ -47,13 +48,15 @@ class SparsePixelMap3D(Dataset):
     feat_norm =  torch.tensor([1.429e-3,1.667e-3,1.429e-3]).float()
     x = data['x'][:,:3].float()
     y = data['y'].float()
+    #is_primary = data['primary'].float()
+    #is_primary = is_primary.reshape(is_primary.shape[0],1)
     y = torch.hstack((y[:,:2],(y[:,2:3]+y[:,8:9]),y[:,3:-2]))
     y = torch.hstack((y[:,:3], (y[:,3:4] + y[:,5:6]), y[:,4:5], y[:,6:]))
     if enable_panoptic_seg == False:
       c = data['c'].int()
       #x = torch.cat((x,c*feat_norm[None,:]),dim=1) 
       del data
-      return { 'x': x, 'c': c, 'y': y}
+      return { 'x': x, 'c': c, 'y': y, 'is_primary': is_primary} 
     else:
       c = data['c'].int() 
       x = torch.cat((x,c*feat_norm[None,:]),dim=1) 
@@ -62,8 +65,13 @@ class SparsePixelMap3D(Dataset):
       medoids = data['medoids'].int()
       voxId = data['voxId'].int()
       meta = medoids.shape[0]
+      P=data['P'].float()
+      #is_primary = data['primary'].float()
+      #is_primary = is_primary.reshape(is_primary.shape[0],1)
       del data
-      return { 'x': x, 'c': c, 'y': y, 'htm': htm,  'medoids':medoids, 'offset':offset, 'voxId':voxId, 'meta':meta} 
+      return { 'x': x, 'c': c, 'y': y, 'htm': htm,  'medoids':medoids, 
+              'offset':offset, 'voxId':voxId, 'meta':meta, 'P':P} 
+      #return { 'x': x, 'c': c, 'y': y, 'htm': htm,  'medoids':medoids, 'offset':offset, 'voxId':voxId, 'meta':meta, 'is_primary': is_primary} 
   
   def vet_files(self):
     for f in self.data_files:
@@ -80,8 +88,8 @@ class SparsePixelMap3D(Dataset):
   def process_file(self, filename, voxel_size=1, **kwargs):
     '''Process a single raw input file'''
     t = uproot.open(filename)['CVNSparse']
-    coords, feats, pix_pdg, pix_id, pix_e, pix_proc, pix_end_proc = t.arrays(
-      ['Coordinates', 'Features', 'PixelPDG', 'PixelTrackID', 'PixelEnergy', 'Process', 'EndProcess'], library='np', how=tuple)
+    coords, feats, es_energy, pix_pdg, pix_id, pix_e, pix_proc, pix_end_proc, pix_P = t.arrays(
+      ['Coordinates', 'Features', 'EstimatedEnergy', 'PixelPDG', 'PixelTrackID', 'PixelEnergy', 'Process', 'EndProcess','Momentum'], library='np', how=tuple)
     uuid = osp.basename(filename)[10:-5]
 
     mean = np.array([59.11111069, 78.96726227, 58.77098083])
@@ -94,8 +102,9 @@ class SparsePixelMap3D(Dataset):
         
         coords[idx] = np.array(coords[idx])
         feats[idx] = np.array(feats[idx])
+        es_energy[idx] = np.array(es_energy[idx])
         start = time()
-        m, sp_y, sp_id = SegTruth(pix_pdg[idx], pix_id[idx], pix_e[idx], pix_proc[idx], pix_end_proc[idx] ) # Get semantic label 
+        m, sp_y, sp_id, sp_P = SegTruth(pix_pdg[idx], pix_id[idx], pix_e[idx], pix_proc[idx], pix_end_proc[idx], pix_P[idx] ) # Get semantic label 
        
         ## Voxelization
         pos = np.floor(coords[idx]/voxel_size)
@@ -105,21 +114,25 @@ class SparsePixelMap3D(Dataset):
         cols_coord  = [ "c_x", "c_y", "c_z"           ]
         cols_label  = [ f"l_{i+1}" for i in range(10) ]
         cols_charge = [ "q_u", "q_v", "q_y"           ]
-        df = pd.DataFrame(np.concatenate([pos[m,:], sp_y[m,:], feats[idx][m,:], sp_id[m, None]], axis=1),
-                columns=cols_coord + cols_label + cols_charge + [ "vox_id" ])
+        cols_es_ener = [ "e_u", "e_v", "e_y"           ]
+        cols_P      = ["E","px","py","pz"] 
+        df = pd.DataFrame(np.concatenate([pos[m,:], sp_y[m,:], feats[idx][m,:], es_energy[idx][m,:], sp_id[m, None], sp_P[m,:]], axis=1),
+                columns=cols_coord + cols_label + cols_charge + cols_es_ener + [ "vox_id" ]+ cols_P)
         df["n_sp"] = 1 # when we voxelise, this becomes number of spacepoints per voxel
 
         # here we define a dictionary telling pandas how to aggregate each column
         agg_label  = { key: "sum"      for key in cols_label  }
         sum_unique = lambda x: sum(set(x))
         agg_charge = { key: sum_unique for key in cols_charge }
+        agg_energy = { key: sum_unique for key in cols_es_ener }
         mode = lambda x: stats.mode(x)[0].item()
+        agg_P      = {key: mode for key in cols_P}
 
         # uncomment the print statements below to see how the dataframe is changing
         #
         # group by voxel coordinates and aggregate down to a single row per voxel
         # print("before voxelisation\n", df, "\n\n")
-        df = df.groupby(cols_coord).agg(agg_label | agg_charge | { "n_sp": "sum", "vox_id": mode }).reset_index()
+        df = df.groupby(cols_coord).agg(agg_label | agg_charge | agg_energy  | agg_P | { "n_sp": "sum", "vox_id": mode }).reset_index()
         # print("after voxelisation\n", df, "\n\n")
 
         # just for fun, let's normalise the truth labels
@@ -136,13 +149,15 @@ class SparsePixelMap3D(Dataset):
         y = torch.tensor(df[cols_label].to_numpy()).float()
         c = torch.tensor(df[cols_coord].to_numpy()).int()
         x = torch.tensor((df[cols_feat].to_numpy()[:,:3] - mean)/sigma).float() #* np.array(feat_norm)[None,:]).float()
+        e = torch.tensor(df[cols_es_ener].to_numpy()).float() #estimated energy
         vox_id = torch.tensor(df["vox_id"].to_numpy()).int()
+        p = torch.tensor(df[cols_P].to_numpy()).float()
 
         ## Get Medoids and offsets 
         medoids, htm, offsets, vox_id = get_InstanceTruth(c, vox_id, y.argmax(dim=1), 8)
 
         # Save file 
-        data = { 'c': c, 'x': x, 'y': y, 'voxId': vox_id, 'medoids':  medoids, 'htm': htm, 'offsets': offsets, 'dE':dE}
+        data = { 'c': c, 'x': x, 'e': e, 'y': y, 'voxId': vox_id, 'medoids':  medoids, 'htm': htm, 'offsets': offsets, 'dE':dE, 'P':p }
         logging.info(f'Processing event took:  {time()-start:.2f} seconds.')
    
         if fname not in self.processed_dir and medoids.shape[0]>0:

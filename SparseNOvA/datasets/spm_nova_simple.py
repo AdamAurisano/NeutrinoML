@@ -15,6 +15,7 @@ class SparsePixelMapNOvA(Dataset):
             self.files = self.files[0:limit]
         self.apply_jitter = apply_jitter
         self.normalize_coord = normalize_coord
+        #self.standardize_input = standardize_input
         
     def __len__(self):
         return len(self.files)
@@ -34,5 +35,13 @@ class SparsePixelMapNOvA(Dataset):
             norm = torch.tensor([100, 80]).float()    
             data['xfeats'] = torch.cat([data['xfeats'], data['xcoords'].float() / norm], dim=1) 
             data['yfeats'] = torch.cat([data['yfeats'], data['ycoords'].float() / norm], dim=1) 
+            
+        # if self.standardize_input:
+        #     mean_x = 
+        #     std_x = 
+        #     mean_y = 
+        #     std_y = 
+        #     data['xfeats'] = ((data['xfeats'] - mean_x) / std_x).float()
+        #     data['yfeats'] = ((data['yfeats'] - mean_x) / std_x).float()
         
         return data

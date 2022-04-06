@@ -50,7 +50,7 @@ model:
   scheduler_params:
     scheduler: "ReduceLROnPlateau"
     ReduceLROnPlateau:
-      factor: 0.5
+      factor: 0.8
       patience: 3
     StepLR:
       step_size: 3
@@ -67,17 +67,17 @@ data_loader:
   num_workers: 5
 
 trainer:
-  device: 4 # Which GPU to use
-  n_epochs: 50
+  device: 7 # Which GPU to use
+  n_epochs: 35
   empty_cache: 1 # How many iterations between calls to empty GPU memory cache
-  train_name:  "/p5"
-  summary_dir: "/scratch/SparseNOvA/summary/preselection/bestparam/fishnet/SGD/batchsize1024"
+  train_name:  "/noTau"
+  summary_dir: "/scratch/SparseNOvA/summary/preselection/bestparam/fishnet/SGD/batchsize1024/cross_entropy_loss/factor0.8"
   output_dir:  "/scratch/SparseNOvA/params"
   resume: True
   debug: False
 
 inference:
   max_images: 100 # Maximum number of images to process
-  event_display: True # Whether to draw event displays
+  event_display: False # Whether to draw event displays
   confusion: False # Whether to draw a confusion matrix
   state_dict: None # Replace this with a string path to a trained .pth.tar file after training! They"re written to params/checkpoints

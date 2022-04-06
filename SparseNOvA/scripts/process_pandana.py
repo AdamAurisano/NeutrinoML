@@ -31,6 +31,11 @@ def kNCAndCC(tables):
   return ((abs(pdg)==12) | (abs(pdg)==14) | (abs(pdg)==16)).groupby(level=KL).first()
 kNCAndCC = Cut(kNCAndCC)
 
+def kNoTau(tables):
+  pdg = tables['rec.mc.nu']['pdg']
+  return ((abs(pdg)==12) | (abs(pdg)==14)).groupby(level=KL).first()
+kNoTau = Cut(kNoTau)
+
 def kCC(tables):
   pdg = tables['rec.mc.nu']['pdg']
   cc = tables['rec.mc.nu']['iscc']
@@ -80,11 +85,11 @@ def kFirstPlane(tables):
 kFirstPlane = Var(kFirstPlane)
 
 def get_alias(row):
+  # [0 == nu_mu, 1 == nu_e, 2 == NC, 3 == others]
   if 0 <= row.interaction < 4:  return 0
   elif 4 <= row.interaction < 8:  return 1
-  elif 8 <= row.interaction < 12: return 2
-  elif row.interaction == 13:   return 3
-  else:               return 4
+  elif row.interaction == 9:   return 2
+  else:               return 3
 
 if __name__ == '__main__':
   # Miniprod 5 h5s
@@ -93,7 +98,7 @@ if __name__ == '__main__':
                     help="directory containing input HDF5 files")
   args.add_argument("-o", "--outdir", type=str, required=True,
                     help="directory to write output files to")
-  args.add_argument("-t", "--type", type=str, required=True, choices=["nu", "cosmic"],
+  args.add_argument("-t", "--type", type=str, required=True, choices=["nu", "notau", "cosmic"],
                     help="which selection to apply")
   opts = args.parse_args()
   print('Change files in '+opts.indir+' to training files in '+opts.outdir)
@@ -104,6 +109,7 @@ if __name__ == '__main__':
   # Full selection
   kCut = kVeto & kContain & kVtx & kPng & kFEB
   if opts.type == "nu": kCut = kCut & kNCAndCC
+  if opts.type == "notau": kCut = kCut & kNoTau
   else: kCut = kCut & kCosmic
 
   # One file at a time to avoid problems with loading a bunch of pixel maps in memory

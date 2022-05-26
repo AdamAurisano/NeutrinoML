@@ -12,6 +12,9 @@ def get_metrics(metrics):
     elif metrics == 'Graph':
         from .graph import GraphMetrics
         return GraphMetrics
+    elif metrics == 'EnergyReconstruction':
+        from .EnergyReconstruction import EnergyReconstructionMetrics 
+        return EnergyReconstructionMetrics 
     else:
         raise Exception(f'Metric class "{metrics}" not recognised!')
 

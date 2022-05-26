@@ -1,0 +1,86 @@
+data:
+  name: 'SparsePixelMap3D'
+  root: '/data/3d'
+  raw: 'raw_SP'
+  trainfiles: 'NeutralPions_energy_reco_sample'
+  t_v_split: 0.05
+  task: 'energy_reconstruction' 
+
+process:
+  processes: 30
+  max_files: 10000
+  pre_transform: None
+  voxel_size: 1
+  feat_norm: [1.429e-3,1.667e-3,1.429e-3] # for coordinates only
+
+model:
+  name: 'EnergyNet'
+  n_dims: 3
+  input_feats: 3
+  n_feats: 32 
+  bias: True
+  task: 'energy_reconstruction' 
+  loss_params:
+    func: "L1Loss"
+  arrange_data: "arrange_sparse_minkowski"
+  arrange_truth: "sparse_energy_truth"
+
+  activation_params:
+    activation: "ReLU" 
+    LeakyReLU:
+      negative_slope: 0.01
+
+  optimizer_params:
+    optimizer: "SGD"
+    AdamW:
+      lr: 1.e-3
+      weight_decay:     0.01
+    SGD:
+      lr:               1.e-2
+      momentum:         0.9
+
+  scheduler_params:
+    scheduler: 'StepLR' #'ReduceLROnPlateau' 
+    ReduceLROnPlateau:
+      factor: 0.9
+      patience: 10
+    StepLR:
+      step_size: 50 
+      gamma: 0.5
+    CyclicLR:
+      base_lr: 7.e-4
+      max_lr: 9.e-4
+      step_size_up: 8000
+      mode: 'triangular'
+      verbose: True
+
+  metric_params:
+    metrics: "EnergyReconstruction"
+    include_batch_metrics: True
+    EnergyReconstruction: 
+            class_names: None
+
+
+
+data_loader:
+  batch_size: 50 
+  num_workers: 0
+
+trainer:
+  device: 6 # Which GPU to use
+  n_epochs: 100
+  train_name: 'EnergyNetTrain1'
+  summary_dir: 'summary/Reconstruction'
+  output_dir: '/data/3d/params/Reconstruction'
+  resume: False
+  debug: False
+  state_dict: None #'/data/3d/params/SSUResNet/D4_noSchedule/Depth_Study/checkpoints/model_checkpoint_SemanticSegUResNet_36536480_3979eea3e8_csarasty.best.pth.tar'  
+
+inference:
+  _dir: '/scratch'
+  max_images: 3000 # Maximum number of images to process
+  event_display: False #  Whether to draw event displays
+  confusion: True # Whether to draw a confusion matrix
+  confusion_binary: True
+  state_dict: '/data/3d/params/Reconstruction/EnergyNetTrain1/checkpoints/model_checkpoint_MinkowskiEnergyNet_571905_00be758d94_csarasty.best.pth.tar' 
+  #'/data/3d/params/Reconstruction/EnergyNet/checkpoints/model_checkpoint_MinkowskiEnergyNet_571905_00be758d94_csarasty.best.pth.tar' 

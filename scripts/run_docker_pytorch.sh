@@ -9,18 +9,22 @@ fi
 topdir=/home/$USER/NeutrinoML
 
 # Get docker port prefix based on username
-if   [ "$USER" == "hewesje"  ]; then
+if   [ "x$USER" == "xhewesje"  ]; then
   export PORTPREFIX=10
-elif [ "$USER" == "csarasty" ]; then
+elif [ "x$USER" == "xcsarasty" ]; then
   export PORTPREFIX=11
-elif [ "$USER" == "haejunoh" ]; then
+elif [ "x$USER" == "xhaejunoh" ]; then
   export PORTPREFIX=12
-elif [ "$USER" == "naporana" ]; then
+elif [ "x$USER" == "xnaporana" ]; then
   export PORTPREFIX=13
-elif [ "$USER" == "rajaoama" ]; then
+elif [ "x$USER" == "xrajaoama" ]; then
   export PORTPREFIX=14
-elif [ "$USER" == "byaeggy"  ]; then
+elif [ "x$USER" == "xbyaeggy"  ]; then
   export PORTPREFIX=15
+elif [ "x$USER" == "xdvargas" ]; then
+  export PORTPREFIX=16
+ elif [ "x$USER" == "xwshi" ]; then
+  export PORTPREFIX=17
 else
   echo "Username not recognised! Ask to be added as a user before running Docker."
 fi

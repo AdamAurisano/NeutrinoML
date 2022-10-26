@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 def categorical_cross_entropy(y_pred, y_true):
     y_pred = torch.clamp(y_pred, 1e-9, 1 - 1e-9)
@@ -26,8 +27,7 @@ def cross_entropy(y_pred, y_true, weighted=True):
     else:
         return loss.mean()
 
-def categorical_focal_loss(y_pred, y_true, gamma=2):
-    '''Focal loss function for multiclass classification with integer labels. '''
+def catagorical_focal_loss(y_pred, y_true, gamma=1.5):
     #weigths 
     weights = torch.ones(y_true.shape[1]).to(y_true.device)
     class_sum = y_true.sum(dim=0)
@@ -42,7 +42,39 @@ def categorical_focal_loss(y_pred, y_true, gamma=2):
     loss = -((1-pt)**gamma) * torch.log(pt)
     loss *= w[:,None]   #weighted loss 
     return loss.mean()
+    
+def weighted_focal_loss(y_pred, y_true, gamma=1.5):
+    '''Focal loss function for multiclass classification with integer labels. '''
+    ## weights of 1024 images
+    # weight tensor with as many classes as we have
+    # don't calculate any weight for the class which is zero, so we don't divide by zero
+    weights = torch.ones(y_true.shape[0]).to(y_true.device)
+    
+    # list of unique labels, number of images per label
+    unique_labels, counts = y_true.unique(return_counts = True) 
+    batchsize = 1024
+    weights_class = batchsize/counts # entry same as classes
+    print(weights_class)
+    # 1/ counts
+    # 1/ (2*counts) instead of 1/counts
+    # 1/ sqrt(counts)
+    # batchsize/counts
+    
+    for i in unique_labels:
+        if i == 3:
+            i = i - 1
+            mask = y_true == i
+            weights[mask] = weights_class[i]
+        else:
+            mask = y_true == i
+            weights[mask] = weights_class[i]   
 
+    ## loss calculation 
+    pt = torch.gather(y_pred, 1, y_true[:,None]) #model's estimated probability for the true label 
+    pt = torch.clamp(pt, 1e-9, 1 - 1e-9)
+    loss = -((1-pt)**gamma) * torch.log(pt)
+    loss *= weights[:,None]   #weighted loss 
+    return loss.mean()
 
 def focal_loss(y_pred, y_true, gamma=2):
     '''Focal loss function for multiclass classification with integer labels. '''
@@ -51,7 +83,6 @@ def focal_loss(y_pred, y_true, gamma=2):
     pt = torch.clamp(pt, 1e-9, 1 - 1e-9)
     loss = -((1-pt)**gamma) * torch.log(pt)
     return loss.mean()
-
 
 def generalized_dice(y_pred, y_true):
     weights = torch.zeros(y_true.shape[1]).to(y_true.device)

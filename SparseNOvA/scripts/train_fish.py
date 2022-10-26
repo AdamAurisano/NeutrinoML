@@ -11,21 +11,44 @@ from Core import utils
 from SparseNOvA import datasets
 from Core import models
 
-ME.set_sparse_tensor_operation_mode(ME.SparseTensorOperationMode.SHARE_COORDINATE_MANAGER)
-
 # Most of the training options are set in a configuration YAML file. We're going to load this config, and then the options inside will be passed to the relevent piece of the training framework.
 parser = argparse.ArgumentParser('train.py')
 parser.add_argument('config', nargs='?', default='/scratch/SparseNOvA/config/nova_sparse_fishnet.yaml')
 with open(parser.parse_args().config) as f:
   config = yaml.load(f, Loader=yaml.FullLoader)
 
-# Here we load the dataset and the trainer, which is responsible for building the model and overseeing training. There's a block of code which is responsible for slicing the full dataset up into a training dataset and a validation dataset where jitter is applied to training dataset only.
+nonswap = sorted(glob(f'{config["data"]["filedir"]}/fd_fhc_nonswap/*.pt'))
+tauswap = sorted(glob(f'{config["data"]["filedir"]}/fd_fhc_tauswap/*.pt'))
+fluxswap = sorted(glob(f'{config["data"]["filedir"]}/fd_fhc_fluxswap/*.pt'))
+nonswap_cosmics = sorted(glob(f'{config["data"]["filedir"]}/fd_fhc_cosmics1/*.pt'))
+tauswap_cosmics = sorted(glob(f'{config["data"]["filedir"]}/fd_fhc_cosmics2/*.pt'))
+fluxswap_cosmics = sorted(glob(f'{config["data"]["filedir"]}/fd_fhc_cosmics3/*.pt'))
 
-limit = 5*config["data_loader"]["batch_size"] if config["trainer"]["debug"] else None
-train_dataset = datasets.get_dataset(subdir="training", apply_jitter=True, limit=limit, standardize_input = True, **config['data'])
-valid_dataset = datasets.get_dataset(subdir="validation", apply_jitter=False, limit=limit, standardize_input = True, **config['data'])
+all_nus = nonswap + tauswap + fluxswap
+all_cosmics = nonswap_cosmics + tauswap_cosmics + fluxswap_cosmics
+
+if len(all_cosmics) > int(0.1 * len(all_nus)):
+    all_cosmics = all_cosmics[0:int(0.1*len(all_nus))]
+
+fulllen_nu = len(all_nus)
+fulllen_cosmic = len(all_cosmics)
+
+tv_num_nu = math.ceil(fulllen_nu*config['data']['t_v_split'])
+tv_num_cosmic = math.ceil(fulllen_cosmic*config['data']['t_v_split'])
+
+splits_nu = np.cumsum([fulllen_nu - tv_num_nu, 0, tv_num_nu])
+splits_cos = np.cumsum([fulllen_cosmic - tv_num_cosmic, 0, tv_num_cosmic])
+
+train_files = all_nus[0:splits_nu[1]] + all_cosmics[0:splits_cos[1]]
+train_files.sort(key = lambda x: osp.basename(x))  
+train_dataset = datasets.get_dataset(filelist=train_files, apply_jitter=True, normalize_coord=True, **config['data'])
+
+valid_files = all_nus[splits_nu[1]:splits_nu[2]] + all_cosmics[splits_cos[1]:splits_cos[2]]
+valid_files.sort(key = lambda x: osp.basename(x))
+valid_dataset = datasets.get_dataset(filelist=valid_files, apply_jitter=False, normalize_coord=True, **config['data'])
 
 # parameters = [sherpa.Continuous('learning_rate', [1e-5, 1e-1]), sherpa.Continuous('weight_decay', [0.01, 0.1]), sherpa.Discrete('unet_depth', [2, 6])]
+
 trainer = Trainer(**config['trainer'])
 
 # alg = sherpa.algorithms.GPyOpt(max_num_trials=50)
@@ -42,4 +65,5 @@ trainer.build_model(**config['model'])
 train_summary = trainer.train(train_loader, valid_data_loader=valid_loader, **config['trainer'])
 print(train_summary)
 torch.save(train_summary, 'summary_test.pt')
+
 

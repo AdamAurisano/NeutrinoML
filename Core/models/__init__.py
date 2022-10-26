@@ -2,6 +2,8 @@
 Module for retrieving PyTorch network architectures
 """
 
+from .fishnet_xy_pl import LightningFish
+
 def get_model(name, **model_args):
     if name =='SSMinkUNet34B':
         from .SSMinkUNet34B import SSMinkUNet34B

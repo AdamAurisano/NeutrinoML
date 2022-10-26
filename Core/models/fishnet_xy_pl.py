@@ -4,26 +4,39 @@ Author: Shuyang Sun
 '''
 from __future__ import division
 import torch
-import math
+import torch.nn as nn
+from torch_geometric.data import Batch, HeteroData
+from torch_scatter import scatter
+from pytorch_lightning import LightningModule
+import torchmetrics as tm
+
 from .fish_block import *
+from torch_scatter import scatter_add, scatter_mean
+from torchmetrics.functional import accuracy
+from torch.utils.checkpoint import checkpoint
 from Core.activation import minkowski_wrapper
+from SparseNOvA.loss import FocalLoss
 import MinkowskiEngine as ME
+
+import math
+from typing import List, NoReturn
+from argparse import ArgumentParser
 
 __all__ = ['fish']
 
 
 class Fish(ME.MinkowskiNetwork):
-    def __init__(self, block, D, A, 
-                 num_cls=1000, 
-                 num_down_sample=5, 
-                 num_up_sample=3, 
-                 trans_map=(2, 1, 0, 6, 5, 4),
-                 network_planes=None, 
-                 num_res_blks=None, 
-                 num_trans_blks=None, 
+    def __init__(self, D, A,  
+                 num_cls,
+                 num_down_sample, 
+                 num_up_sample, 
+                 trans_map,
+                 network_planes, 
+                 num_res_blks, 
+                 num_trans_blks,
                  **kwargs):
         super(Fish, self).__init__(D)
-        self.block = block
+        self.block = Bottleneck
         self.trans_map = trans_map
         self.upsample = ME.MinkowskiConvolutionTranspose
         self.down_sample = ME.MinkowskiMaxPooling(2, stride=2, dimension=D)
@@ -218,11 +231,13 @@ class Fish(ME.MinkowskiNetwork):
     def _fish_forward(self, all_feat):
         def stage_factory(*blks):
             def stage_forward(*inputs):
+                print('stage', stg_id)
                 if stg_id < self.num_down:  # tail 
                     tail_blk = nn.Sequential(*blks[:2])
                     return tail_blk(*inputs)
                 
                 elif stg_id == self.num_down: #last downward step of model
+                    print(inputs[0].coordinate_map_key)
                     score_blks = nn.Sequential(*blks[:2])
                     score_feat = score_blks(inputs[0])
                     att_feat = blks[3](score_feat)
@@ -237,11 +252,17 @@ class Fish(ME.MinkowskiNetwork):
 
                 # Upsampling pass
                 elif stg_id <= self.num_down + self.num_up:
+                    print(inputs[0].coordinate_map_key)
+                    print(inputs[1].coordinate_map_key)
                     feat_branch = blks[1](inputs[1])
                     feat_trunk = blks[2](blks[0](inputs[0]), feat_branch.coordinate_map_key)
+                    print('feat_branch', feat_branch.coordinate_map_key)
+                    print('feat_trunk', feat_trunk.coordinate_map_key)
                     return ME.cat(feat_trunk, feat_branch)
                 
                 else:  # refine
+                    print(inputs[0].coordinate_map_key)
+                    print(inputs[1].coordinate_map_key)
                     feat_branch = blks[1](inputs[1])
                     feat_trunk = blks[2](blks[0](inputs[0]))
                     return ME.cat(feat_trunk, feat_branch)
@@ -300,8 +321,10 @@ class Fish(ME.MinkowskiNetwork):
 
     
 class FishNet(ME.MinkowskiNetwork):
-    def __init__(self, block, D, A, input_feats, **kwargs):
+    def __init__(self, D, input_feats, **kwargs):
         super(FishNet, self).__init__(D)
+        
+        A = nn.Mish()
 
         ME.set_sparse_tensor_operation_mode(ME.SparseTensorOperationMode.SHARE_COORDINATE_MANAGER)
 
@@ -312,7 +335,7 @@ class FishNet(ME.MinkowskiNetwork):
         self.conv3 = self._conv_bn_relu(D, A, inplanes // 2, inplanes)
         self.pool1 = ME.MinkowskiMaxPooling(3, stride=2, dimension=D)
         # construct fish, resolution 56x56
-        self.fish = Fish(block, D, A, **kwargs)
+        self.fish = Fish(D, A, **kwargs)
         self._init_weights()
 
     def _conv_bn_relu(self, D, A, in_ch, out_ch, stride=1):
@@ -355,5 +378,175 @@ class FishNet(ME.MinkowskiNetwork):
 
         return out
 
-def fish(**kwargs):
-    return FishNet(Bottleneck, **kwargs)
+class LightningFish(LightningModule):
+    # PyTorch Lightning module for model training.
+    # Wrap the base model in a LightningModule wrapper to handle training and
+    # inference, and compute training metrics.
+    def __init__(self, 
+                 D = 2,
+                 input_feats = 3,
+                 num_cls = 5, 
+                 num_down_sample = 5, 
+                 num_up_sample = 3, 
+                 trans_map = (2, 1, 0, 6, 5, 4),
+                 network_planes = [64, 128, 256, 512, 512, 512, 384, 256, 320, 832, 1600], 
+                 num_res_blks = [2, 4, 8, 4, 2, 2, 2, 2, 2, 4], 
+                 num_trans_blks = [2, 2, 2, 2, 2, 4], 
+                 classes = ["numu","nue","nutau","nc","cosmic"],
+                 lr = 0.02,
+                 momentum = 0.9,
+                 gamma = 0,
+                 alpha: torch.Tensor = None):
+        super(LightningFish, self).__init__()
+        
+        # Before we use FishNet, we actually use the bottleneck fish block first
+        # So for self.model, should it be FishNet with block and arguments needed in Fish
+        # or should it be FishNet with block and arguments from the bottleneck class? In which case, I do not know the default options for.
+        
+        self.model = FishNet(D=D,
+                             input_feats=input_feats, 
+                             num_cls=num_cls,
+                             num_down_sample=num_down_sample, 
+                             num_up_sample=num_up_sample, 
+                             trans_map=trans_map,
+                             network_planes=network_planes,
+                             num_res_blks=num_res_blks,
+                             num_trans_blks=num_trans_blks)
+
+        self.classes = classes
+        self._lr = lr
+        self._momentum = momentum
+        self._loss_func = FocalLoss(gamma=gamma, alpha=alpha)
+        self._cm = tm.ConfusionMatrix(num_classes=len(classes), normalize='true') 
+    
+    def training_step(self, batch: Batch, batch_idx: int) -> float:
+        x = [batch["sparse"][0].to(device),
+             batch["sparse"][1],
+             batch["sparse"][2].to(device),
+             batch["sparse"][3]]
+        y = ["y"].to(device)
+        x, y = batch
+        x = self.model(x)
+        loss = self.loss_func(x, y)
+        self.log('loss/train_loss', loss, batch_size=batch.num_graphs)
+        self._accuracy(x, y, batch.num_graphs, 'train')
+
+        optim_params = self.optimizers().state_dict()['param_groups']
+        if len(optim_params) == 1:
+            self.log('hyperparams/learning_rate', optim_params[0]['lr'],
+                     batch_size=batch.num_graphs)
+        else:
+            for i, o in enumerate(optim_params):
+                self.log(f'hyperparams/learning_rate_{i+1}', o['lr'],
+                         batch_size=batch.num_graphs)
+
+        # GPU memory metrics
+        if x.get_device() >= 0:
+            def to_gb(val): return float(val) / float(1073741824)
+            available = to_gb(torch.cuda.get_device_properties(x.device).total_memory)
+            reserved = to_gb(torch.cuda.memory_reserved(x.device))
+            allocated = to_gb(torch.cuda.memory_allocated(x.device))
+            self.log('gpu_memory/reserved', reserved,
+                     batch_size=batch.num_graphs, reduce_fx=torch.max)
+            self.log('gpu_memory/allocated', allocated,
+                     batch_size=batch.num_graphs, reduce_fx=torch.max)
+            self.log('gpu_memory/reserved_frac', reserved/available,
+                     batch_size=batch.num_graphs, reduce_fx=torch.max)
+                                      
+        return loss
+    
+    def validation_step(self, batch: Batch, batch_idx = int) -> NoReturn:
+        self._shared_eval_step(batch, batch_idx, 'val')
+        
+    def test_step(self, batch: Batch, batch_idx: int) -> NoReturn:
+        self._shared_eval_step(batch, batch_idx, 'test')
+
+    def _accuracy(self,
+                  x: torch.Tensor,
+                  y: torch.Tensor,
+                  batch_size: int,
+                  name: str) -> NoReturn:
+        self.log(f'acc/{name}',
+                 100. * tm.functional.accuracy(x, y),
+                 batch_size=batch_size)
+        class_acc = tm.functional.accuracy(x, y, average='none',
+                                           num_classes=self.model.num_classes)
+        for c, a in zip(self.model.classes, class_acc):
+            self.log(f'{name}_class_acc/{c}', 100.*a, batch_size=batch_size)
+                                      
+    def _shared_eval_step(self, batch, batch_idx, name):
+        x = [batch["sparse"][0],#.to(device),
+            batch["sparse"][1],
+            batch["sparse"][2],#.to(device),
+            batch["sparse"][3]]
+        y = batch["y"]#.to(device)
+
+        x = self.model(x)
+
+        loss = self._loss_func(x, y)
+        self.log(f'loss/{name}_loss', loss, batch_size=batch.num_graphs)
+        
+        # accuracy
+        self.log(f'acc/{name}_total', 100.*accuracy(x, y), batch_size=batch.num_graphs)
+        class_acc = accuracy(x, y, average='none', num_classes=len(self.classes))
+        for c, a in zip(self.classes, class_acc):
+            self.log(f'acc/{name}_{c}', 100.*a, batch_size=batch.num_graphs)
+            
+        # confusion
+        self.cm.update(x, y)
+        
+    def validation_epoch_end(self, outputs: any) -> NoReturn:
+        self._shared_eval_epoch_end(outputs)
+
+    def test_epoch_end(self, outputs: any) -> NoReturn:
+        self._shared_eval_epoch_end(outputs)      
+        
+    def _shared_eval_epoch_end(self, outputs: any) -> NoReturn:
+        """Produce confusion matrix at end of epoch"""
+        confusion = self._cm.compute().cpu()
+        fig = plt.figure(figsize=[8,6])
+        sn.heatmap(confusion,
+                   xticklabels=self.classes,
+                   yticklabels=self.classes,
+                   annot=True)
+        plt.ylim(0, len(self.classes))
+        plt.xlabel('Assigned label')
+        plt.ylabel('True label')
+        self.logger.experiment.add_figure('confusion', fig,
+                                          global_step=self.trainer.global_step)
+
+    def predict_step(self,
+                     batch: Batch,
+                     batch_idx: int = 0) -> Batch:
+        return self.model(batch)
+
+    def configure_optimizers(self) -> tuple:
+        optimizer = torch.optim.SGD(self.parameters(),
+                                    lr=self._lr,
+                                    momentum=self._momentum)
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer, max_lr=self._lr,
+            total_steps=self.trainer.estimated_stepping_batches)
+        return [optimizer], {'scheduler': scheduler, 'interval': 'step'}
+
+#     @staticmethod
+#     def add_model_args(parser: ArgumentParser) -> ArgumentParser:
+#         '''Add argparse argpuments for model structure'''
+#         model = parser.add_argument_group('model', 'LightningFish model configuration')
+#         model.add_argument('--')                              
+
+#         return parser
+
+    @staticmethod
+    def add_train_args(parser: ArgumentParser) -> ArgumentParser:
+        train = parser.add_argument_group('train', 'LightningFish training configuration')
+        train.add_argument('--max_epochs', type=int, default=35,
+                           help='Maximum number of epochs to train for')
+        train.add_argument('--learning_rate', type=float, default=0.02,
+                           help='Max learning rate during training')
+        train.add_argument('--momentum', type=float, default=0.9,
+                           help='Momentum parameter for SGD optimizer')
+        train.add_argument('--gamma', type=float, default=0,
+                           help='Focal loss gamma parameter')
+        return parser
+        

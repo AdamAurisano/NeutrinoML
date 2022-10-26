@@ -60,7 +60,7 @@ model:
     metrics: "Classification"
     include_batch_metrics: True
     Classification:
-      class_names: ["numu","nue","nc","nutau","cosmic"]
+      class_names: ["numu","nue","nutau","nc","cosmic"]
 
 data_loader:
   batch_size: 1024
@@ -70,10 +70,10 @@ trainer:
   device: 7 # Which GPU to use
   n_epochs: 35
   empty_cache: 1 # How many iterations between calls to empty GPU memory cache
-  train_name:  "/noTau"
-  summary_dir: "/scratch/SparseNOvA/summary/preselection/bestparam/fishnet/SGD/batchsize1024/cross_entropy_loss/factor0.8"
+  train_name:  "/weight-batchsizecounts"
+  summary_dir: "/scratch/SparseNOvA/summary/preselection/bestparam/fishnet/SGD/batchsize1024/weighted_focal_loss/StdInput/noTau/gamma_1.5"
   output_dir:  "/scratch/SparseNOvA/params"
-  resume: True
+  resume: False
   debug: False
 
 inference:

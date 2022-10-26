@@ -21,6 +21,9 @@ def get_loss(func, **params):
   if func == 'focal_loss':
     from .loss import focal_loss
     return focal_loss
+  if func == 'weighted_focal_loss':
+    from .loss import weighted_focal_loss
+    return weighted_focal_loss
   else:
     from torch import nn
     return getattr(nn.modules.loss, func)(**params)

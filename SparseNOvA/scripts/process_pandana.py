@@ -85,11 +85,12 @@ def kFirstPlane(tables):
 kFirstPlane = Var(kFirstPlane)
 
 def get_alias(row):
-  # [0 == nu_mu, 1 == nu_e, 2 == NC, 3 == others]
+  # [0 == nu_mu, 1 == nu_e, 2 == nu_tau, 3 == NC, 4 == others]
   if 0 <= row.interaction < 4:  return 0
   elif 4 <= row.interaction < 8:  return 1
-  elif row.interaction == 9:   return 2
-  else:               return 3
+  elif 8 <= row.interaction < 12:  return 2
+  elif row.interaction == 13:   return 3
+  else:               return 4
 
 if __name__ == '__main__':
   # Miniprod 5 h5s

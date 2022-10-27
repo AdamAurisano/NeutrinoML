@@ -21,6 +21,8 @@ import MinkowskiEngine as ME
 import math
 from typing import List, NoReturn
 from argparse import ArgumentParser
+import matplotlib.pyplot as plt
+import seaborn as sn
 
 __all__ = ['fish']
 
@@ -231,13 +233,11 @@ class Fish(ME.MinkowskiNetwork):
     def _fish_forward(self, all_feat):
         def stage_factory(*blks):
             def stage_forward(*inputs):
-                print('stage', stg_id)
                 if stg_id < self.num_down:  # tail 
                     tail_blk = nn.Sequential(*blks[:2])
                     return tail_blk(*inputs)
                 
                 elif stg_id == self.num_down: #last downward step of model
-                    print(inputs[0].coordinate_map_key)
                     score_blks = nn.Sequential(*blks[:2])
                     score_feat = score_blks(inputs[0])
                     att_feat = blks[3](score_feat)
@@ -252,19 +252,13 @@ class Fish(ME.MinkowskiNetwork):
 
                 # Upsampling pass
                 elif stg_id <= self.num_down + self.num_up:
-                    print(inputs[0].coordinate_map_key)
-                    print(inputs[1].coordinate_map_key)
                     feat_branch = blks[1](inputs[1])
                     feat_trunk = blks[2](blks[0](inputs[0]), feat_branch.coordinate_map_key)
-                    print('feat_branch', feat_branch.coordinate_map_key)
-                    print('feat_trunk', feat_trunk.coordinate_map_key)
                     return ME.cat(feat_trunk, feat_branch)
                 
                 else:  # refine
-                    print(inputs[0].coordinate_map_key)
-                    print(inputs[1].coordinate_map_key)
-                    feat_branch = blks[1](inputs[1])
-                    feat_trunk = blks[2](blks[0](inputs[0]))
+                    feat_branch= blks[1](inputs[1])
+                    feat_trunk = blks[2](blks[0](inputs[0]), feat_branch.coordinate_map_key)
                     return ME.cat(feat_trunk, feat_branch)
 
             return stage_forward
@@ -420,25 +414,25 @@ class LightningFish(LightningModule):
         self._cm = tm.ConfusionMatrix(num_classes=len(classes), normalize='true') 
     
     def training_step(self, batch: Batch, batch_idx: int) -> float:
-        x = [batch["sparse"][0].to(device),
+        x = [batch["sparse"][0],#.to(device),
              batch["sparse"][1],
-             batch["sparse"][2].to(device),
+             batch["sparse"][2],#.to(device),
              batch["sparse"][3]]
-        y = ["y"].to(device)
-        x, y = batch
+        y = batch["y"]#.to(device)
         x = self.model(x)
-        loss = self.loss_func(x, y)
-        self.log('loss/train_loss', loss, batch_size=batch.num_graphs)
-        self._accuracy(x, y, batch.num_graphs, 'train')
+        loss = self._loss_func(x, y)
+        self.log('loss/train_loss', loss, batch_size=batch_idx)
+        print(Batch)
+        self._accuracy(x, y, batch_idx, 'train')
 
         optim_params = self.optimizers().state_dict()['param_groups']
         if len(optim_params) == 1:
             self.log('hyperparams/learning_rate', optim_params[0]['lr'],
-                     batch_size=batch.num_graphs)
+                     batch_size=batch_idx)
         else:
             for i, o in enumerate(optim_params):
                 self.log(f'hyperparams/learning_rate_{i+1}', o['lr'],
-                         batch_size=batch.num_graphs)
+                         batch_size=batch_idx)
 
         # GPU memory metrics
         if x.get_device() >= 0:
@@ -447,11 +441,11 @@ class LightningFish(LightningModule):
             reserved = to_gb(torch.cuda.memory_reserved(x.device))
             allocated = to_gb(torch.cuda.memory_allocated(x.device))
             self.log('gpu_memory/reserved', reserved,
-                     batch_size=batch.num_graphs, reduce_fx=torch.max)
+                     batch_size=batch_idx, reduce_fx=torch.max)
             self.log('gpu_memory/allocated', allocated,
-                     batch_size=batch.num_graphs, reduce_fx=torch.max)
+                     batch_size=batch_idx, reduce_fx=torch.max)
             self.log('gpu_memory/reserved_frac', reserved/available,
-                     batch_size=batch.num_graphs, reduce_fx=torch.max)
+                     batch_size=batch_idx, reduce_fx=torch.max)
                                       
         return loss
     
@@ -468,11 +462,11 @@ class LightningFish(LightningModule):
                   name: str) -> NoReturn:
         self.log(f'acc/{name}',
                  100. * tm.functional.accuracy(x, y),
-                 batch_size=batch_size)
+                 batch_size=batch_idx)
         class_acc = tm.functional.accuracy(x, y, average='none',
                                            num_classes=self.model.num_classes)
         for c, a in zip(self.model.classes, class_acc):
-            self.log(f'{name}_class_acc/{c}', 100.*a, batch_size=batch_size)
+            self.log(f'{name}_class_acc/{c}', 100.*a, batch_size=batch_idx)
                                       
     def _shared_eval_step(self, batch, batch_idx, name):
         x = [batch["sparse"][0],#.to(device),
@@ -484,16 +478,16 @@ class LightningFish(LightningModule):
         x = self.model(x)
 
         loss = self._loss_func(x, y)
-        self.log(f'loss/{name}_loss', loss, batch_size=batch.num_graphs)
+        self.log(f'loss/{name}_loss', loss, batch_size=batch_idx)
         
         # accuracy
-        self.log(f'acc/{name}_total', 100.*accuracy(x, y), batch_size=batch.num_graphs)
+        self.log(f'acc/{name}_total', 100.*accuracy(x, y), batch_size=batch_idx)
         class_acc = accuracy(x, y, average='none', num_classes=len(self.classes))
         for c, a in zip(self.classes, class_acc):
-            self.log(f'acc/{name}_{c}', 100.*a, batch_size=batch.num_graphs)
+            self.log(f'acc/{name}_{c}', 100.*a, batch_size=batch_idx)
             
         # confusion
-        self.cm.update(x, y)
+        self._cm.update(x, y)
         
     def validation_epoch_end(self, outputs: any) -> NoReturn:
         self._shared_eval_epoch_end(outputs)

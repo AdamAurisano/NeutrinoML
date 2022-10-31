@@ -421,18 +421,18 @@ class LightningFish(LightningModule):
         y = batch["y"]#.to(device)
         x = self.model(x)
         loss = self._loss_func(x, y)
-        self.log('loss/train_loss', loss, batch_size=batch_idx)
-        print(Batch)
-        self._accuracy(x, y, batch_idx, 'train')
+        batch_size = batch['y'].size(dim=0)
+        self.log('loss/train_loss', loss, batch_size)
+        self._accuracy(x, y, batch_size, 'train')
 
         optim_params = self.optimizers().state_dict()['param_groups']
         if len(optim_params) == 1:
             self.log('hyperparams/learning_rate', optim_params[0]['lr'],
-                     batch_size=batch_idx)
+                     batch_size)
         else:
             for i, o in enumerate(optim_params):
                 self.log(f'hyperparams/learning_rate_{i+1}', o['lr'],
-                         batch_size=batch_idx)
+                         batch_size)
 
         # GPU memory metrics
         if x.get_device() >= 0:
@@ -441,15 +441,15 @@ class LightningFish(LightningModule):
             reserved = to_gb(torch.cuda.memory_reserved(x.device))
             allocated = to_gb(torch.cuda.memory_allocated(x.device))
             self.log('gpu_memory/reserved', reserved,
-                     batch_size=batch_idx, reduce_fx=torch.max)
+                     batch_size, reduce_fx=torch.max)
             self.log('gpu_memory/allocated', allocated,
-                     batch_size=batch_idx, reduce_fx=torch.max)
+                     batch_size, reduce_fx=torch.max)
             self.log('gpu_memory/reserved_frac', reserved/available,
-                     batch_size=batch_idx, reduce_fx=torch.max)
+                     batch_size, reduce_fx=torch.max)
                                       
         return loss
     
-    def validation_step(self, batch: Batch, batch_idx = int) -> NoReturn:
+    def validation_step(self, batch: Batch, batch_idx: int) -> NoReturn:
         self._shared_eval_step(batch, batch_idx, 'val')
         
     def test_step(self, batch: Batch, batch_idx: int) -> NoReturn:
@@ -462,11 +462,11 @@ class LightningFish(LightningModule):
                   name: str) -> NoReturn:
         self.log(f'acc/{name}',
                  100. * tm.functional.accuracy(x, y),
-                 batch_size=batch_idx)
+                 batch_size=batch_size)
         class_acc = tm.functional.accuracy(x, y, average='none',
-                                           num_classes=self.model.num_classes)
-        for c, a in zip(self.model.classes, class_acc):
-            self.log(f'{name}_class_acc/{c}', 100.*a, batch_size=batch_idx)
+                                           num_classes=len(self.classes))
+        for c, a in zip(self.classes, class_acc):
+            self.log(f'{name}_class_acc/{c}', 100.*a, batch_size=batch_size)
                                       
     def _shared_eval_step(self, batch, batch_idx, name):
         x = [batch["sparse"][0],#.to(device),
@@ -474,18 +474,14 @@ class LightningFish(LightningModule):
             batch["sparse"][2],#.to(device),
             batch["sparse"][3]]
         y = batch["y"]#.to(device)
-
         x = self.model(x)
-
+        batch_size = batch['y'].size(dim=0)
         loss = self._loss_func(x, y)
-        self.log(f'loss/{name}_loss', loss, batch_size=batch_idx)
         
+        # log
+        self.log(f'loss/{name}', loss, batch_size=batch_size)
         # accuracy
-        self.log(f'acc/{name}_total', 100.*accuracy(x, y), batch_size=batch_idx)
-        class_acc = accuracy(x, y, average='none', num_classes=len(self.classes))
-        for c, a in zip(self.classes, class_acc):
-            self.log(f'acc/{name}_{c}', 100.*a, batch_size=batch_idx)
-            
+        self._accuracy(x, y, batch_size, name) 
         # confusion
         self._cm.update(x, y)
         

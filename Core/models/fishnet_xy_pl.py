@@ -393,10 +393,6 @@ class LightningFish(LightningModule):
                  alpha: torch.Tensor = None):
         super(LightningFish, self).__init__()
         
-        # Before we use FishNet, we actually use the bottleneck fish block first
-        # So for self.model, should it be FishNet with block and arguments needed in Fish
-        # or should it be FishNet with block and arguments from the bottleneck class? In which case, I do not know the default options for.
-        
         self.model = FishNet(D=D,
                              input_feats=input_feats, 
                              num_cls=num_cls,
